@@ -23,12 +23,12 @@ function educore_staff_list_view() {
     $active_tab = isset( $_GET['type'] ) ? sanitize_key( wp_unslash( $_GET['type'] ) ) : 'school_teacher';
     // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
-    // Map URL tab keys directly to exact DB `staff_type` values stored in form select
+    // Flexible mapping allowing matching against multiple potential DB `staff_type` values
     $tab_to_db_map = array(
-        'school_teacher'  => 'Teacher (School)',
-        'college_teacher' => 'Teacher (College)',
-        'staff'           => 'Staff',
-        'officer'         => 'Officer',
+        'school_teacher'  => array( 'Teacher', 'Teacher (School)' ),
+        'college_teacher' => array( 'Teacher (College)' ),
+        'staff'           => array( 'Staff' ),
+        'officer'         => array( 'Officer' ),
     );
 
     // Fallback to School Teacher if tab is invalid
@@ -36,7 +36,7 @@ function educore_staff_list_view() {
         $active_tab = 'school_teacher';
     }
 
-    $db_staff_type = $tab_to_db_map[ $active_tab ];
+    $allowed_types = $tab_to_db_map[ $active_tab ];
 
     // Detect Order Column dynamically in db safely
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
@@ -53,17 +53,18 @@ function educore_staff_list_view() {
         }
     }
 
+    // Safely construct a dynamic IN clause query for multiple staff_type variations
+    $placeholders = implode( ',', array_fill( 0, count( $allowed_types ), '%s' ) );
+    $query_string = "SELECT *, `{$order_col}` AS db_order_number 
+                     FROM `{$table_staff}` 
+                     WHERE staff_type IN ({$placeholders}) 
+                     ORDER BY `{$order_col}` ASC, id DESC";
+    
+    $query_params = array_merge( array( $query_string ), $allowed_types );
+
     // Fetch DB records ordered strictly by DB order column
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-    $staff_members = $wpdb->get_results( 
-        $wpdb->prepare(
-            "SELECT *, `{$order_col}` AS db_order_number 
-             FROM `{$table_staff}` 
-             WHERE staff_type = %s 
-             ORDER BY `{$order_col}` ASC, id DESC",
-            $db_staff_type
-        )
-    );
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+    $staff_members = $wpdb->get_results( call_user_func_array( array( $wpdb, 'prepare' ), $query_params ) );
     // phpcs:enable
 
     // Tab Base URL Generator
@@ -143,7 +144,7 @@ function educore_staff_list_view() {
                             $display_staff_id = ! empty( $staff->staff_id ) ? strtoupper( (string) $staff->staff_id ) : '—';
 
                             // Employment Type display value stored directly in staff_type
-                            $emp_type_label = ! empty( $staff->staff_type ) ? $staff->staff_type : $db_staff_type;
+                            $emp_type_label = ! empty( $staff->staff_type ) ? $staff->staff_type : ucfirst( $active_tab );
                         ?>
                         <tr>
                             <!-- Order Number Column (from DB) -->
