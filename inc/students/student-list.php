@@ -41,6 +41,12 @@ function educore_students_list_view() {
     $class_order_map   = array();
     $available_classes = array();
 
+    // Arrays to compute analytics for metric cards
+    $class_gender_stats    = array();
+    $total_active_students = count( $students_records );
+    $total_male_count      = 0;
+    $total_female_count    = 0;
+
     if ( ! empty( $raw_units ) ) {
         foreach ( $raw_units as $unit ) {
             $c_name = trim( $unit->class_name );
@@ -77,11 +83,96 @@ function educore_students_list_view() {
             return strnatcasecmp( $a, $b );
         } );
     }
+
+    // Initialize stats structure for all available classes to ensure 0 counts appear accurately
+    foreach ( $available_classes as $c_name ) {
+        $class_gender_stats[ $c_name ] = array( 'male' => 0, 'female' => 0, 'total' => 0 );
+    }
+
+    if ( ! empty( $students_records ) ) {
+        foreach ( $students_records as $student ) {
+            $c_name = trim( $student->class_name );
+            $gender = strtolower( trim( $student->gender ) );
+
+            if ( ! isset( $class_gender_stats[ $c_name ] ) ) {
+                $class_gender_stats[ $c_name ] = array( 'male' => 0, 'female' => 0, 'total' => 0 );
+            }
+
+            if ( 'male' === $gender ) {
+                $class_gender_stats[ $c_name ]['male']++;
+                $total_male_count++;
+            } elseif ( 'female' === $gender ) {
+                $class_gender_stats[ $c_name ]['female']++;
+                $total_female_count++;
+            }
+            $class_gender_stats[ $c_name ]['total']++;
+        }
+    }
     ?>
 
     <style id="ifs-educore-students-list-styles">
         .ifs-educore-dt-container {
             font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #0f172a;
+        }
+
+        /* Metric Cards Grid Styling */
+        .ifs-educore-metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .ifs-educore-metric-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 16px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+            position: relative;
+            overflow: hidden;
+            border-left: 4px solid #00523c;
+            display: none; /* Managed dynamically via JavaScript */
+        }
+
+        .ifs-educore-metric-card.is-visible {
+            display: block;
+        }
+
+        .metric-card-title {
+            font-size: 13.5px;
+            font-weight: 800;
+            color: #1e293b;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .metric-card-stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px dashed #f1f5f9;
+            padding-top: 10px;
+        }
+
+        .metric-stat-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .metric-stat-label {
+            font-size: 11px;
+            color: #64748b;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .metric-stat-value {
+            font-size: 16px;
+            font-weight: 800;
             color: #0f172a;
         }
 
@@ -329,6 +420,57 @@ function educore_students_list_view() {
                 </div>
             <?php endif; ?>
         <?php endif; ?>
+
+        <!-- Dynamic Metric Cards Section -->
+        <div class="ifs-educore-metrics-grid">
+            <!-- Overall Total Card (Shown initially or when "All Classes" is selected) -->
+            <div class="ifs-educore-metric-card is-visible" data-metric-card-id="all" style="border-left-color: #2563eb;">
+                <div class="metric-card-title">
+                    <span><?php esc_html_e( 'All Classes Overview', 'ifsedu-school-management' ); ?></span>
+                </div>
+                <div class="metric-card-stats">
+                    <div class="metric-stat-item">
+                        <span class="metric-stat-label"><?php esc_html_e( 'Boys', 'ifsedu-school-management' ); ?></span>
+                        <span class="metric-stat-value" style="color: #2563eb;"><?php echo esc_html( $total_male_count ); ?></span>
+                    </div>
+                    <div class="metric-stat-item">
+                        <span class="metric-stat-label"><?php esc_html_e( 'Girls', 'ifsedu-school-management' ); ?></span>
+                        <span class="metric-stat-value" style="color: #db2777;"><?php echo esc_html( $total_female_count ); ?></span>
+                    </div>
+                    <div class="metric-stat-item">
+                        <span class="metric-stat-label"><?php esc_html_e( 'Total', 'ifsedu-school-management' ); ?></span>
+                        <span class="metric-stat-value" style="color: #00523c;"><?php echo esc_html( $total_active_students ); ?></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Individual Class Cards (Class 1, Class 2, etc. - Shown live when specific class is selected) -->
+            <?php foreach ( $available_classes as $c_name ) : 
+                $c_male   = isset( $class_gender_stats[ $c_name ]['male'] ) ? $class_gender_stats[ $c_name ]['male'] : 0;
+                $c_female = isset( $class_gender_stats[ $c_name ]['female'] ) ? $class_gender_stats[ $c_name ]['female'] : 0;
+                $c_total  = isset( $class_gender_stats[ $c_name ]['total'] ) ? $class_gender_stats[ $c_name ]['total'] : 0;
+            ?>
+                <div class="ifs-educore-metric-card" data-metric-card-id="<?php echo esc_attr( $c_name ); ?>">
+                    <div class="metric-card-title">
+                        <span><?php echo esc_html( $c_name ); ?></span>
+                    </div>
+                    <div class="metric-card-stats">
+                        <div class="metric-stat-item">
+                            <span class="metric-stat-label"><?php esc_html_e( 'Boys', 'ifsedu-school-management' ); ?></span>
+                            <span class="metric-stat-value" style="color: #2563eb;"><?php echo esc_html( $c_male ); ?></span>
+                        </div>
+                        <div class="metric-stat-item">
+                            <span class="metric-stat-label"><?php esc_html_e( 'Girls', 'ifsedu-school-management' ); ?></span>
+                            <span class="metric-stat-value" style="color: #db2777;"><?php echo esc_html( $c_female ); ?></span>
+                        </div>
+                        <div class="metric-stat-item">
+                            <span class="metric-stat-label"><?php esc_html_e( 'Total', 'ifsedu-school-management' ); ?></span>
+                            <span class="metric-stat-value" style="color: #00523c;"><?php echo esc_html( $c_total ); ?></span>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
         
         <!-- Filter & Search Toolbar -->
         <div class="ifs-educore-dt-toolbar">
@@ -482,7 +624,7 @@ function educore_students_list_view() {
         </div>
     </div>
 
-    <!-- Dynamic Filter & Pagination Engine -->
+    <!-- Dynamic Filter, Live Metric Switcher & Pagination Engine -->
     <script type="text/javascript">
     document.addEventListener('DOMContentLoaded', function() {
         const classSectionMap = <?php echo wp_json_encode( $class_section_map ); ?>;
@@ -490,6 +632,7 @@ function educore_students_list_view() {
         const sectionFilter = document.getElementById('ifs_educore_section_custom_filter');
         const searchInput = document.getElementById('ifs_educore_client_search');
         const allRows = Array.from(document.querySelectorAll('#ifs_educore_table_body tr.ifs-educore-data-row'));
+        const metricCards = Array.from(document.querySelectorAll('.ifs-educore-metric-card'));
         const tableInfo = document.getElementById('ifs_educore_table_info');
         const prevBtn = document.getElementById('ifs_educore_prev_btn');
         const nextBtn = document.getElementById('ifs_educore_next_btn');
@@ -498,10 +641,33 @@ function educore_students_list_view() {
         const pageSize = 20;
         let visibleRows = allRows;
 
+        function updateMetricCards(selectedClass) {
+            metricCards.forEach(card => {
+                const cardId = card.getAttribute('data-metric-card-id');
+                if (!selectedClass || selectedClass === '') {
+                    // Show global overview card, hide class cards
+                    if (cardId === 'all') {
+                        card.classList.add('is-visible');
+                    } else {
+                        card.classList.remove('is-visible');
+                    }
+                } else {
+                    // Hide global overview card, show selected class card live
+                    if (cardId === selectedClass) {
+                        card.classList.add('is-visible');
+                    } else {
+                        card.classList.remove('is-visible');
+                    }
+                }
+            });
+        }
+
         function applyFilters() {
             const selectedClass = (classFilter.value || '').trim();
             const selectedSection = (sectionFilter.value || '').trim();
             const searchTerm = (searchInput.value || '').trim().toLowerCase();
+
+            updateMetricCards(selectedClass);
 
             visibleRows = allRows.filter(function(row) {
                 const rowClass = (row.getAttribute('data-class') || '').trim();

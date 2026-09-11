@@ -27,20 +27,41 @@ function educore_render_class_setup_view() {
         admin_url( 'admin.php' )
     );
 
-    // 1. Handle Delete Action (Intercept Before Page Renders)
+    // --------------------------------------------------------------------------
+    // 1. STATE SETUP FOR EDIT MODE (Intercept Safely)
+    // --------------------------------------------------------------------------
     // phpcs:disable WordPress.Security.NonceVerification.Recommended
-    if ( isset( $_GET['action'] ) && 'delete_unit' === $_GET['action'] && isset( $_GET['id'] ) ) {
-        $delete_id = absint( wp_unslash( $_GET['id'] ) );
+    $get_action = isset( $_GET['action'] ) ? sanitize_key( wp_unslash( $_GET['action'] ) ) : '';
+    $get_id     = isset( $_GET['id'] ) ? absint( wp_unslash( $_GET['id'] ) ) : 0;
+    // phpcs:enable WordPress.Security.NonceVerification.Recommended
+
+    $is_edit  = ( 'edit_unit' === $get_action && $get_id > 0 );
+    $edit_row = null;
+
+    if ( $is_edit ) {
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        $edit_row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$wpdb->prefix}sms_academic_units` WHERE id = %d LIMIT 1", $get_id ) );
+        // phpcs:enable
+        if ( ! $edit_row ) {
+            $is_edit = false;
+        }
+    }
+
+    // --------------------------------------------------------------------------
+    // 2. HANDLE DELETE ACTION
+    // --------------------------------------------------------------------------
+    // phpcs:disable WordPress.Security.NonceVerification.Recommended
+    if ( 'delete_unit' === $get_action && $get_id > 0 ) {
         $del_nonce = isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) : '';
 
-        if ( $delete_id > 0 && wp_verify_nonce( $del_nonce, 'delete_unit_action_' . $delete_id ) ) {
+        if ( wp_verify_nonce( $del_nonce, 'delete_unit_action_' . $get_id ) ) {
             // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
-            $wpdb->delete( $wpdb->prefix . 'sms_academic_units', array( 'id' => $delete_id ), array( '%d' ) );
+            $wpdb->delete( $wpdb->prefix . 'sms_academic_units', array( 'id' => $get_id ), array( '%d' ) );
             // phpcs:enable
             
             if ( function_exists( 'educore_log_activity' ) ) {
                 /* translators: %d: Academic Unit ID */
-                educore_log_activity( sprintf( __( 'Deleted academic unit ID #%d', 'ifsedu-school-management' ), absint( $delete_id ) ) );
+                educore_log_activity( sprintf( __( 'Deleted academic unit ID #%d', 'ifsedu-school-management' ), absint( $get_id ) ) );
             }
 
             $redirect_target = add_query_arg( array( 'status' => 'deleted' ), $base_url );
@@ -56,16 +77,9 @@ function educore_render_class_setup_view() {
     }
     // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
-    // 2. State Setup for Edit Mode
-    // phpcs:disable WordPress.Security.NonceVerification.Recommended
-    $is_edit  = isset( $_GET['action'] ) && 'edit_unit' === $_GET['action'] && isset( $_GET['id'] );
-    $edit_id  = $is_edit ? absint( wp_unslash( $_GET['id'] ) ) : 0;
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-    $edit_row = $is_edit ? $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$wpdb->prefix}sms_academic_units` WHERE id = %d LIMIT 1", $edit_id ) ) : null;
-    // phpcs:enable
-    // phpcs:enable WordPress.Security.NonceVerification.Recommended
-
-    // 3. Handle Form Submit (Add/Edit)
+    // --------------------------------------------------------------------------
+    // 3. HANDLE FORM SUBMIT (Add / Update)
+    // --------------------------------------------------------------------------
     $req_method = isset( $_SERVER['REQUEST_METHOD'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : '';
     if ( 'POST' === $req_method && isset( $_POST['save_class_row'] ) ) {
         if ( isset( $_POST['class_setup_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['class_setup_nonce'] ) ), 'class_setup_action' ) ) {
@@ -137,7 +151,9 @@ function educore_render_class_setup_view() {
         }
     }
 
-    // 4. Fetch Strategy (Prioritize sort_order, then fallback to Natural Numeric Sorting)
+    // --------------------------------------------------------------------------
+    // 4. FETCH STRATEGY (Prioritize sort_order, then fallback to Natural Numeric Sorting)
+    // --------------------------------------------------------------------------
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
     $classes = $wpdb->get_results( 
         "SELECT * FROM `{$wpdb->prefix}sms_academic_units` 
