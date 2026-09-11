@@ -3,7 +3,7 @@
  * Academic Subjects Management & Mark Distribution Engine with Dynamic Breakdown Repeater
  * File: inc/academics/class-subjects.php
  * Text Domain: ifsedu-school-management
- * Updated: Restricted to Classes 9-12 with Class-Wise Grouped Directory View
+ * Updated: Loaded for All Classes with Class-Wise Grouped Directory View
  */
 
 if ( ! defined( 'ABSPATH' ) ) { 
@@ -35,7 +35,7 @@ function educore_render_subjects_view() {
 
     if ( 'POST' === $req_method && isset( $_POST['educore_update_single_subject'] ) ) {
         if ( isset( $_POST['edit_subject_nonce_field'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['edit_subject_nonce_field'] ) ), 'ifs_educore_edit_subject_nonce' ) ) {
-            $sub_id          = isset( $_POST['subject_id'] ) ? absint( wp_unslash( $_POST['subject_id'] ) ) : 0;
+            $sub_id         = isset( $_POST['subject_id'] ) ? absint( wp_unslash( $_POST['subject_id'] ) ) : 0;
             $unit_keys       = ( isset( $_POST['class_units'] ) && is_array( $_POST['class_units'] ) ) ? array_map( 'sanitize_text_field', wp_unslash( $_POST['class_units'] ) ) : array();
             $sub_name        = isset( $_POST['subject_name'] ) ? sanitize_text_field( wp_unslash( $_POST['subject_name'] ) ) : '';
             $sub_code        = isset( $_POST['subject_code'] ) ? sanitize_text_field( wp_unslash( $_POST['subject_code'] ) ) : '';
@@ -306,7 +306,7 @@ function educore_render_subjects_view() {
     }
 
     // --------------------------------------------------------------------------
-    // 4. DATA QUERIES (RESTRICTED TO CLASSES 9 - 12 ONLY)
+    // 4. DATA QUERIES (LOAD ALL CLASSES)
     // --------------------------------------------------------------------------
     $all_raw_units = $wpdb->get_results( 
         "SELECT id, class_name, section_name, sort_order 
@@ -317,7 +317,6 @@ function educore_render_subjects_view() {
     );
 
     $display_units = array();
-    $processed_classes = array();
 
     if ( ! empty( $all_raw_units ) ) {
         foreach ( $all_raw_units as $unit ) {
@@ -326,20 +325,14 @@ function educore_render_subjects_view() {
             $u_id       = absint( $unit['id'] );
             $sort_order = isset( $unit['sort_order'] ) ? (int) $unit['sort_order'] : 0;
 
-            preg_match( '/\d+/', $c_name, $matches );
-            $c_num = ! empty( $matches ) ? intval( $matches[0] ) : 0;
-
-            // RESTRICT TO CLASSES 9, 10, 11, 12 ONLY
-            if ( in_array( $c_num, array( 9, 10, 11, 12 ), true ) ) {
-                $label = $c_name . ( '' !== $s_name ? ' (' . $s_name . ')' : '' );
-                $display_units[] = array(
-                    'key'          => 'id:' . $u_id,
-                    'label'        => $label,
-                    'class_name'   => $c_name,
-                    'section_name' => $s_name,
-                    'sort_order'   => $sort_order,
-                );
-            }
+            $label = $c_name . ( '' !== $s_name ? ' (' . $s_name . ')' : '' );
+            $display_units[] = array(
+                'key'          => 'id:' . $u_id,
+                'label'        => $label,
+                'class_name'   => $c_name,
+                'section_name' => $s_name,
+                'sort_order'   => $sort_order,
+            );
         }
 
         usort( $display_units, function( $a, $b ) {
@@ -359,7 +352,6 @@ function educore_render_subjects_view() {
         SELECT s.*, u.class_name, u.section_name, u.sort_order AS class_sort_order 
         FROM `{$table_subjects}` s 
         LEFT JOIN `{$table_units}` u ON s.class_id = u.id 
-        WHERE u.class_name REGEXP '9|10|11|12'
         ORDER BY u.sort_order ASC, CAST(u.class_name AS UNSIGNED) ASC, u.class_name ASC, u.section_name ASC, s.subject_order ASC, s.subject_name ASC
     " );
 
@@ -397,7 +389,7 @@ function educore_render_subjects_view() {
     $grouped_subjects = array();
     if ( ! empty( $subjects_list ) ) {
         foreach ( $subjects_list as $sub_item ) {
-            $c_lbl = ! empty( $sub_item->class_name ) ? $sub_item->class_name . ( ! empty( $sub_item->section_name ) ? ' (' . $sub_item->section_name . ')' : '' ) : 'Class 9';
+            $c_lbl = ! empty( $sub_item->class_name ) ? $sub_item->class_name . ( ! empty( $sub_item->section_name ) ? ' (' . $sub_item->section_name . ')' : '' ) : 'General Class';
             $grouped_subjects[ $c_lbl ][] = $sub_item;
         }
     }
@@ -536,7 +528,7 @@ function educore_render_subjects_view() {
             display: grid !important;
             grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important;
             gap: 8px !important;
-            max-height: 150px !important;
+            max-height: 160px !important;
             overflow-y: auto !important;
             padding: 2px !important;
             box-sizing: border-box !important;
@@ -816,7 +808,7 @@ function educore_render_subjects_view() {
                 <span class="dashicons dashicons-yes-alt" style="vertical-align:middle;"></span>
                 <?php 
                     $added_count = isset( $_GET['count'] ) ? absint( wp_unslash( $_GET['count'] ) ) : 0;
-                    printf( esc_html__( 'Successfully assigned %d subjects across classes (Grades 9-12).', 'ifsedu-school-management' ), absint( $added_count ) );
+                    printf( esc_html__( 'Successfully assigned %d subjects across classes.', 'ifsedu-school-management' ), absint( $added_count ) );
                 ?>
             </div>
         <?php elseif ( isset( $_GET['status'] ) && 'updated' === $_GET['status'] ) : ?>
@@ -831,17 +823,17 @@ function educore_render_subjects_view() {
             </div>
         <?php endif; ?>
 
-        <!-- Assign Subjects Bento Card (Filtered to 9-12) -->
+        <!-- Assign Subjects Bento Card -->
         <div class="ifs-educore-bento-card">
             <form method="POST" action="<?php echo esc_url( $base_url ); ?>" id="ifs-educore-main-subject-form">
                 <?php wp_nonce_field( 'subject_setup_action', 'subject_setup_nonce' ); ?>
                 
                 <div style="margin-bottom: 16px;">
-                    <label class="ifs-educore-form-label"><?php esc_html_e( 'Target Classes (Grades 9 - 12 Only)', 'ifsedu-school-management' ); ?> <span style="color:#dc2626;">*</span></label>
+                    <label class="ifs-educore-form-label"><?php esc_html_e( 'Target Classes', 'ifsedu-school-management' ); ?> <span style="color:#dc2626;">*</span></label>
                     
                     <div class="ifs-class-selector-panel">
                         <div class="ifs-class-panel-toolbar">
-                            <input type="text" id="classSearchInput" class="ifs-class-search-input" placeholder="<?php esc_attr_e( 'Search class 9-12...', 'ifsedu-school-management' ); ?>" autocomplete="off">
+                            <input type="text" id="classSearchInput" class="ifs-class-search-input" placeholder="<?php esc_attr_e( 'Search classes...', 'ifsedu-school-management' ); ?>" autocomplete="off">
                             
                             <div class="ifs-class-toolbar-actions">
                                 <span class="ifs-class-count-badge" id="selectedClassCountBadge">0 Selected</span>
@@ -857,7 +849,7 @@ function educore_render_subjects_view() {
                                 </label>
                             <?php endforeach; else : ?>
                                 <div style="font-size:12.5px; color:#ef4444; padding: 10px; font-weight:700; grid-column: 1 / -1; text-align: center;">
-                                    <?php esc_html_e( 'No Classes 9-12 configured in Academic Setup.', 'ifsedu-school-management' ); ?>
+                                    <?php esc_html_e( 'No classes configured in Academic Setup.', 'ifsedu-school-management' ); ?>
                                 </div>
                             <?php endif; ?>
                         </div>
@@ -869,11 +861,11 @@ function educore_render_subjects_view() {
                         <div class="ifs-educore-repeater-grid-top">
                             <div>
                                 <label class="ifs-educore-form-label"><?php esc_html_e( 'Subject Title', 'ifsedu-school-management' ); ?> <span style="color:#dc2626;">*</span></label>
-                                <input type="text" name="subject_name[]" class="ifs-educore-field-input" placeholder="e.g. Physics / Higher Math" required>
+                                <input type="text" name="subject_name[]" class="ifs-educore-field-input" placeholder="e.g. Mathematics / English" required>
                             </div>
                             <div>
                                 <label class="ifs-educore-form-label"><?php esc_html_e( 'Code', 'ifsedu-school-management' ); ?></label>
-                                <input type="text" name="subject_code[]" class="ifs-educore-field-input" placeholder="e.g. 136">
+                                <input type="text" name="subject_code[]" class="ifs-educore-field-input" placeholder="e.g. 101">
                             </div>
                             <div>
                                 <label class="ifs-educore-form-label"><?php esc_html_e( 'Order', 'ifsedu-school-management' ); ?></label>
@@ -971,12 +963,12 @@ function educore_render_subjects_view() {
             </form>
         </div>
 
-        <!-- Class-Wise Grouped Academic Subjects Directory Card (9-12) -->
+        <!-- Class-Wise Grouped Academic Subjects Directory Card -->
         <div class="ifs-educore-bento-card">
             <div class="ifs-educore-card-header">
                 <h5 class="ifs-educore-card-title">
                     <span class="dashicons dashicons-list-view"></span>
-                    <?php esc_html_e( 'Academic Subjects Directory (Grades 9 - 12)', 'ifsedu-school-management' ); ?>
+                    <?php esc_html_e( 'Academic Subjects Directory', 'ifsedu-school-management' ); ?>
                 </h5>
                 
                 <div style="display:flex; align-items:center; gap:10px;">
@@ -1098,7 +1090,7 @@ function educore_render_subjects_view() {
                     </div>
                 <?php endforeach; else : ?>
                     <div style="text-align:center; padding: 30px; color: #94a3b8; background:#fff; border:1px solid #e2e8f0; border-radius:12px;">
-                        <?php esc_html_e( 'No subjects assigned to classes 9-12 yet.', 'ifsedu-school-management' ); ?>
+                        <?php esc_html_e( 'No subjects assigned to classes yet.', 'ifsedu-school-management' ); ?>
                     </div>
                 <?php endif; ?>
             </div>
@@ -1120,7 +1112,7 @@ function educore_render_subjects_view() {
 
                 <div style="display:grid; grid-template-columns: 2fr 1fr; gap:12px; margin-bottom: 12px;">
                     <div>
-                        <label class="ifs-educore-form-label"><?php esc_html_e( 'Target Class (Grades 9-12)', 'ifsedu-school-management' ); ?> <span style="color:#dc2626;">*</span></label>
+                        <label class="ifs-educore-form-label"><?php esc_html_e( 'Target Class', 'ifsedu-school-management' ); ?> <span style="color:#dc2626;">*</span></label>
                         <div class="ifs-class-grid" id="edit_class_checkbox_container" style="max-height: 120px;">
                             <?php foreach ( $display_units as $unit ) : ?>
                                 <label class="ifs-class-card">

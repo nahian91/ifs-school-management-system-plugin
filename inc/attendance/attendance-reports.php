@@ -346,11 +346,250 @@ function educore_student_attendance_log_view( $classes ) {
         }
     }
 
-    // Dynamic School Settings
+    // Dynamic School Settings (Pulled dynamically from settings options)
     $school_name    = get_option( 'educore_school_name', get_bloginfo( 'name' ) );
     $school_tagline = get_option( 'educore_school_tagline', get_bloginfo( 'description' ) );
     $school_logo    = get_option( 'educore_school_logo', '' );
+    $school_address = get_option( 'educore_school_address', '' );
+    $school_phone   = get_option( 'educore_school_phone', '' );
+    $school_email   = get_option( 'educore_school_email', '' );
+
+    $contact_parts = array();
+    if ( ! empty( $school_address ) ) {
+        $contact_parts[] = $school_address;
+    }
+    if ( ! empty( $school_phone ) ) {
+        $contact_parts[] = 'Mob: ' . $school_phone;
+    }
+    if ( ! empty( $school_email ) ) {
+        $contact_parts[] = 'E-mail: ' . $school_email;
+    }
+    $dynamic_contact_string = ! empty( $contact_parts ) ? implode( ' | ', $contact_parts ) : '';
     ?>
+
+    <style>
+        /* Modern Pro Bento Styling & Spacing Overhaul for Attendance Module */
+        .ifs-educore-attendance-reports-root {
+            font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #0f172a;
+        }
+        .ifs-educore-top-nav-container {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        .ifs-educore-subnav-pill {
+            background: #ffffff;
+            border: 1.5px solid #cbd5e1;
+            color: #475569;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 13.5px;
+            font-weight: 700;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .ifs-educore-subnav-pill:hover {
+            background: #f8fafc;
+            color: #00523c;
+            border-color: #94a3b8;
+        }
+        .ifs-educore-subnav-pill.is-active {
+            background: #00523c;
+            color: #ffffff;
+            border-color: #00523c;
+            box-shadow: 0 4px 12px rgba(0, 82, 60, 0.2);
+        }
+        .ifs-educore-filter-top-bar {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 20px 24px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            box-shadow: 0 4px 15px -3px rgba(0,0,0,0.03);
+        }
+        .ifs-educore-filter-controls-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .ifs-educore-filter-select, .ifs-educore-filter-input {
+            height: 40px;
+            padding: 0 12px;
+            background: #f8fafc;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 13.5px;
+            color: #0f172a;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+        .ifs-educore-filter-select:focus, .ifs-educore-filter-input:focus {
+            border-color: #00523c;
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(0, 82, 60, 0.12);
+        }
+        .ifs-educore-btn-print-sheet {
+            background: #00523c;
+            color: #ffffff;
+            border: none;
+            height: 40px;
+            padding: 0 20px;
+            border-radius: 8px;
+            font-size: 13.5px;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 4px 12px rgba(0,82,60,0.2);
+            transition: background 0.2s ease;
+        }
+        .ifs-educore-btn-print-sheet:hover {
+            background: #047857;
+        }
+
+        /* Segmented Mode Switcher Style */
+        .ifs-educore-report-mode-segmented {
+            display: inline-flex;
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            padding: 4px;
+            gap: 4px;
+        }
+        .ifs-educore-report-mode-input {
+            display: none;
+        }
+        .ifs-educore-report-mode-pill {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #475569;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+        .ifs-educore-report-mode-input:checked + .ifs-educore-report-mode-pill {
+            background: #ffffff;
+            color: #00523c;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+        }
+
+        /* Official Print Sheet Custom Canvas */
+        .ifs-official-sheet-container {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05);
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .ifs-official-header {
+            text-align: center;
+            border-bottom: 2px solid #0f172a;
+            padding-bottom: 14px;
+            margin-bottom: 20px;
+        }
+        .ifs-official-logo {
+            max-height: 55px;
+            object-fit: contain;
+            margin-bottom: 6px;
+        }
+        .ifs-official-school-tagline {
+            font-size: 11px;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .ifs-official-school-title {
+            font-size: 22px;
+            font-weight: 900;
+            color: #0f172a;
+            margin: 4px 0;
+        }
+        .ifs-official-school-contact {
+            font-size: 11.5px;
+            color: #475569;
+            margin: 0;
+            font-weight: 600;
+        }
+        .ifs-official-meta-strip {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            font-weight: 700;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 8px 14px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .ifs-official-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12.5px;
+            margin-bottom: 24px;
+        }
+        .ifs-official-table th, .ifs-official-table td {
+            border: 1px solid #cbd5e1;
+            padding: 8px 12px;
+        }
+        .ifs-official-table th {
+            background: #f1f5f9;
+            font-weight: 800;
+            color: #1e293b;
+        }
+        .ifs-official-summary-box {
+            display: flex;
+            justify-content: space-around;
+            background: #f0fdf4;
+            border: 1.5px solid #bbf7d0;
+            border-radius: 10px;
+            padding: 14px;
+            font-size: 14px;
+            font-weight: 800;
+            color: #065f46;
+            margin-bottom: 40px;
+        }
+        .ifs-official-sig-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 50px;
+            padding-top: 10px;
+        }
+        .ifs-official-sig-block {
+            text-align: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: #0f172a;
+            border-top: 1px dashed #94a3b8;
+            padding-top: 6px;
+            width: 180px;
+        }
+
+        @media print {
+            .no-print { display: none !important; }
+            body, .ifs-educore-attendance-reports-root { background: #fff !important; padding: 0 !important; }
+            .ifs-official-sheet-container { border: none !important; box-shadow: none !important; padding: 0 !important; max-width: 100% !important; }
+        }
+    </style>
 
     <div class="ifs-educore-attendance-reports-root">
         <!-- Top Mode Switcher Nav -->
@@ -391,14 +630,18 @@ function educore_student_attendance_log_view( $classes ) {
 
             <div class="ifs-official-sheet-container">
                 
-                <!-- Institutional Header -->
+                <!-- Institutional Header (Dynamic from Settings) -->
                 <div class="ifs-official-header">
                     <?php if ( ! empty( $school_logo ) ) : ?>
                         <img src="<?php echo esc_url( $school_logo ); ?>" alt="Logo" class="ifs-official-logo">
                     <?php endif; ?>
-                    <div class="ifs-official-school-tagline"><?php echo esc_html( $school_tagline ); ?></div>
+                    <?php if ( ! empty( $school_tagline ) ) : ?>
+                        <div class="ifs-official-school-tagline"><?php echo esc_html( $school_tagline ); ?></div>
+                    <?php endif; ?>
                     <h1 class="ifs-official-school-title"><?php echo esc_html( $school_name ); ?></h1>
-                    <p class="ifs-official-school-contact"><?php esc_html_e( 'Bangabir Road, South Surma, Sylhet | Mob: 01755 592295 | E-mail: ggisc.syl@gmail.com', 'ifsedu-school-management' ); ?></p>
+                    <?php if ( ! empty( $dynamic_contact_string ) ) : ?>
+                        <p class="ifs-official-school-contact"><?php echo esc_html( $dynamic_contact_string ); ?></p>
+                    <?php endif; ?>
                 </div>
 
                 <!-- Title & Meta Banner -->
@@ -685,12 +928,12 @@ function educore_student_attendance_log_view( $classes ) {
                         </div>
 
                         <div class="ifs-educore-form-group" style="flex:1; min-width:160px;">
-                            <button type="submit" class="ifs-educore-btn-primary"><?php esc_html_e( 'Fetch Attendance Log', 'ifsedu-school-management' ); ?></button>
+                            <button type="submit" class="ifs-educore-btn-primary" style="height:40px; padding:0 24px;"><?php esc_html_e( 'Fetch Attendance Log', 'ifsedu-school-management' ); ?></button>
                         </div>
                     </div>
 
                     <div id="ifs_educore_wrapper_exam_submit" style="display: <?php echo ( 'exam' === $report_mode ) ? 'block' : 'none'; ?>; margin-top:16px;">
-                        <button type="submit" class="ifs-educore-btn-primary" style="max-width:240px;"><?php esc_html_e( 'Load Exam Roster Audit', 'ifsedu-school-management' ); ?></button>
+                        <button type="submit" class="ifs-educore-btn-primary" style="height:40px; max-width:240px;"><?php esc_html_e( 'Load Exam Roster Audit', 'ifsedu-school-management' ); ?></button>
                     </div>
                 </form>
             </div>

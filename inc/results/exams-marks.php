@@ -27,10 +27,10 @@ function ifs_educore_get_classes_by_exam_marks_handler() {
     }
 
     global $wpdb;
-    $table_staff            = $wpdb->prefix . 'sms_staff';
-    $table_exams            = $wpdb->prefix . 'sms_exams';
-    $table_units            = $wpdb->prefix . 'sms_academic_units';
-    $table_teacher_subjects = $wpdb->prefix . 'sms_teacher_subjects';
+    $table_staff             = $wpdb->prefix . 'sms_staff';
+    $table_exams             = $wpdb->prefix . 'sms_exams';
+    $table_units             = $wpdb->prefix . 'sms_academic_units';
+    $table_teacher_subjects  = $wpdb->prefix . 'sms_teacher_subjects';
 
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     if ( ! $is_admin && ! $is_staff ) {
@@ -145,9 +145,9 @@ function ifs_educore_get_sections_by_class_marks_handler() {
         wp_send_json_error( array( 'message' => esc_html__( 'Permission denied.', 'ifsedu-school-management' ) ) );
     }
 
-    $table_units            = $wpdb->prefix . 'sms_academic_units';
-    $table_teacher_subjects = $wpdb->prefix . 'sms_teacher_subjects';
-    $class_name             = isset( $_POST['class_name'] ) ? sanitize_text_field( wp_unslash( $_POST['class_name'] ) ) : '';
+    $table_units             = $wpdb->prefix . 'sms_academic_units';
+    $table_teacher_subjects  = $wpdb->prefix . 'sms_teacher_subjects';
+    $class_name              = isset( $_POST['class_name'] ) ? sanitize_text_field( wp_unslash( $_POST['class_name'] ) ) : '';
 
     if ( empty( $class_name ) ) {
         wp_send_json_success( array() );
@@ -223,10 +223,11 @@ function ifs_educore_get_subjects_for_marks_matrix_handler() {
         wp_send_json_error( array( 'message' => esc_html__( 'Permission denied.', 'ifsedu-school-management' ) ) );
     }
 
-    $table_exams            = $wpdb->prefix . 'sms_exams';
-    $table_subjects         = $wpdb->prefix . 'sms_subjects';
-    $table_units            = $wpdb->prefix . 'sms_academic_units';
-    $table_teacher_subjects = $wpdb->prefix . 'sms_teacher_subjects';
+    $table_exams             = $wpdb->prefix . 'sms_exams';
+    $table_subjects          = $wpdb->prefix . 'sms_subjects';
+    $table_units             = $wpdb->prefix . 'sms_academic_units';
+    $table_results           = $wpdb->prefix . 'sms_results';
+    $table_students          = $wpdb->prefix . 'sms_students';
 
     $exam_id      = isset( $_POST['exam_id'] ) ? absint( $_POST['exam_id'] ) : 0;
     $class_name   = isset( $_POST['class_name'] ) ? sanitize_text_field( wp_unslash( $_POST['class_name'] ) ) : '';
@@ -249,7 +250,6 @@ function ifs_educore_get_subjects_for_marks_matrix_handler() {
 
     $subjects = array();
     if ( ! empty( $section_name ) ) {
-        // Fetch subjects mapped specifically to this class and section unit
         $subjects = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT DISTINCT s.id, s.subject_name, s.subject_code, s.subject_order, s.total_marks, s.pass_marks, s.cq_marks, s.cq_pass, s.mcq_marks, s.mcq_pass, s.practical_marks, s.practical_pass, s.breakdown_data 
@@ -263,7 +263,6 @@ function ifs_educore_get_subjects_for_marks_matrix_handler() {
         );
     }
 
-    // Fallback or general class-wide subjects if no section-specific matches are found
     if ( empty( $subjects ) ) {
         $subjects = $wpdb->get_results(
             $wpdb->prepare(
@@ -283,14 +282,62 @@ function ifs_educore_get_subjects_for_marks_matrix_handler() {
         } ) );
     }
 
-    // Deduplicate subjects by subject_name uniquely
+    // Count total active students in this class/section
+    if ( ! empty( $section_name ) ) {
+        $total_students = (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT COUNT(*) FROM `{$table_students}` WHERE status = 'Active' AND class_name = %s AND section_name = %s",
+                $class_name,
+                $section_name
+            )
+        );
+    } else {
+        $total_students = (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT COUNT(*) FROM `{$table_students}` WHERE status = 'Active' AND class_name = %s",
+                $class_name
+            )
+        );
+    }
+
+    // Deduplicate subjects and calculate entry counts
     $unique_subjects = array();
     $seen_sub_names  = array();
     if ( ! empty( $subjects ) ) {
         foreach ( $subjects as $s_item ) {
             $s_norm = trim( strtolower( (string) $s_item->subject_name ) );
             if ( ! in_array( $s_norm, $seen_sub_names, true ) ) {
-                $seen_sub_names[]  = $s_norm;
+                $seen_sub_names[] = $s_norm;
+
+                if ( $exam_id > 0 ) {
+                    if ( ! empty( $section_name ) ) {
+                        // Fixed: Changed r.section_name to st.section_name
+                        $entered_count = (int) $wpdb->get_var(
+                            $wpdb->prepare(
+                                "SELECT COUNT(r.id) FROM `{$table_results}` r INNER JOIN `{$table_students}` st ON r.student_id = st.id WHERE r.exam_id = %d AND r.class_name = %s AND st.section_name = %s AND r.subject_name = %s",
+                                $exam_id,
+                                $class_name,
+                                $section_name,
+                                $s_item->subject_name
+                            )
+                        );
+                    } else {
+                        $entered_count = (int) $wpdb->get_var(
+                            $wpdb->prepare(
+                                "SELECT COUNT(r.id) FROM `{$table_results}` r WHERE r.exam_id = %d AND r.class_name = %s AND r.subject_name = %s",
+                                $exam_id,
+                                $class_name,
+                                $s_item->subject_name
+                            )
+                        );
+                    }
+                } else {
+                    $entered_count = 0;
+                }
+
+                $s_item->entered_count  = $entered_count;
+                $s_item->total_students = $total_students;
+
                 $unique_subjects[] = $s_item;
             }
         }
@@ -333,13 +380,13 @@ function educore_exams_marks_view() {
     global $wpdb;
     $current_user = wp_get_current_user();
 
-    $table_students         = $wpdb->prefix . 'sms_students';
-    $table_exams            = $wpdb->prefix . 'sms_exams';
-    $table_results          = $wpdb->prefix . 'sms_results';
-    $table_units            = $wpdb->prefix . 'sms_academic_units';
-    $table_subjects         = $wpdb->prefix . 'sms_subjects';
-    $table_staff            = $wpdb->prefix . 'sms_staff';
-    $table_teacher_subjects = $wpdb->prefix . 'sms_teacher_subjects';
+    $table_students          = $wpdb->prefix . 'sms_students';
+    $table_exams             = $wpdb->prefix . 'sms_exams';
+    $table_results           = $wpdb->prefix . 'sms_results';
+    $table_units             = $wpdb->prefix . 'sms_academic_units';
+    $table_subjects          = $wpdb->prefix . 'sms_subjects';
+    $table_staff             = $wpdb->prefix . 'sms_staff';
+    $table_teacher_subjects  = $wpdb->prefix . 'sms_teacher_subjects';
 
     // Auto-migrate component_marks column in results if missing
     $col_check = $wpdb->get_results( "SHOW COLUMNS FROM `{$table_results}` LIKE 'component_marks'" );
@@ -651,6 +698,28 @@ function educore_exams_marks_view() {
         }
     }
 
+    // Total active students in class/section for entry status calculation
+    if ( ! empty( $filter_class ) ) {
+        if ( ! empty( $filter_section ) ) {
+            $total_class_students = (int) $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT COUNT(*) FROM `{$table_students}` WHERE status = 'Active' AND class_name = %s AND section_name = %s",
+                    $filter_class,
+                    $filter_section
+                )
+            );
+        } else {
+            $total_class_students = (int) $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT COUNT(*) FROM `{$table_students}` WHERE status = 'Active' AND class_name = %s",
+                    $filter_class
+                )
+            );
+        }
+    } else {
+        $total_class_students = 0;
+    }
+
     // Fetch Mapped Subjects with Section Context & Unique Deduplication
     $available_subjects = array();
     $active_subject_obj = null;
@@ -711,7 +780,36 @@ function educore_exams_marks_view() {
             foreach ( $raw_subs as $s_item ) {
                 $norm_name = trim( strtolower( (string) $s_item->subject_name ) );
                 if ( ! in_array( $norm_name, $seen_names, true ) ) {
-                    $seen_names[]         = $norm_name;
+                    $seen_names[] = $norm_name;
+
+                    if ( $filter_exam > 0 ) {
+                        if ( ! empty( $filter_section ) ) {
+                            $entered_count = (int) $wpdb->get_var(
+                                $wpdb->prepare(
+                                    "SELECT COUNT(r.id) FROM `{$table_results}` r INNER JOIN `{$table_students}` st ON r.student_id = st.id WHERE r.exam_id = %d AND r.class_name = %s AND st.section_name = %s AND r.subject_name = %s",
+                                    $filter_exam,
+                                    $filter_class,
+                                    $filter_section,
+                                    $s_item->subject_name
+                                )
+                            );
+                        } else {
+                            $entered_count = (int) $wpdb->get_var(
+                                $wpdb->prepare(
+                                    "SELECT COUNT(r.id) FROM `{$table_results}` r WHERE r.exam_id = %d AND r.class_name = %s AND r.subject_name = %s",
+                                    $filter_exam,
+                                    $filter_class,
+                                    $s_item->subject_name
+                                )
+                            );
+                        }
+                    } else {
+                        $entered_count = 0;
+                    }
+
+                    $s_item->entered_count  = $entered_count;
+                    $s_item->total_students = $total_class_students;
+
                     $available_subjects[] = $s_item;
                 }
             }
@@ -960,7 +1058,7 @@ function educore_exams_marks_view() {
                         </select>
                     </div>
 
-                    <!-- 4. Subject Selection -->
+                    <!-- 4. Subject Selection Separated into Completed vs Pending Optgroups -->
                     <div class="ifs-educore-form-group">
                         <label class="ifs-educore-form-label">
                             <span class="dashicons dashicons-book" style="font-size:14px; width:14px; height:14px; color:#00523c;"></span>
@@ -968,11 +1066,36 @@ function educore_exams_marks_view() {
                         </label>
                         <select name="subject_name" id="ifs_educore_marks_subject_select" class="ifs-educore-select" required>
                             <option value=""><?php esc_html_e( '-- Choose Subject --', 'ifsedu-school-management' ); ?></option>
-                            <?php foreach ( $available_subjects as $sub_item ) : ?>
-                                <option value="<?php echo esc_attr( $sub_item->subject_name ); ?>" <?php selected( $filter_subject, $sub_item->subject_name ); ?>>
-                                    <?php echo esc_html( $sub_item->subject_name . ( $sub_item->subject_code ? ' (' . $sub_item->subject_code . ')' : '' ) ); ?>
-                                </option>
-                            <?php endforeach; ?>
+                            <?php
+                            $completed_options = '';
+                            $pending_options   = '';
+
+                            foreach ( $available_subjects as $sub_item ) {
+                                $is_completed = ( $total_class_students > 0 && $sub_item->entered_count >= $total_class_students );
+                                $status_badge = sprintf( ' [%d/%d Entered]', intval( $sub_item->entered_count ), intval( $total_class_students ) );
+                                $label_text   = $sub_item->subject_name . ( $sub_item->subject_code ? ' (' . $sub_item->subject_code . ')' : '' ) . $status_badge;
+                                
+                                $opt_html = sprintf(
+                                    '<option value="%s" %s>%s</option>',
+                                    esc_attr( $sub_item->subject_name ),
+                                    selected( $filter_subject, $sub_item->subject_name, false ),
+                                    esc_html( $label_text )
+                                );
+
+                                if ( $is_completed ) {
+                                    $completed_options .= $opt_html;
+                                } else {
+                                    $pending_options   .= $opt_html;
+                                }
+                            }
+
+                            if ( ! empty( $pending_options ) ) {
+                                echo '<optgroup label="' . esc_attr__( '⏳ Pending Entries', 'ifsedu-school-management' ) . '">' . $pending_options . '</optgroup>';
+                            }
+                            if ( ! empty( $completed_options ) ) {
+                                echo '<optgroup label="' . esc_attr__( '✅ Completed Entries', 'ifsedu-school-management' ) . '">' . $completed_options . '</optgroup>';
+                            }
+                            ?>
                         </select>
                     </div>
 
@@ -1030,7 +1153,7 @@ function educore_exams_marks_view() {
                 });
             });
 
-            // Helper function to trigger reloading of section-aware subjects
+            // Helper function to trigger reloading of section-aware subjects with separated groups
             function reloadSubjectsForClassAndSection() {
                 var selectedClass  = $('#ifs_educore_marks_class_select').val();
                 var selectedSection = $('#ifs_educore_marks_section_select').val();
@@ -1039,7 +1162,7 @@ function educore_exams_marks_view() {
 
                 if (!selectedClass) return;
 
-                $subjectSelect.html('<option value=""><?php echo esc_js( __( '-- Loading Subjects... --', 'ifsedu-school-management' ) ); ?></option>');
+                $subjectSelect.html('<option value=""><?php echo esc_js( __( '-- Loading Subjects & Entry Status... --', 'ifsedu-school-management' ) ); ?></option>');
 
                 $.ajax({
                     url: ajaxurl,
@@ -1053,12 +1176,31 @@ function educore_exams_marks_view() {
                     },
                     success: function(response) {
                         if (response.success && response.data.length > 0) {
-                            var subOptions = '<option value=""><?php echo esc_js( __( '-- Choose Subject --', 'ifsedu-school-management' ) ); ?></option>';
+                            var completedHtml = '';
+                            var pendingHtml = '';
+
                             $.each(response.data, function(i, sub) {
                                 var codeStr = sub.subject_code ? ' (' + sub.subject_code + ')' : '';
-                                subOptions += '<option value="' + sub.subject_name + '">' + sub.subject_name + codeStr + '</option>';
+                                var isCompleted = (sub.total_students > 0 && sub.entered_count >= sub.total_students);
+                                var progressBadge = ' [' + sub.entered_count + '/' + sub.total_students + ' Entered]';
+                                var optHtml = '<option value="' + sub.subject_name + '">' + sub.subject_name + codeStr + progressBadge + '</option>';
+
+                                if (isCompleted) {
+                                    completedHtml += optHtml;
+                                } else {
+                                    pendingHtml += optHtml;
+                                }
                             });
-                            $subjectSelect.html(subOptions);
+
+                            var finalDropdown = '<option value=""><?php echo esc_js( __( '-- Choose Subject --', 'ifsedu-school-management' ) ); ?></option>';
+                            if (pendingHtml !== '') {
+                                finalDropdown += '<optgroup label="<?php echo esc_js( __( '⏳ Pending Entries', 'ifsedu-school-management' ) ); ?>">' + pendingHtml + '</optgroup>';
+                            }
+                            if (completedHtml !== '') {
+                                finalDropdown += '<optgroup label="<?php echo esc_js( __( '✅ Completed Entries', 'ifsedu-school-management' ) ); ?>">' + completedHtml + '</optgroup>';
+                            }
+
+                            $subjectSelect.html(finalDropdown);
                         } else {
                             $subjectSelect.html('<option value=""><?php echo esc_js( __( 'No Mapped Subjects Found', 'ifsedu-school-management' ) ); ?></option>');
                         }
