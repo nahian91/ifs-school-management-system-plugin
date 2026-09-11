@@ -823,7 +823,7 @@ function educore_exams_marks_view() {
             font-size: 11.5px;
             font-weight: 700;
             color: #475569;
-            text-transform: uppercase;
+            text-transform: capitalize;
             letter-spacing: 0.4px;
             margin-bottom: 8px;
         }

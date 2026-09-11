@@ -209,288 +209,297 @@ function educore_staff_add_edit_view() {
     $back_url = admin_url( 'admin.php?page=school_management_system&tab=staff&sub=list' );
     ?>
 
-    <div class="mb-3">
-        <a href="<?php echo esc_url( $back_url ); ?>" class="btn btn-secondary btn-sm">&larr; <?php esc_html_e( 'Back to Directory', 'ifsedu-school-management' ); ?></a>
-    </div>
-
-    <?php if ( ! empty( $db_error ) ) : ?>
-        <div class="alert alert-danger mb-3 font-weight-bold">
-            <?php echo esc_html( $db_error ); ?>
+    <div class="ifs-educore-staff-form-root">
+        <div class="ifs-educore-back-link-wrap">
+            <a href="<?php echo esc_url( $back_url ); ?>" class="ifs-educore-btn-secondary">&larr; <?php esc_html_e( 'Back to Directory', 'ifsedu-school-management' ); ?></a>
         </div>
-    <?php endif; ?>
 
-    <div class="bg-white p-4 rounded shadow-sm border">
-        <h3 class="pb-2 mb-4 text-success fw-bold border-bottom">
-            <?php echo $is_edit ? esc_html__( 'Edit Staff Details', 'ifsedu-school-management' ) : esc_html__( 'Add New Staff / Teacher', 'ifsedu-school-management' ); ?>
-        </h3>
-        
-        <!-- Tab Indicators -->
-        <ul class="nav nav-tabs mb-4 flex-column flex-sm-row" id="educoreStaffTabs" role="tablist">
-            <li class="nav-item flex-sm-fill text-center">
-                <a class="nav-link active" id="step-1-tab" data-step="1" href="javascript:void(0);"><?php esc_html_e( '1. Personal Info', 'ifsedu-school-management' ); ?></a>
-            </li>
-            <li class="nav-item flex-sm-fill text-center">
-                <a class="nav-link" id="step-2-tab" data-step="2" href="javascript:void(0);"><?php esc_html_e( '2. Employment & Academic', 'ifsedu-school-management' ); ?></a>
-            </li>
-            <li class="nav-item flex-sm-fill text-center">
-                <a class="nav-link" id="step-3-tab" data-step="3" href="javascript:void(0);"><?php esc_html_e( '3. Payroll & Banking', 'ifsedu-school-management' ); ?></a>
-            </li>
-            <li class="nav-item flex-sm-fill text-center">
-                <a class="nav-link" id="step-4-tab" data-step="4" href="javascript:void(0);"><?php esc_html_e( '4. Address & Socials', 'ifsedu-school-management' ); ?></a>
-            </li>
-        </ul>
+        <?php if ( ! empty( $db_error ) ) : ?>
+            <div class="ifs-educore-alert-box">
+                <?php echo esc_html( $db_error ); ?>
+            </div>
+        <?php endif; ?>
 
-        <form method="POST" action="" enctype="multipart/form-data" id="educoreStaffForm" novalidate>
-            <?php wp_nonce_field( 'save_staff_action', 'ifs_educore_staff_nonce' ); ?>
-            <input type="hidden" name="educore_staff_action" value="save_staff">
+        <div class="ifs-educore-bento-card">
+            <h3 class="ifs-educore-form-title">
+                <?php echo $is_edit ? esc_html__( 'Edit Staff Details', 'ifsedu-school-management' ) : esc_html__( 'Add New Staff / Teacher', 'ifsedu-school-management' ); ?>
+            </h3>
             
-            <!-- STEP 1: Personal Identification -->
-            <div class="educore-step-content active" id="educore-step-1">
-                <?php if ( $is_edit && $staff && ! empty( $staff->profile_image ) ) : ?>
-                    <div class="mb-4">
-                        <label class="form-label d-block fw-bold"><?php esc_html_e( 'Current Photo', 'ifsedu-school-management' ); ?></label>
-                        <img src="<?php echo esc_url( $staff->profile_image ); ?>" alt="<?php esc_attr_e( 'Staff Photo', 'ifsedu-school-management' ); ?>" class="rounded border" style="width: 100px; height: 100px; object-fit: cover;">
-                    </div>
-                <?php endif; ?>
+            <!-- Tab Indicators -->
+            <ul class="ifs-educore-nav-tabs" id="educoreStaffTabs" role="tablist">
+                <li class="nav-item">
+                    <a class="nav-link active" id="step-1-tab" data-step="1" href="javascript:void(0);"><?php esc_html_e( '1. Personal Info', 'ifsedu-school-management' ); ?></a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="step-2-tab" data-step="2" href="javascript:void(0);"><?php esc_html_e( '2. Employment & Academic', 'ifsedu-school-management' ); ?></a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="step-3-tab" data-step="3" href="javascript:void(0);"><?php esc_html_e( '3. Payroll & Banking', 'ifsedu-school-management' ); ?></a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="step-4-tab" data-step="4" href="javascript:void(0);"><?php esc_html_e( '4. Address & Socials', 'ifsedu-school-management' ); ?></a>
+                </li>
+            </ul>
 
-                <h5 class="mb-3 text-success border-bottom pb-2"><?php esc_html_e( 'Personal Identification', 'ifsedu-school-management' ); ?></h5>
-                <div class="row">
-                    <div class="col-md-3 mb-3">
-                        <label class="form-label fw-bold"><?php esc_html_e( 'Staff / Employee ID', 'ifsedu-school-management' ); ?> <span class="text-danger">*</span></label>
-                        <input type="text" name="staff_id" id="educore_staff_id_input" class="form-control text-uppercase fw-bold text-success bg-light" value="<?php echo esc_attr( $generated_staff_id ); ?>" required readonly>
+            <form method="POST" action="" enctype="multipart/form-data" id="educoreStaffForm" novalidate>
+                <?php wp_nonce_field( 'save_staff_action', 'ifs_educore_staff_nonce' ); ?>
+                <input type="hidden" name="educore_staff_action" value="save_staff">
+                
+                <!-- STEP 1: Personal Identification -->
+                <div class="educore-step-content active" id="educore-step-1">
+                    <?php if ( $is_edit && $staff && ! empty( $staff->profile_image ) ) : ?>
+                        <div class="ifs-educore-photo-preview-wrap">
+                            <label class="ifs-educore-field-label"><?php esc_html_e( 'Current Photo', 'ifsedu-school-management' ); ?></label>
+                            <img src="<?php echo esc_url( $staff->profile_image ); ?>" alt="<?php esc_attr_e( 'Staff Photo', 'ifsedu-school-management' ); ?>" class="ifs-educore-photo-preview-img">
+                        </div>
+                    <?php endif; ?>
+
+                    <h5 class="ifs-educore-section-title"><?php esc_html_e( 'Personal Identification', 'ifsedu-school-management' ); ?></h5>
+                    <div class="ifs-educore-form-grid">
+                        <div class="ifs-educore-field-group">
+                            <label class="ifs-educore-field-label"><?php esc_html_e( 'Staff / Employee ID', 'ifsedu-school-management' ); ?> <span class="ifs-educore-required">*</span></label>
+                            <input type="text" name="staff_id" id="educore_staff_id_input" class="ifs-educore-input ifs-educore-input-readonly" value="<?php echo esc_attr( $generated_staff_id ); ?>" required readonly>
+                        </div>
+                        <div class="ifs-educore-field-group">
+                            <label class="ifs-educore-field-label"><?php esc_html_e( 'Order Number', 'ifsedu-school-management' ); ?></label>
+                            <input type="number" name="order_number" class="ifs-educore-input" placeholder="<?php esc_attr_e( 'e.g., 1', 'ifsedu-school-management' ); ?>" value="<?php echo ( $staff && isset( $staff->order_number ) ) ? absint( $staff->order_number ) : 0; ?>" min="0">
+                        </div>
+                        <div class="ifs-educore-field-group">
+                            <label class="ifs-educore-field-label"><?php esc_html_e( 'Employment Type', 'ifsedu-school-management' ); ?> <span class="ifs-educore-required">*</span></label>
+                            <select name="staff_type" id="educore_staff_type_select" class="ifs-educore-select" required>
+                                <option value=""><?php esc_html_e( '-- Select Type --', 'ifsedu-school-management' ); ?></option>
+                                <option value="Teacher (School)" <?php selected( ( $staff && isset( $staff->staff_type ) ) ? $staff->staff_type : '', 'Teacher (School)' ); ?>><?php esc_html_e( 'Teacher (School)', 'ifsedu-school-management' ); ?></option>
+                                <option value="Teacher (College)" <?php selected( ( $staff && isset( $staff->staff_type ) ) ? $staff->staff_type : '', 'Teacher (College)' ); ?>><?php esc_html_e( 'Teacher (College)', 'ifsedu-school-management' ); ?></option>
+                                <option value="Officer" <?php selected( ( $staff && isset( $staff->staff_type ) ) ? $staff->staff_type : '', 'Officer' ); ?>><?php esc_html_e( 'Officer', 'ifsedu-school-management' ); ?></option>
+                                <option value="Staff" <?php selected( ( $staff && isset( $staff->staff_type ) ) ? $staff->staff_type : '', 'Staff' ); ?>><?php esc_html_e( 'Staff', 'ifsedu-school-management' ); ?></option>
+                            </select>
+                        </div>
+                        <div class="ifs-educore-field-group">
+                            <label class="ifs-educore-field-label"><?php esc_html_e( 'Designation (Official Role)', 'ifsedu-school-management' ); ?> <span class="ifs-educore-required">*</span></label>
+                            <input type="text" name="designation" class="ifs-educore-input" placeholder="<?php esc_attr_e( 'e.g., Assistant Teacher, Lecturer', 'ifsedu-school-management' ); ?>" value="<?php echo ( $staff && isset( $staff->designation ) ) ? esc_attr( $staff->designation ) : ''; ?>" required>
+                        </div>
                     </div>
-                    <div class="col-md-3 mb-3">
-                        <label class="form-label fw-bold"><?php esc_html_e( 'Order Number', 'ifsedu-school-management' ); ?></label>
-                        <input type="number" name="order_number" class="form-control" placeholder="<?php esc_attr_e( 'e.g., 1', 'ifsedu-school-management' ); ?>" value="<?php echo ( $staff && isset( $staff->order_number ) ) ? absint( $staff->order_number ) : 0; ?>" min="0">
+
+                    <div class="ifs-educore-form-grid">
+                        <div class="ifs-educore-field-group" style="grid-column: span 2;">
+                            <label class="ifs-educore-field-label"><?php esc_html_e( 'Full Name (English)', 'ifsedu-school-management' ); ?> <span class="ifs-educore-required">*</span></label>
+                            <input type="text" name="full_name" class="ifs-educore-input" value="<?php echo ( $staff && isset( $staff->full_name ) ) ? esc_attr( $staff->full_name ) : ''; ?>" required>
+                        </div>
+                        <div class="ifs-educore-field-group" style="grid-column: span 2;">
+                            <label class="ifs-educore-field-label"><?php esc_html_e( 'National ID / NID No', 'ifsedu-school-management' ); ?> <span class="ifs-educore-required">*</span></label>
+                            <input type="text" name="nid_no" class="ifs-educore-input" maxlength="17" value="<?php echo ( $staff && isset( $staff->nid_no ) ) ? esc_attr( $staff->nid_no ) : ''; ?>" required>
+                        </div>
                     </div>
-                    <div class="col-md-3 mb-3">
-                        <label class="form-label fw-bold"><?php esc_html_e( 'Employment Type', 'ifsedu-school-management' ); ?> <span class="text-danger">*</span></label>
-                        <select name="staff_type" id="educore_staff_type_select" class="form-control" required>
-                            <option value=""><?php esc_html_e( '-- Select Type --', 'ifsedu-school-management' ); ?></option>
-                            <option value="Teacher (School)" <?php selected( ( $staff && isset( $staff->staff_type ) ) ? $staff->staff_type : '', 'Teacher (School)' ); ?>><?php esc_html_e( 'Teacher (School)', 'ifsedu-school-management' ); ?></option>
-                            <option value="Teacher (College)" <?php selected( ( $staff && isset( $staff->staff_type ) ) ? $staff->staff_type : '', 'Teacher (College)' ); ?>><?php esc_html_e( 'Teacher (College)', 'ifsedu-school-management' ); ?></option>
-                            <option value="Officer" <?php selected( ( $staff && isset( $staff->staff_type ) ) ? $staff->staff_type : '', 'Officer' ); ?>><?php esc_html_e( 'Officer', 'ifsedu-school-management' ); ?></option>
-                            <option value="Staff" <?php selected( ( $staff && isset( $staff->staff_type ) ) ? $staff->staff_type : '', 'Staff' ); ?>><?php esc_html_e( 'Staff', 'ifsedu-school-management' ); ?></option>
-                        </select>
+
+                    <div class="ifs-educore-form-grid">
+                        <div class="ifs-educore-field-group" style="grid-column: span 2;">
+                            <label class="ifs-educore-field-label"><?php esc_html_e( "Father's Name", 'ifsedu-school-management' ); ?></label>
+                            <input type="text" name="father_name" class="ifs-educore-input" value="<?php echo ( $staff && isset( $staff->father_name ) ) ? esc_attr( $staff->father_name ) : ''; ?>">
+                        </div>
+                        <div class="ifs-educore-field-group" style="grid-column: span 2;">
+                            <label class="ifs-educore-field-label"><?php esc_html_e( "Mother's Name", 'ifsedu-school-management' ); ?></label>
+                            <input type="text" name="mother_name" class="ifs-educore-input" value="<?php echo ( $staff && isset( $staff->mother_name ) ) ? esc_attr( $staff->mother_name ) : ''; ?>">
+                        </div>
                     </div>
-                    <div class="col-md-3 mb-3">
-                        <label class="form-label fw-bold"><?php esc_html_e( 'Designation (Official Role)', 'ifsedu-school-management' ); ?> <span class="text-danger">*</span></label>
-                        <input type="text" name="designation" class="form-control" placeholder="<?php esc_attr_e( 'e.g., Assistant Teacher, Lecturer', 'ifsedu-school-management' ); ?>" value="<?php echo ( $staff && isset( $staff->designation ) ) ? esc_attr( $staff->designation ) : ''; ?>" required>
+
+                    <div class="ifs-educore-form-grid">
+                        <div class="ifs-educore-field-group">
+                            <label class="ifs-educore-field-label"><?php esc_html_e( 'Date of Birth', 'ifsedu-school-management' ); ?> <span class="ifs-educore-required">*</span></label>
+                            <input type="date" name="dob" class="ifs-educore-input" value="<?php echo ( $staff && isset( $staff->dob ) && '1970-01-01' !== $staff->dob ) ? esc_attr( $staff->dob ) : ''; ?>" required>
+                        </div>
+                        <div class="ifs-educore-field-group">
+                            <label class="ifs-educore-field-label"><?php esc_html_e( 'Gender', 'ifsedu-school-management' ); ?> <span class="ifs-educore-required">*</span></label>
+                            <select name="gender" class="ifs-educore-select" required>
+                                <option value="Male" <?php selected( ( $staff && isset( $staff->gender ) ) ? $staff->gender : '', 'Male' ); ?>><?php esc_html_e( 'Male', 'ifsedu-school-management' ); ?></option>
+                                <option value="Female" <?php selected( ( $staff && isset( $staff->gender ) ) ? $staff->gender : '', 'Female' ); ?>><?php esc_html_e( 'Female', 'ifsedu-school-management' ); ?></option>
+                                <option value="Other" <?php selected( ( $staff && isset( $staff->gender ) ) ? $staff->gender : '', 'Other' ); ?>><?php esc_html_e( 'Other', 'ifsedu-school-management' ); ?></option>
+                            </select>
+                        </div>
+                        <div class="ifs-educore-field-group">
+                            <label class="ifs-educore-field-label"><?php esc_html_e( 'Mobile Number', 'ifsedu-school-management' ); ?> <span class="ifs-educore-required">*</span></label>
+                            <input type="text" name="phone" class="ifs-educore-input" value="<?php echo ( $staff && isset( $staff->phone ) ) ? esc_attr( $staff->phone ) : ''; ?>" required>
+                        </div>
+                        <div class="ifs-educore-field-group">
+                            <label class="ifs-educore-field-label"><?php esc_html_e( 'WhatsApp Number', 'ifsedu-school-management' ); ?></label>
+                            <input type="text" name="whatsapp_no" class="ifs-educore-input" placeholder="<?php esc_attr_e( 'e.g., 01XXXXXXXXX', 'ifsedu-school-management' ); ?>" value="<?php echo ( $staff && isset( $staff->whatsapp_no ) ) ? esc_attr( $staff->whatsapp_no ) : ''; ?>">
+                        </div>
+                    </div>
+
+                    <div class="ifs-educore-form-grid">
+                        <div class="ifs-educore-field-group" style="grid-column: span 3;">
+                            <label class="ifs-educore-field-label"><?php esc_html_e( 'Email Address', 'ifsedu-school-management' ); ?></label>
+                            <input type="email" name="email" class="ifs-educore-input" value="<?php echo ( $staff && isset( $staff->email ) ) ? esc_attr( $staff->email ) : ''; ?>">
+                        </div>
+                        <div class="ifs-educore-field-group">
+                            <label class="ifs-educore-field-label"><?php esc_html_e( 'Blood Group', 'ifsedu-school-management' ); ?></label>
+                            <select name="blood_group" class="ifs-educore-select">
+                                <option value=""><?php esc_html_e( 'Select Blood Group', 'ifsedu-school-management' ); ?></option>
+                                <?php
+                                $blood_groups = array( 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-' );
+                                foreach ( $blood_groups as $bg ) {
+                                    echo '<option value="' . esc_attr( $bg ) . '" ' . selected( ( $staff && isset( $staff->blood_group ) ) ? $staff->blood_group : '', $bg, false ) . '>' . esc_html( $bg ) . '</option>';
+                                }
+                                ?>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label fw-bold"><?php esc_html_e( 'Full Name (English)', 'ifsedu-school-management' ); ?> <span class="text-danger">*</span></label>
-                        <input type="text" name="full_name" class="form-control" value="<?php echo ( $staff && isset( $staff->full_name ) ) ? esc_attr( $staff->full_name ) : ''; ?>" required>
+                <!-- STEP 2: Employment & Academic Structure -->
+                <div class="educore-step-content" id="educore-step-2">
+                    <h5 class="ifs-educore-section-title"><?php esc_html_e( 'Employment & Academic Setup', 'ifsedu-school-management' ); ?></h5>
+                    <div class="ifs-educore-form-grid">
+                        <div class="ifs-educore-field-group" style="grid-column: span 2;">
+                            <label class="ifs-educore-field-label"><?php esc_html_e( 'National Pay Scale Grade', 'ifsedu-school-management' ); ?></label>
+                            <select name="pay_grade" class="ifs-educore-select">
+                                <option value=""><?php esc_html_e( '-- Select Pay Grade --', 'ifsedu-school-management' ); ?></option>
+                                <?php
+                                for ( $i = 1; $i <= 20; $i++ ) {
+                                    $grade_str = 'Grade ' . $i;
+                                    echo '<option value="' . esc_attr( $grade_str ) . '" ' . selected( ( $staff && isset( $staff->pay_grade ) ) ? $staff->pay_grade : '', $grade_str, false ) . '>' . esc_html( $grade_str ) . '</option>';
+                                }
+                                ?>
+                            </select>
+                        </div>
+                        <div class="ifs-educore-field-group" style="grid-column: span 2;">
+                            <label class="ifs-educore-field-label"><?php esc_html_e( 'MPO Index Number', 'ifsedu-school-management' ); ?></label>
+                            <input type="text" name="index_no" class="ifs-educore-input" placeholder="<?php esc_attr_e( 'e.g., T1029384', 'ifsedu-school-management' ); ?>" value="<?php echo ( $staff && isset( $staff->index_no ) ) ? esc_attr( $staff->index_no ) : ''; ?>">
+                        </div>
                     </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label fw-bold"><?php esc_html_e( 'National ID / NID No', 'ifsedu-school-management' ); ?> <span class="text-danger">*</span></label>
-                        <input type="text" name="nid_no" class="form-control" maxlength="17" value="<?php echo ( $staff && isset( $staff->nid_no ) ) ? esc_attr( $staff->nid_no ) : ''; ?>" required>
+
+                    <div class="ifs-educore-form-grid">
+                        <div class="ifs-educore-field-group" style="grid-column: span 2;">
+                            <label class="ifs-educore-field-label"><?php esc_html_e( 'Subject Expertise', 'ifsedu-school-management' ); ?></label>
+                            <input type="text" name="subject_expert" class="ifs-educore-input" placeholder="<?php esc_attr_e( 'e.g., Mathematics, English', 'ifsedu-school-management' ); ?>" value="<?php echo ( $staff && isset( $staff->subject_expert ) ) ? esc_attr( $staff->subject_expert ) : ''; ?>">
+                        </div>
+                        <div class="ifs-educore-field-group" style="grid-column: span 2;">
+                            <label class="ifs-educore-field-label"><?php esc_html_e( 'Highest Qualification', 'ifsedu-school-management' ); ?></label>
+                            <input type="text" name="highest_degree" class="ifs-educore-input" placeholder="<?php esc_attr_e( 'e.g., MA in English, B.Sc', 'ifsedu-school-management' ); ?>" value="<?php echo ( $staff && isset( $staff->highest_degree ) ) ? esc_attr( $staff->highest_degree ) : ''; ?>">
+                        </div>
+                    </div>
+
+                    <div class="ifs-educore-form-grid">
+                        <div class="ifs-educore-field-group" style="grid-column: span 4;">
+                            <label class="ifs-educore-field-label"><?php esc_html_e( 'Quota Category', 'ifsedu-school-management' ); ?></label>
+                            <select name="quota_type" class="ifs-educore-select">
+                                <option value="General" <?php selected( ( $staff && isset( $staff->quota_type ) ) ? $staff->quota_type : '', 'General' ); ?>><?php esc_html_e( 'General', 'ifsedu-school-management' ); ?></option>
+                                <option value="Freedom Fighter" <?php selected( ( $staff && isset( $staff->quota_type ) ) ? $staff->quota_type : '', 'Freedom Fighter' ); ?>><?php esc_html_e( 'Freedom Fighter', 'ifsedu-school-management' ); ?></option>
+                                <option value="Tribal" <?php selected( ( $staff && isset( $staff->quota_type ) ) ? $staff->quota_type : '', 'Tribal' ); ?>><?php esc_html_e( 'Tribal', 'ifsedu-school-management' ); ?></option>
+                                <option value="Other" <?php selected( ( $staff && isset( $staff->quota_type ) ) ? $staff->quota_type : '', 'Other' ); ?>><?php esc_html_e( 'Other', 'ifsedu-school-management' ); ?></option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="ifs-educore-form-grid">
+                        <div class="ifs-educore-field-group" style="grid-column: span 2;">
+                            <label class="ifs-educore-field-label"><?php esc_html_e( 'Joining Date', 'ifsedu-school-management' ); ?> <span class="ifs-educore-required">*</span></label>
+                            <input type="date" name="joining_date" class="ifs-educore-input" value="<?php echo ( $staff && isset( $staff->joining_date ) && '1970-01-01' !== $staff->joining_date ) ? esc_attr( $staff->joining_date ) : esc_attr( current_time( 'Y-m-d' ) ); ?>" required>
+                        </div>
+                        <div class="ifs-educore-field-group" style="grid-column: span 2;">
+                            <label class="ifs-educore-field-label"><?php esc_html_e( 'Gross / Basic Salary (৳)', 'ifsedu-school-management' ); ?> <span class="ifs-educore-required">*</span></label>
+                            <input type="number" step="0.01" name="salary" class="ifs-educore-input" value="<?php echo ( $staff && isset( $staff->salary ) ) ? floatval( $staff->salary ) : '0.00'; ?>" required>
+                        </div>
                     </div>
                 </div>
 
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label fw-bold"><?php esc_html_e( "Father's Name", 'ifsedu-school-management' ); ?></label>
-                        <input type="text" name="father_name" class="form-control" value="<?php echo ( $staff && isset( $staff->father_name ) ) ? esc_attr( $staff->father_name ) : ''; ?>">
+                <!-- STEP 3: Payroll, Banking & Emergencies -->
+                <div class="educore-step-content" id="educore-step-3">
+                    <h5 class="ifs-educore-section-title"><?php esc_html_e( 'Bank Accounts & Payroll Mechanics', 'ifsedu-school-management' ); ?></h5>
+                    <div class="ifs-educore-form-grid">
+                        <div class="ifs-educore-field-group">
+                            <label class="ifs-educore-field-label"><?php esc_html_e( 'Bank Name', 'ifsedu-school-management' ); ?></label>
+                            <input type="text" name="bank_name" class="ifs-educore-input" placeholder="<?php esc_attr_e( 'e.g., Sonali Bank PLC', 'ifsedu-school-management' ); ?>" value="<?php echo ( $staff && isset( $staff->bank_name ) ) ? esc_attr( $staff->bank_name ) : ''; ?>">
+                        </div>
+                        <div class="ifs-educore-field-group" style="grid-column: span 2;">
+                            <label class="ifs-educore-field-label"><?php esc_html_e( 'Bank Account Number', 'ifsedu-school-management' ); ?></label>
+                            <input type="text" name="bank_acc_no" class="ifs-educore-input" placeholder="<?php esc_attr_e( '13-17 Digit', 'ifsedu-school-management' ); ?>" value="<?php echo ( $staff && isset( $staff->bank_acc_no ) ) ? esc_attr( $staff->bank_acc_no ) : ''; ?>">
+                        </div>
+                        <div class="ifs-educore-field-group">
+                            <label class="ifs-educore-field-label"><?php esc_html_e( 'Bank Routing Number', 'ifsedu-school-management' ); ?></label>
+                            <input type="text" name="bank_routing" class="ifs-educore-input" placeholder="<?php esc_attr_e( '9 Digit Routing Code', 'ifsedu-school-management' ); ?>" value="<?php echo ( $staff && isset( $staff->bank_routing ) ) ? esc_attr( $staff->bank_routing ) : ''; ?>">
+                        </div>
                     </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label fw-bold"><?php esc_html_e( "Mother's Name", 'ifsedu-school-management' ); ?></label>
-                        <input type="text" name="mother_name" class="form-control" value="<?php echo ( $staff && isset( $staff->mother_name ) ) ? esc_attr( $staff->mother_name ) : ''; ?>">
+
+                    <h5 class="ifs-educore-section-title"><?php esc_html_e( 'Emergency Contact Protocol', 'ifsedu-school-management' ); ?></h5>
+                    <div class="ifs-educore-form-grid">
+                        <div class="ifs-educore-field-group" style="grid-column: span 2;">
+                            <label class="ifs-educore-field-label"><?php esc_html_e( 'Emergency Contact Name', 'ifsedu-school-management' ); ?></label>
+                            <input type="text" name="emergency_name" class="ifs-educore-input" value="<?php echo ( $staff && isset( $staff->emergency_name ) ) ? esc_attr( $staff->emergency_name ) : ''; ?>">
+                        </div>
+                        <div class="ifs-educore-field-group">
+                            <label class="ifs-educore-field-label"><?php esc_html_e( 'Emergency Contact Relation', 'ifsedu-school-management' ); ?></label>
+                            <input type="text" name="emergency_relation" class="ifs-educore-input" placeholder="<?php esc_attr_e( 'e.g., Spouse, Brother', 'ifsedu-school-management' ); ?>" value="<?php echo ( $staff && isset( $staff->emergency_relation ) ) ? esc_attr( $staff->emergency_relation ) : ''; ?>">
+                        </div>
+                        <div class="ifs-educore-field-group">
+                            <label class="ifs-educore-field-label"><?php esc_html_e( 'Emergency Contact Phone', 'ifsedu-school-management' ); ?></label>
+                            <input type="text" name="emergency_phone" class="ifs-educore-input" value="<?php echo ( $staff && isset( $staff->emergency_phone ) ) ? esc_attr( $staff->emergency_phone ) : ''; ?>">
+                        </div>
                     </div>
                 </div>
 
-                <div class="row">
-                    <div class="col-md-3 mb-3">
-                        <label class="form-label fw-bold"><?php esc_html_e( 'Date of Birth', 'ifsedu-school-management' ); ?> <span class="text-danger">*</span></label>
-                        <input type="date" name="dob" class="form-control" value="<?php echo ( $staff && isset( $staff->dob ) && '1970-01-01' !== $staff->dob ) ? esc_attr( $staff->dob ) : ''; ?>" required>
+                <!-- STEP 4: Logistics, Address & Socials -->
+                <div class="educore-step-content" id="educore-step-4">
+                    <h5 class="ifs-educore-section-title"><?php esc_html_e( 'Logistics & Status', 'ifsedu-school-management' ); ?></h5>
+                    <div class="ifs-educore-form-grid">
+                        <div class="ifs-educore-field-group" style="grid-column: span 2;">
+                            <label class="ifs-educore-field-label"><?php esc_html_e( 'Upload Profile Photo', 'ifsedu-school-management' ); ?></label>
+                            <input type="file" name="staff_photo" class="ifs-educore-input" accept="image/jpeg,image/png,image/webp" style="padding-top: 8px;">
+                        </div>
+                        <div class="ifs-educore-field-group" style="grid-column: span 2;">
+                            <label class="ifs-educore-field-label"><?php esc_html_e( 'Account Status', 'ifsedu-school-management' ); ?></label>
+                            <select name="status" class="ifs-educore-select">
+                                <option value="Active" <?php selected( ( $staff && isset( $staff->status ) ) ? $staff->status : '', 'Active' ); ?>><?php esc_html_e( 'Active', 'ifsedu-school-management' ); ?></option>
+                                <option value="Resigned" <?php selected( ( $staff && isset( $staff->status ) ) ? $staff->status : '', 'Resigned' ); ?>><?php esc_html_e( 'Resigned / Left', 'ifsedu-school-management' ); ?></option>
+                                <option value="Suspended" <?php selected( ( $staff && isset( $staff->status ) ) ? $staff->status : '', 'Suspended' ); ?>><?php esc_html_e( 'Suspended', 'ifsedu-school-management' ); ?></option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="col-md-3 mb-3">
-                        <label class="form-label fw-bold"><?php esc_html_e( 'Gender', 'ifsedu-school-management' ); ?> <span class="text-danger">*</span></label>
-                        <select name="gender" class="form-control" required>
-                            <option value="Male" <?php selected( ( $staff && isset( $staff->gender ) ) ? $staff->gender : '', 'Male' ); ?>><?php esc_html_e( 'Male', 'ifsedu-school-management' ); ?></option>
-                            <option value="Female" <?php selected( ( $staff && isset( $staff->gender ) ) ? $staff->gender : '', 'Female' ); ?>><?php esc_html_e( 'Female', 'ifsedu-school-management' ); ?></option>
-                            <option value="Other" <?php selected( ( $staff && isset( $staff->gender ) ) ? $staff->gender : '', 'Other' ); ?>><?php esc_html_e( 'Other', 'ifsedu-school-management' ); ?></option>
-                        </select>
+
+                    <h5 class="ifs-educore-section-title"><?php esc_html_e( 'Address Details', 'ifsedu-school-management' ); ?></h5>
+                    <div class="ifs-educore-form-grid">
+                        <div class="ifs-educore-field-group" style="grid-column: span 2;">
+                            <label class="ifs-educore-field-label"><?php esc_html_e( 'Present Address', 'ifsedu-school-management' ); ?></label>
+                            <textarea name="address" class="ifs-educore-textarea" rows="3" placeholder="<?php esc_attr_e( 'Vill/Road, Post Office, Upazila, District', 'ifsedu-school-management' ); ?>"><?php echo ( $staff && isset( $staff->address ) ) ? esc_textarea( $staff->address ) : ''; ?></textarea>
+                        </div>
+                        <div class="ifs-educore-field-group" style="grid-column: span 2;">
+                            <label class="ifs-educore-field-label"><?php esc_html_e( 'Permanent Address', 'ifsedu-school-management' ); ?></label>
+                            <textarea name="permanent_address" class="ifs-educore-textarea" rows="3" placeholder="<?php esc_attr_e( 'Vill/Road, Post Office, Upazila, District', 'ifsedu-school-management' ); ?>"><?php echo ( $staff && isset( $staff->permanent_address ) ) ? esc_textarea( $staff->permanent_address ) : ''; ?></textarea>
+                        </div>
                     </div>
-                    <div class="col-md-3 mb-3">
-                        <label class="form-label fw-bold"><?php esc_html_e( 'Mobile Number', 'ifsedu-school-management' ); ?> <span class="text-danger">*</span></label>
-                        <input type="text" name="phone" class="form-control" value="<?php echo ( $staff && isset( $staff->phone ) ) ? esc_attr( $staff->phone ) : ''; ?>" required>
+
+                    <h5 class="ifs-educore-section-title"><?php esc_html_e( 'Social Profiles & Professional Connect', 'ifsedu-school-management' ); ?></h5>
+                    <div class="ifs-educore-form-grid">
+                        <div class="ifs-educore-field-group" style="grid-column: span 4;">
+                            <label class="ifs-educore-field-label"><?php esc_html_e( 'LinkedIn URL', 'ifsedu-school-management' ); ?></label>
+                            <input type="url" name="linkedin_url" class="ifs-educore-input" placeholder="https://linkedin.com/in/username" value="<?php echo ( $staff && isset( $staff->linkedin_url ) ) ? esc_url( $staff->linkedin_url ) : ''; ?>">
+                        </div>
                     </div>
-                    <div class="col-md-3 mb-3">
-                        <label class="form-label fw-bold"><?php esc_html_e( 'WhatsApp Number', 'ifsedu-school-management' ); ?></label>
-                        <input type="text" name="whatsapp_no" class="form-control" placeholder="<?php esc_attr_e( 'e.g., 01XXXXXXXXX', 'ifsedu-school-management' ); ?>" value="<?php echo ( $staff && isset( $staff->whatsapp_no ) ) ? esc_attr( $staff->whatsapp_no ) : ''; ?>">
+                    <div class="ifs-educore-form-grid">
+                        <div class="ifs-educore-field-group" style="grid-column: span 4;">
+                            <label class="ifs-educore-field-label"><?php esc_html_e( 'Facebook Profile URL', 'ifsedu-school-management' ); ?></label>
+                            <input type="url" name="facebook_url" class="ifs-educore-input" placeholder="https://facebook.com/username" value="<?php echo ( $staff && isset( $staff->facebook_url ) ) ? esc_url( $staff->facebook_url ) : ''; ?>">
+                        </div>
+                    </div>
+                    <div class="ifs-educore-form-grid">
+                        <div class="ifs-educore-field-group" style="grid-column: span 4;">
+                            <label class="ifs-educore-field-label"><?php esc_html_e( 'Portfolio / Personal Website', 'ifsedu-school-management' ); ?></label>
+                            <input type="url" name="website_url" class="ifs-educore-input" placeholder="https://example.com" value="<?php echo ( $staff && isset( $staff->website_url ) ) ? esc_url( $staff->website_url ) : ''; ?>">
+                        </div>
                     </div>
                 </div>
 
-                <div class="row">
-                    <div class="col-md-8 mb-3">
-                        <label class="form-label fw-bold"><?php esc_html_e( 'Email Address', 'ifsedu-school-management' ); ?></label>
-                        <input type="email" name="email" class="form-control" value="<?php echo ( $staff && isset( $staff->email ) ) ? esc_attr( $staff->email ) : ''; ?>">
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label fw-bold"><?php esc_html_e( 'Blood Group', 'ifsedu-school-management' ); ?></label>
-                        <select name="blood_group" class="form-control">
-                            <option value=""><?php esc_html_e( 'Select Blood Group', 'ifsedu-school-management' ); ?></option>
-                            <?php
-                            $blood_groups = array( 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-' );
-                            foreach ( $blood_groups as $bg ) {
-                                echo '<option value="' . esc_attr( $bg ) . '" ' . selected( ( $staff && isset( $staff->blood_group ) ) ? $staff->blood_group : '', $bg, false ) . '>' . esc_html( $bg ) . '</option>';
-                            }
-                            ?>
-                        </select>
+                <!-- Dynamic Form Control Steering Infrastructure -->
+                <div class="ifs-educore-form-actions">
+                    <button type="button" class="ifs-educore-btn-secondary" id="educorePrevBtn" style="display: none;">&larr; <?php esc_html_e( 'Previous Step', 'ifsedu-school-management' ); ?></button>
+                    <div style="margin-left: auto;">
+                        <button type="button" class="ifs-educore-btn-primary" id="educoreNextBtn"><?php esc_html_e( 'Next Step &rarr;', 'ifsedu-school-management' ); ?></button>
+                        <button type="submit" class="ifs-educore-btn-primary" id="educoreSubmitBtn" style="display: none; background: #00523c;">
+                            <?php echo $is_edit ? esc_html__( 'Update Record Stack', 'ifsedu-school-management' ) : esc_html__( 'Save Staff Member Details', 'ifsedu-school-management' ); ?>
+                        </button>
                     </div>
                 </div>
-            </div>
-
-            <!-- STEP 2: Employment & Academic Structure -->
-            <div class="educore-step-content" id="educore-step-2">
-                <h5 class="mb-3 text-success border-bottom pb-2"><?php esc_html_e( 'Employment & Academic Setup', 'ifsedu-school-management' ); ?></h5>
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label fw-bold"><?php esc_html_e( 'National Pay Scale Grade', 'ifsedu-school-management' ); ?></label>
-                        <select name="pay_grade" class="form-control">
-                            <option value=""><?php esc_html_e( '-- Select Pay Grade --', 'ifsedu-school-management' ); ?></option>
-                            <?php
-                            for ( $i = 1; $i <= 20; $i++ ) {
-                                $grade_str = 'Grade ' . $i;
-                                echo '<option value="' . esc_attr( $grade_str ) . '" ' . selected( ( $staff && isset( $staff->pay_grade ) ) ? $staff->pay_grade : '', $grade_str, false ) . '>' . esc_html( $grade_str ) . '</option>';
-                            }
-                            ?>
-                        </select>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label fw-bold"><?php esc_html_e( 'MPO Index Number', 'ifsedu-school-management' ); ?></label>
-                        <input type="text" name="index_no" class="form-control" placeholder="<?php esc_attr_e( 'e.g., T1029384', 'ifsedu-school-management' ); ?>" value="<?php echo ( $staff && isset( $staff->index_no ) ) ? esc_attr( $staff->index_no ) : ''; ?>">
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label fw-bold"><?php esc_html_e( 'Subject Expertise', 'ifsedu-school-management' ); ?></label>
-                        <input type="text" name="subject_expert" class="form-control" placeholder="<?php esc_attr_e( 'e.g., Mathematics, English', 'ifsedu-school-management' ); ?>" value="<?php echo ( $staff && isset( $staff->subject_expert ) ) ? esc_attr( $staff->subject_expert ) : ''; ?>">
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label fw-bold"><?php esc_html_e( 'Highest Qualification', 'ifsedu-school-management' ); ?></label>
-                        <input type="text" name="highest_degree" class="form-control" placeholder="<?php esc_attr_e( 'e.g., MA in English, B.Sc', 'ifsedu-school-management' ); ?>" value="<?php echo ( $staff && isset( $staff->highest_degree ) ) ? esc_attr( $staff->highest_degree ) : ''; ?>">
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label fw-bold"><?php esc_html_e( 'Quota Category', 'ifsedu-school-management' ); ?></label>
-                        <select name="quota_type" class="form-control">
-                            <option value="General" <?php selected( ( $staff && isset( $staff->quota_type ) ) ? $staff->quota_type : '', 'General' ); ?>><?php esc_html_e( 'General', 'ifsedu-school-management' ); ?></option>
-                            <option value="Freedom Fighter" <?php selected( ( $staff && isset( $staff->quota_type ) ) ? $staff->quota_type : '', 'Freedom Fighter' ); ?>><?php esc_html_e( 'Freedom Fighter', 'ifsedu-school-management' ); ?></option>
-                            <option value="Tribal" <?php selected( ( $staff && isset( $staff->quota_type ) ) ? $staff->quota_type : '', 'Tribal' ); ?>><?php esc_html_e( 'Tribal', 'ifsedu-school-management' ); ?></option>
-                            <option value="Other" <?php selected( ( $staff && isset( $staff->quota_type ) ) ? $staff->quota_type : '', 'Other' ); ?>><?php esc_html_e( 'Other', 'ifsedu-school-management' ); ?></option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label fw-bold"><?php esc_html_e( 'Joining Date', 'ifsedu-school-management' ); ?> <span class="text-danger">*</span></label>
-                        <input type="date" name="joining_date" class="form-control" value="<?php echo ( $staff && isset( $staff->joining_date ) && '1970-01-01' !== $staff->joining_date ) ? esc_attr( $staff->joining_date ) : esc_attr( current_time( 'Y-m-d' ) ); ?>" required>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label fw-bold"><?php esc_html_e( 'Gross / Basic Salary (৳)', 'ifsedu-school-management' ); ?> <span class="text-danger">*</span></label>
-                        <input type="number" step="0.01" name="salary" class="form-control" value="<?php echo ( $staff && isset( $staff->salary ) ) ? floatval( $staff->salary ) : '0.00'; ?>" required>
-                    </div>
-                </div>
-            </div>
-
-            <!-- STEP 3: Payroll, Banking & Emergencies -->
-            <div class="educore-step-content" id="educore-step-3">
-                <h5 class="mb-3 text-success border-bottom pb-2"><?php esc_html_e( 'Bank Accounts & Payroll Mechanics', 'ifsedu-school-management' ); ?></h5>
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label fw-bold"><?php esc_html_e( 'Bank Name', 'ifsedu-school-management' ); ?></label>
-                        <input type="text" name="bank_name" class="form-control" placeholder="<?php esc_attr_e( 'e.g., Sonali Bank PLC', 'ifsedu-school-management' ); ?>" value="<?php echo ( $staff && isset( $staff->bank_name ) ) ? esc_attr( $staff->bank_name ) : ''; ?>">
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label fw-bold"><?php esc_html_e( 'Bank Account Number', 'ifsedu-school-management' ); ?></label>
-                        <input type="text" name="bank_acc_no" class="form-control" placeholder="<?php esc_attr_e( '13-17 Digit', 'ifsedu-school-management' ); ?>" value="<?php echo ( $staff && isset( $staff->bank_acc_no ) ) ? esc_attr( $staff->bank_acc_no ) : ''; ?>">
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label fw-bold"><?php esc_html_e( 'Bank Routing Number', 'ifsedu-school-management' ); ?></label>
-                        <input type="text" name="bank_routing" class="form-control" placeholder="<?php esc_attr_e( '9 Digit Routing Code', 'ifsedu-school-management' ); ?>" value="<?php echo ( $staff && isset( $staff->bank_routing ) ) ? esc_attr( $staff->bank_routing ) : ''; ?>">
-                    </div>
-                </div>
-
-                <h5 class="mb-3 text-success border-bottom pb-2 mt-4"><?php esc_html_e( 'Emergency Contact Protocol', 'ifsedu-school-management' ); ?></h5>
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label fw-bold"><?php esc_html_e( 'Emergency Contact Name', 'ifsedu-school-management' ); ?></label>
-                        <input type="text" name="emergency_name" class="form-control" value="<?php echo ( $staff && isset( $staff->emergency_name ) ) ? esc_attr( $staff->emergency_name ) : ''; ?>">
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label fw-bold"><?php esc_html_e( 'Emergency Contact Relation', 'ifsedu-school-management' ); ?></label>
-                        <input type="text" name="emergency_relation" class="form-control" placeholder="<?php esc_attr_e( 'e.g., Spouse, Brother', 'ifsedu-school-management' ); ?>" value="<?php echo ( $staff && isset( $staff->emergency_relation ) ) ? esc_attr( $staff->emergency_relation ) : ''; ?>">
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label fw-bold"><?php esc_html_e( 'Emergency Contact Phone', 'ifsedu-school-management' ); ?></label>
-                        <input type="text" name="emergency_phone" class="form-control" value="<?php echo ( $staff && isset( $staff->emergency_phone ) ) ? esc_attr( $staff->emergency_phone ) : ''; ?>">
-                    </div>
-                </div>
-            </div>
-
-            <!-- STEP 4: Logistics, Address & Socials -->
-            <div class="educore-step-content" id="educore-step-4">
-                <h5 class="mb-3 text-success border-bottom pb-2"><?php esc_html_e( 'Logistics & Status', 'ifsedu-school-management' ); ?></h5>
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label fw-bold"><?php esc_html_e( 'Upload Profile Photo', 'ifsedu-school-management' ); ?></label>
-                        <input type="file" name="staff_photo" class="form-control" accept="image/jpeg,image/png,image/webp">
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label fw-bold"><?php esc_html_e( 'Account Status', 'ifsedu-school-management' ); ?></label>
-                        <select name="status" class="form-control">
-                            <option value="Active" <?php selected( ( $staff && isset( $staff->status ) ) ? $staff->status : '', 'Active' ); ?>><?php esc_html_e( 'Active', 'ifsedu-school-management' ); ?></option>
-                            <option value="Resigned" <?php selected( ( $staff && isset( $staff->status ) ) ? $staff->status : '', 'Resigned' ); ?>><?php esc_html_e( 'Resigned / Left', 'ifsedu-school-management' ); ?></option>
-                            <option value="Suspended" <?php selected( ( $staff && isset( $staff->status ) ) ? $staff->status : '', 'Suspended' ); ?>><?php esc_html_e( 'Suspended', 'ifsedu-school-management' ); ?></option>
-                        </select>
-                    </div>
-                </div>
-
-                <h5 class="mb-3 text-success border-bottom pb-2 mt-4"><?php esc_html_e( 'Address Details', 'ifsedu-school-management' ); ?></h5>
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label fw-bold"><?php esc_html_e( 'Present Address', 'ifsedu-school-management' ); ?></label>
-                        <textarea name="address" class="form-control" rows="3" placeholder="<?php esc_attr_e( 'Vill/Road, Post Office, Upazila, District', 'ifsedu-school-management' ); ?>"><?php echo ( $staff && isset( $staff->address ) ) ? esc_textarea( $staff->address ) : ''; ?></textarea>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label fw-bold"><?php esc_html_e( 'Permanent Address', 'ifsedu-school-management' ); ?></label>
-                        <textarea name="permanent_address" class="form-control" rows="3" placeholder="<?php esc_attr_e( 'Vill/Road, Post Office, Upazila, District', 'ifsedu-school-management' ); ?>"><?php echo ( $staff && isset( $staff->permanent_address ) ) ? esc_textarea( $staff->permanent_address ) : ''; ?></textarea>
-                    </div>
-                </div>
-
-                <h5 class="mb-3 text-success border-bottom pb-2 mt-4"><?php esc_html_e( 'Social Profiles & Professional Connect', 'ifsedu-school-management' ); ?></h5>
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label fw-bold"><?php esc_html_e( 'LinkedIn URL', 'ifsedu-school-management' ); ?></label>
-                        <input type="url" name="linkedin_url" class="form-control" placeholder="https://linkedin.com/in/username" value="<?php echo ( $staff && isset( $staff->linkedin_url ) ) ? esc_url( $staff->linkedin_url ) : ''; ?>">
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label fw-bold"><?php esc_html_e( 'Facebook Profile URL', 'ifsedu-school-management' ); ?></label>
-                        <input type="url" name="facebook_url" class="form-control" placeholder="https://facebook.com/username" value="<?php echo ( $staff && isset( $staff->facebook_url ) ) ? esc_url( $staff->facebook_url ) : ''; ?>">
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label fw-bold"><?php esc_html_e( 'Portfolio / Personal Website', 'ifsedu-school-management' ); ?></label>
-                        <input type="url" name="website_url" class="form-control" placeholder="https://example.com" value="<?php echo ( $staff && isset( $staff->website_url ) ) ? esc_url( $staff->website_url ) : ''; ?>">
-                    </div>
-                </div>
-            </div>
-
-            <!-- Dynamic Form Control Steering Infrastructure -->
-            <div class="form-step-actions d-flex justify-content-between">
-                <button type="button" class="btn btn-secondary px-4" id="educorePrevBtn" style="display: none;">&larr; <?php esc_html_e( 'Previous Step', 'ifsedu-school-management' ); ?></button>
-                <div class="ms-auto">
-                    <button type="button" class="btn btn-primary px-4" id="educoreNextBtn" style="background-color: #2563eb; border: none;"><?php esc_html_e( 'Next Step &rarr;', 'ifsedu-school-management' ); ?></button>
-                    <button type="submit" class="btn btn-success px-5" id="educoreSubmitBtn" style="display: none; background-color: #00523c; border: none; font-weight: bold;">
-                        <?php echo $is_edit ? esc_html__( 'Update Record Stack', 'ifsedu-school-management' ) : esc_html__( 'Save Staff Member Details', 'ifsedu-school-management' ); ?>
-                    </button>
-                </div>
-            </div>
-        </form>
+            </form>
+        </div>
     </div>
 
     <script type="text/javascript">
@@ -516,9 +525,9 @@ function educore_staff_add_edit_view() {
                 $('#educore_staff_id_input').val(prefix + numPart);
             });
 
-            // Enforce Uppercase conversion on Staff ID input field
+            // Enforce capitalize conversion on Staff ID input field
             $('input[name="staff_id"]').on('input', function() {
-                this.value = this.value.toUpperCase();
+                this.value = this.value.tocapitalize();
             });
 
             function updateStepVisibility() {

@@ -48,7 +48,6 @@ function educore_staff_tab() {
     $add_staff_url  = add_query_arg( array( 'page' => 'school_management_system', 'tab' => 'staff', 'sub' => 'add' ), $base_admin_url );
     $id_card_url    = add_query_arg( array( 'page' => 'school_management_system', 'tab' => 'staff', 'sub' => 'id_card' ), $base_admin_url );
     ?>
-
     <div class="ifs-educore-staff-nav-root">
         
         <!-- Top Sub-Navigation Menu Bar (Bento Frame Layer) -->
@@ -73,7 +72,7 @@ function educore_staff_tab() {
             <?php if ( 'edit' === $sub_tab || 'view' === $sub_tab ) : ?>
                 <div>
                     <span class="ifs-educore-context-badge">
-                        <span class="dashicons dashicons-edit" style="font-size:14px; width:14px; height:14px;"></span>
+                        <span class="dashicons dashicons-edit"></span>
                         <?php
                         printf(
                             /* translators: %s: Action verb (e.g. Editing, Viewing) */

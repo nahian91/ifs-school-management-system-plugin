@@ -33,6 +33,127 @@ function educore_students_tab() {
     $promotion_url    = add_query_arg( array( 'page' => 'school_management_system', 'tab' => 'students', 'sub' => 'promotion' ), $base_admin_url );
     ?>
 
+    <style id="ifs-educore-students-router-styles">
+        .ifs-educore-students-nav-root {
+            font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #0f172a;
+        }
+
+        .ifs-educore-top-nav-wrapper {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.03);
+        }
+
+        .ifs-educore-nav-button-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .ifs-educore-nav-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 18px;
+            border-radius: 10px;
+            font-size: 13.5px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.2s ease-in-out;
+            border: 1px solid transparent;
+        }
+
+        .ifs-educore-nav-link .dashicons {
+            font-size: 18px;
+            width: 18px;
+            height: 18px;
+        }
+
+        .ifs-educore-nav-link-inactive {
+            color: #64748b;
+            background: #f8fafc;
+            border-color: #e2e8f0;
+        }
+
+        .ifs-educore-nav-link-inactive:hover {
+            color: #00523c;
+            background: #f0fdf4;
+            border-color: #a7f3d0;
+        }
+
+        .ifs-educore-nav-link-active {
+            color: #ffffff !important;
+            background: #00523c !important;
+            border-color: #00523c !important;
+            box-shadow: 0 4px 12px rgba(0, 106, 78, 0.2);
+        }
+
+        .ifs-educore-nav-link-active .dashicons {
+            color: #a7f3d0 !important;
+        }
+
+        .ifs-educore-context-badge {
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            color: #475569;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 5px 12px;
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .ifs-educore-context-badge .dashicons {
+            font-size: 14px;
+            width: 14px;
+            height: 14px;
+            vertical-align: middle;
+        }
+
+        .ifs-educore-notice-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            color: #475569;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+        }
+
+        .ifs-educore-notice-card .dashicons {
+            color: #0284c7;
+            font-size: 20px;
+            width: 20px;
+            height: 20px;
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+
+        .ifs-educore-module-viewport-container {
+            width: 100%;
+        }
+
+        @media print {
+            .no-print { display: none !important; }
+        }
+    </style>
+
     <div class="ifs-educore-students-nav-root">
         
         <!-- Top Sub-Navigation Menu Bar (Bento Frame Layer) -->
@@ -72,7 +193,7 @@ function educore_students_tab() {
             <?php if ( in_array( $sub_tab, array( 'edit', 'view' ), true ) ) : ?>
                 <div>
                     <span class="ifs-educore-context-badge">
-                        <span class="dashicons dashicons-edit" style="font-size:14px; width:14px; height:14px;"></span>
+                        <span class="dashicons dashicons-edit"></span>
                         <?php 
                         if ( 'edit' === $sub_tab ) {
                             esc_html_e( 'Editing Student Record', 'ifsedu-school-management' );
@@ -106,7 +227,7 @@ function educore_students_tab() {
                     if ( function_exists( 'educore_student_id_card_view' ) ) {
                         educore_student_id_card_view();
                     } else {
-                        echo '<div class="ifs-educore-notice-card"><span class="dashicons dashicons-info" style="vertical-align:middle; margin-right:6px;"></span> ' .
+                        echo '<div class="ifs-educore-notice-card"><span class="dashicons dashicons-info"></span> ' .
                             wp_kses(
                                 sprintf(
                                     /* translators: %s: Function name in code tags */
@@ -122,7 +243,7 @@ function educore_students_tab() {
                     if ( function_exists( 'educore_student_admit_card_view' ) ) {
                         educore_student_admit_card_view();
                     } else {
-                        echo '<div class="ifs-educore-notice-card"><span class="dashicons dashicons-info" style="vertical-align:middle; margin-right:6px;"></span> ' .
+                        echo '<div class="ifs-educore-notice-card"><span class="dashicons dashicons-info"></span> ' .
                             wp_kses(
                                 sprintf(
                                     /* translators: %s: Function name in code tags */
@@ -138,7 +259,7 @@ function educore_students_tab() {
                     if ( function_exists( 'educore_student_certificate_view' ) ) {
                         educore_student_certificate_view();
                     } else {
-                        echo '<div class="ifs-educore-notice-card"><span class="dashicons dashicons-info" style="vertical-align:middle; margin-right:6px;"></span> ' .
+                        echo '<div class="ifs-educore-notice-card"><span class="dashicons dashicons-info"></span> ' .
                             wp_kses(
                                 sprintf(
                                     /* translators: %s: Function name in code tags */
@@ -154,7 +275,7 @@ function educore_students_tab() {
                     if ( function_exists( 'educore_student_promotion_view' ) ) {
                         educore_student_promotion_view();
                     } else {
-                        echo '<div class="ifs-educore-notice-card"><span class="dashicons dashicons-info" style="vertical-align:middle; margin-right:6px;"></span> ' .
+                        echo '<div class="ifs-educore-notice-card"><span class="dashicons dashicons-info"></span> ' .
                             wp_kses(
                                 sprintf(
                                     /* translators: %s: Function name in code tags */

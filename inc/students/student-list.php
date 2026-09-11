@@ -79,6 +79,233 @@ function educore_students_list_view() {
     }
     ?>
 
+    <style id="ifs-educore-students-list-styles">
+        .ifs-educore-dt-container {
+            font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #0f172a;
+        }
+
+        .ifs-educore-dt-toolbar {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+        }
+
+        .ifs-educore-dt-filter-box {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 14px;
+        }
+
+        .ifs-educore-filter-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ifs-educore-select-element,
+        .ifs-educore-search-input {
+            height: 38px;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 0 12px;
+            font-size: 13px;
+            color: #0f172a;
+            background: #ffffff;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .ifs-educore-select-element:focus,
+        .ifs-educore-search-input:focus {
+            border-color: #00523c;
+            box-shadow: 0 0 0 3px rgba(0, 82, 60, 0.12);
+        }
+
+        .ifs-educore-table-responsive {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
+            margin-bottom: 20px;
+        }
+
+        .ifs-educore-main-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 13.5px;
+        }
+
+        .ifs-educore-main-table th {
+            padding: 14px 20px;
+            color: #475569;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 11.5px;
+            text-transform: capitalize;
+            font-weight: 800;
+        }
+
+        .ifs-educore-main-table td {
+            padding: 12px 20px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: middle;
+        }
+
+        .ifs-educore-avatar-cell {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .ifs-educore-avatar-img {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1px solid #cbd5e1;
+        }
+
+        .ifs-educore-avatar-fallback {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #f1f5f9;
+            color: #00523c;
+            font-weight: 800;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #cbd5e1;
+        }
+
+        .ifs-educore-badge-gender {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11.5px;
+            font-weight: 700;
+        }
+
+        .gender-male {
+            background: #eff6ff;
+            color: #2563eb;
+            border: 1px solid #bfdbfe;
+        }
+
+        .gender-female {
+            background: #fdf2f8;
+            color: #db2777;
+            border: 1px solid #fbcfe8;
+        }
+
+        .ifs-educore-row-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 6px;
+        }
+
+        .ifs-educore-btn-action {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+        }
+
+        .ifs-educore-btn-action svg {
+            width: 14px;
+            height: 14px;
+            fill: currentColor;
+        }
+
+        .ifs-educore-btn-view {
+            background: #f0f9ff;
+            color: #0284c7;
+            border-color: #bae6fd;
+        }
+        .ifs-educore-btn-view:hover {
+            background: #0284c7;
+            color: #ffffff;
+        }
+
+        .ifs-educore-btn-edit {
+            background: #f0fdf4;
+            color: #16a34a;
+            border-color: #bbf7d0;
+        }
+        .ifs-educore-btn-edit:hover {
+            background: #16a34a;
+            color: #ffffff;
+        }
+
+        .ifs-educore-btn-delete {
+            background: #fef2f2;
+            color: #dc2626;
+            border-color: #fecaca;
+        }
+        .ifs-educore-btn-delete:hover {
+            background: #dc2626;
+            color: #ffffff;
+        }
+
+        .ifs-educore-dt-footer-layout {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 14px 20px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #475569;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+        }
+
+        .ifs-educore-pagination-btn {
+            height: 36px;
+            padding: 0 16px;
+            background: #f1f5f9;
+            color: #475569;
+            font-size: 13px;
+            font-weight: 700;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .ifs-educore-pagination-btn:hover:not(:disabled) {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+
+        .ifs-educore-pagination-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+
     <div class="ifs-educore-dt-container">
         <!-- Dynamic Success / Update Notice Alerts -->
         <?php 

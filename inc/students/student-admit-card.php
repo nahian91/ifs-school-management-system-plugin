@@ -287,261 +287,355 @@ function educore_student_admit_card_view() {
     }
     ?>
 
-    <style>
-    .ifs-educore-admit-engine-root {
-        padding: 10px 0;
-        font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    }
-
-    .ifs-educore-admit-cards-container {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 24px;
-        margin-top: 25px;
-    }
-
-    .ifs-educore-admit-card-wrapper {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 8px;
-        page-break-inside: avoid;
-        margin-bottom: 20px;
-    }
-
-    .ifs-educore-admit-card-top-tools {
-        width: 100%;
-        max-width: 180mm;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        padding: 6px 14px;
-        border-radius: 8px;
-        box-sizing: border-box;
-    }
-
-    .ifs-educore-single-print-btn {
-        background: #00523c;
-        color: #ffffff;
-        border: none;
-        border-radius: 6px;
-        padding: 5px 12px;
-        font-size: 11.5px;
-        font-weight: 700;
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        transition: background 0.2s ease, transform 0.1s ease;
-    }
-
-    .ifs-educore-single-print-btn:hover {
-        background: #065f46;
-        transform: translateY(-1px);
-    }
-
-    /* Admit Card Physical Box */
-    .ifs-educore-admit-card-box {
-        width: 180mm;
-        background: #ffffff;
-        border: 2px solid #00523c;
-        border-radius: 8px;
-        padding: 14px 18px;
-        box-sizing: border-box;
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
-        position: relative;
-    }
-
-    .ifs-educore-admit-header {
-        text-align: center;
-        border-bottom: 2px solid #00523c;
-        padding-bottom: 10px;
-        margin-bottom: 12px;
-    }
-
-    .ifs-educore-admit-school-brand-row {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-    }
-
-    .ifs-educore-admit-logo-img {
-        width: 38px;
-        height: 38px;
-        object-fit: contain;
-    }
-
-    .ifs-educore-admit-school-title {
-        margin: 0;
-        font-size: 20px;
-        font-weight: 800;
-        color: #00523c;
-        text-transform: uppercase;
-        letter-spacing: -0.2px;
-    }
-
-    .ifs-educore-admit-school-sub {
-        font-size: 11.5px;
-        color: #64748b;
-        margin-top: 2px;
-    }
-
-    .ifs-educore-admit-title-badge {
-        display: inline-block;
-        background: #00523c;
-        color: #ffffff;
-        font-weight: 800;
-        font-size: 12px;
-        padding: 4px 18px;
-        border-radius: 20px;
-        margin-top: 8px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    .ifs-educore-admit-body-layout {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        gap: 16px;
-        margin-bottom: 12px;
-    }
-
-    .ifs-educore-admit-details-column {
-        flex: 1;
-    }
-
-    .ifs-educore-admit-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 12.5px;
-    }
-
-    .ifs-educore-admit-table td {
-        padding: 4px 0;
-    }
-
-    .ifs-educore-admit-table .label-col {
-        font-weight: 700;
-        color: #64748b;
-        width: 34%;
-    }
-
-    .ifs-educore-admit-table .value-col {
-        font-weight: 800;
-        color: #0f172a;
-    }
-
-    .ifs-educore-admit-photo-column {
-        width: 28mm;
-        flex-shrink: 0;
-    }
-
-    .ifs-educore-student-photo-frame {
-        width: 28mm;
-        height: 34mm;
-        border: 1px dashed #00523c;
-        border-radius: 4px;
-        background: #f8fafc;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        overflow: hidden;
-    }
-
-    .ifs-educore-student-photo-frame img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-
-    .ifs-educore-student-photo-frame span {
-        font-size: 9px;
-        color: #94a3b8;
-        font-weight: 700;
-        line-height: 1.2;
-    }
-
-    .ifs-educore-admit-instructions {
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 6px;
-        padding: 8px 12px;
-        font-size: 11px;
-        color: #475569;
-        line-height: 1.4;
-        margin-bottom: 14px;
-    }
-
-    .ifs-educore-signature-container {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-end;
-        padding-top: 18px;
-    }
-
-    .ifs-educore-signature-item {
-        text-align: center;
-        width: 40%;
-    }
-
-    .ifs-educore-signature-line {
-        border-top: 1px dashed #0f172a;
-        padding-top: 4px;
-        font-size: 11px;
-        font-weight: 700;
-        color: #334155;
-    }
-
-    .ifs-educore-admit-sig-img {
-        max-height: 24px;
-        object-fit: contain;
-        display: block;
-        margin: 0 auto 3px auto;
-    }
-
-    @media print {
-        #adminmenuwrap, #adminmenuback, #wpadminbar, #wpfooter, .no-print, .ifs-educore-admit-card-top-tools {
-            display: none !important;
+    <style id="ifs-educore-admit-card-styles">
+        .ifs-educore-admit-engine-root {
+            padding: 10px 0;
+            font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #0f172a;
         }
 
-        body, .ifs-educore-admit-engine-root, #ifs-educore-printable-admit-area {
-            background: transparent !important;
-            padding: 0 !important;
-            margin: 0 !important;
+        .ifs-educore-bento-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.03);
+            margin-bottom: 24px;
         }
 
-        body.printing-single-card .ifs-educore-admit-card-wrapper:not(.target-single-print) {
-            display: none !important;
+        .ifs-educore-admit-cards-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+            margin-top: 25px;
         }
 
-        body.printing-single-card .ifs-educore-admit-card-wrapper.target-single-print {
-            display: block !important;
-            margin: 0 auto !important;
+        .ifs-educore-admit-card-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            page-break-inside: avoid;
+            margin-bottom: 20px;
         }
 
+        .ifs-educore-admit-card-top-tools {
+            width: 100%;
+            max-width: 180mm;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 6px 14px;
+            border-radius: 8px;
+            box-sizing: border-box;
+        }
+
+        .ifs-educore-single-print-btn {
+            background: #00523c;
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            padding: 5px 12px;
+            font-size: 11.5px;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: background 0.2s ease, transform 0.1s ease;
+        }
+
+        .ifs-educore-single-print-btn:hover {
+            background: #065f46;
+            transform: translateY(-1px);
+        }
+
+        /* Admit Card Physical Box */
         .ifs-educore-admit-card-box {
-            box-shadow: none !important;
-            page-break-inside: avoid !important;
-            margin: 0 auto 20px auto !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
+            width: 180mm;
+            background: #ffffff;
+            border: 2px solid #00523c;
+            border-radius: 8px;
+            padding: 14px 18px;
+            box-sizing: border-box;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+            position: relative;
         }
-    }
+
+        .ifs-educore-admit-header {
+            text-align: center;
+            border-bottom: 2px solid #00523c;
+            padding-bottom: 10px;
+            margin-bottom: 12px;
+        }
+
+        .ifs-educore-admit-school-brand-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .ifs-educore-admit-logo-img {
+            width: 38px;
+            height: 38px;
+            object-fit: contain;
+        }
+
+        .ifs-educore-admit-school-title {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 800;
+            color: #00523c;
+            text-transform: capitalize;
+            letter-spacing: -0.2px;
+        }
+
+        .ifs-educore-admit-school-sub {
+            font-size: 11.5px;
+            color: #64748b;
+            margin-top: 2px;
+        }
+
+        .ifs-educore-admit-title-badge {
+            display: inline-block;
+            background: #00523c;
+            color: #ffffff;
+            font-weight: 800;
+            font-size: 12px;
+            padding: 4px 18px;
+            border-radius: 20px;
+            margin-top: 8px;
+            text-transform: capitalize;
+            letter-spacing: 0.5px;
+        }
+
+        .ifs-educore-admit-body-layout {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+
+        .ifs-educore-admit-details-column {
+            flex: 1;
+        }
+
+        .ifs-educore-admit-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12.5px;
+        }
+
+        .ifs-educore-admit-table td {
+            padding: 4px 0;
+        }
+
+        .ifs-educore-admit-table .label-col {
+            font-weight: 700;
+            color: #64748b;
+            width: 34%;
+        }
+
+        .ifs-educore-admit-table .value-col {
+            font-weight: 800;
+            color: #0f172a;
+        }
+
+        .ifs-educore-admit-photo-column {
+            width: 28mm;
+            flex-shrink: 0;
+        }
+
+        .ifs-educore-student-photo-frame {
+            width: 28mm;
+            height: 34mm;
+            border: 1px dashed #00523c;
+            border-radius: 4px;
+            background: #f8fafc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            overflow: hidden;
+        }
+
+        .ifs-educore-student-photo-frame img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .ifs-educore-student-photo-frame span {
+            font-size: 9px;
+            color: #94a3b8;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .ifs-educore-admit-instructions {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 11px;
+            color: #475569;
+            line-height: 1.4;
+            margin-bottom: 14px;
+        }
+
+        .ifs-educore-signature-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding-top: 18px;
+        }
+
+        .ifs-educore-signature-item {
+            text-align: center;
+            width: 40%;
+        }
+
+        .ifs-educore-signature-line {
+            border-top: 1px dashed #0f172a;
+            padding-top: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #334155;
+        }
+
+        .ifs-educore-admit-sig-img {
+            max-height: 24px;
+            object-fit: contain;
+            display: block;
+            margin: 0 auto 3px auto;
+        }
+
+        .ifs-educore-form-grid-wrapper {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) auto;
+            gap: 16px;
+            align-items: flex-end;
+        }
+
+        .ifs-educore-input-block {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .ifs-educore-input-block label {
+            font-size: 12.5px;
+            font-weight: 700;
+            color: #1e293b;
+            text-transform: capitalize;
+            letter-spacing: 0.3px;
+        }
+
+        .ifs-educore-input-block select,
+        .ifs-educore-input-block input {
+            width: 100%;
+            height: 40px;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 0 12px;
+            font-size: 13.5px;
+            color: #0f172a;
+            background: #ffffff;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .ifs-educore-input-block select:focus,
+        .ifs-educore-input-block input:focus {
+            border-color: #00523c;
+            box-shadow: 0 0 0 3px rgba(0, 82, 60, 0.12);
+        }
+
+        .ifs-educore-action-block {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .ifs-educore-btn {
+            height: 40px;
+            padding: 0 20px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 13.5px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border: none;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+
+        .ifs-educore-btn-primary {
+            background: #00523c;
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(0, 82, 60, 0.18);
+        }
+
+        .ifs-educore-btn-primary:hover {
+            background: #047857;
+            color: #ffffff;
+        }
+
+        .ifs-educore-btn-secondary {
+            background: #f1f5f9;
+            color: #0f172a;
+            border: 1.5px solid #cbd5e1;
+        }
+
+        .ifs-educore-btn-secondary:hover {
+            background: #e2e8f0;
+        }
+
+        @media print {
+            #adminmenuwrap, #adminmenuback, #wpadminbar, #wpfooter, .no-print, .ifs-educore-admit-card-top-tools {
+                display: none !important;
+            }
+
+            body, .ifs-educore-admit-engine-root, #ifs-educore-printable-admit-area {
+                background: transparent !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+
+            body.printing-single-card .ifs-educore-admit-card-wrapper:not(.target-single-print) {
+                display: none !important;
+            }
+
+            body.printing-single-card .ifs-educore-admit-card-wrapper.target-single-print {
+                display: block !important;
+                margin: 0 auto !important;
+            }
+
+            .ifs-educore-admit-card-box {
+                box-shadow: none !important;
+                page-break-inside: avoid !important;
+                margin: 0 auto 20px auto !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+        }
     </style>
 
     <div class="ifs-educore-admit-engine-root">
         
         <!-- Filter Form -->
         <div class="ifs-educore-bento-card no-print">
-            <h2>
-                <span class="dashicons dashicons-tickets-alt" style="color:#00523c;"></span>
+            <h3 style="margin: 0 0 16px 0; font-size: 15px; font-weight: 800; color: #0f172a; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px;">
+                <span class="dashicons dashicons-tickets-alt" style="color:#00523c; vertical-align:middle;"></span>
                 <?php esc_html_e( 'Academic Admit Card Compiler', 'ifsedu-school-management' ); ?>
-            </h2>
+            </h3>
 
             <form method="GET" action="" class="ifs-educore-form-grid-wrapper">
                 <input type="hidden" name="page" value="school_management_system">
@@ -677,7 +771,7 @@ function educore_student_admit_card_view() {
                                                 </tr>
                                                 <tr>
                                                     <td class="label-col"><?php esc_html_e( 'Candidate Name:', 'ifsedu-school-management' ); ?></td>
-                                                    <td class="value-col" style="text-transform: uppercase;"><?php echo esc_html( $student->full_name ); ?></td>
+                                                    <td class="value-col" style="text-transform: capitalize;"><?php echo esc_html( $student->full_name ); ?></td>
                                                 </tr>
                                                 <tr>
                                                     <td class="label-col"><?php esc_html_e( 'Class & Section:', 'ifsedu-school-management' ); ?></td>
@@ -834,7 +928,7 @@ function educore_student_admit_card_view() {
 
                     if (response.success && response.data.length > 0) {
                         $.each(response.data, function(i, st) {
-                            var uid = (st.student_id || '').toUpperCase();
+                            var uid = (st.student_id || '').tocapitalize();
                             var labelText = '[Roll ' + st.roll_no + '] ' + st.full_name + ' (' + uid + ')';
                             $studentSelect.append($('<option>', {
                                 value: st.id,

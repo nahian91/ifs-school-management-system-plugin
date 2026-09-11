@@ -9,16 +9,14 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit; // Direct access safety buffer
 }
 
-// Define directory path safely
 $educore_accounting_dir = plugin_dir_path( __FILE__ ) . 'accounting/';
 
-// Load required sub-files in order
 $educore_accounting_files = array(
-    'accounting-delete.php',    // Ledger deletion handler
-    'accounting-add-edit.php',  // Record entry form view (or accounting-add.php depending on your file name)
-    'accounting-list.php',      // Master ledger list view & summary stats
-    'accounting-view.php',      // Standalone single voucher view
-    'accounting-tab.php',       // Router function: educore_accounting_tab()
+    'accounting-delete.php',
+    'accounting-add-edit.php',
+    'accounting-list.php',
+    'accounting-view.php',
+    'accounting-tab.php',
 );
 
 foreach ( $educore_accounting_files as $educore_file ) {

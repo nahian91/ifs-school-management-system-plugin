@@ -16,14 +16,30 @@ function educore_exam_add_edit_view() {
         wp_die( esc_html__( 'You do not have sufficient permissions to configure examinations.', 'ifsedu-school-management' ) );
     }
 
-    $table_exams    = $wpdb->prefix . 'sms_exams';
-    $table_units    = $wpdb->prefix . 'sms_academic_units';
-    $table_subjects = $wpdb->prefix . 'sms_subjects';
+    $table_exams      = $wpdb->prefix . 'sms_exams';
+    $table_units      = $wpdb->prefix . 'sms_academic_units';
+    $table_subjects   = $wpdb->prefix . 'sms_subjects';
+    $table_attendance = $wpdb->prefix . 'sms_attendance';
 
-    // Auto-migrate column `subject_ids` if missing
-    $col_check = $wpdb->get_results( "SHOW COLUMNS FROM `{$table_exams}` LIKE 'subject_ids'" );
-    if ( empty( $col_check ) ) {
+    // Auto-migrate schema columns if missing
+    $col_check_sub = $wpdb->get_results( "SHOW COLUMNS FROM `{$table_exams}` LIKE 'subject_ids'" );
+    if ( empty( $col_check_sub ) ) {
         $wpdb->query( "ALTER TABLE `{$table_exams}` ADD COLUMN `subject_ids` longtext DEFAULT '' NOT NULL AFTER `class_name`" );
+    }
+
+    $col_check_att_pct = $wpdb->get_results( "SHOW COLUMNS FROM `{$table_exams}` LIKE 'min_attendance_pct'" );
+    if ( empty( $col_check_att_pct ) ) {
+        $wpdb->query( "ALTER TABLE `{$table_exams}` ADD COLUMN `min_attendance_pct` decimal(5,2) DEFAULT '75.00' NOT NULL AFTER `att_end_date`" );
+    }
+
+    $col_check_days = $wpdb->get_results( "SHOW COLUMNS FROM `{$table_exams}` LIKE 'total_working_days'" );
+    if ( empty( $col_check_days ) ) {
+        $wpdb->query( "ALTER TABLE `{$table_exams}` ADD COLUMN `total_working_days` int(11) DEFAULT 0 NOT NULL AFTER `min_attendance_pct`" );
+    }
+
+    $col_check_inc = $wpdb->get_results( "SHOW COLUMNS FROM `{$table_exams}` LIKE 'include_attendance'" );
+    if ( empty( $col_check_inc ) ) {
+        $wpdb->query( "ALTER TABLE `{$table_exams}` ADD COLUMN `include_attendance` varchar(10) DEFAULT 'yes' NOT NULL AFTER `total_working_days`" );
     }
 
     $list_url = add_query_arg(
@@ -49,6 +65,9 @@ function educore_exam_add_edit_view() {
     $selected_subjects = array();
     $att_start_default = gmdate( 'Y-01-01' );
     $att_end_default   = current_time( 'Y-m-d' );
+    $min_att_pct       = 75.00;
+    $total_work_days   = 0;
+    $include_att       = 'yes';
 
     if ( $is_edit ) {
         // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -74,6 +93,9 @@ function educore_exam_add_edit_view() {
 
             $att_start_default = ! empty( $edit_exam->att_start_date ) ? $edit_exam->att_start_date : $edit_exam->start_date;
             $att_end_default   = ! empty( $edit_exam->att_end_date ) ? $edit_exam->att_end_date : $edit_exam->end_date;
+            $min_att_pct       = isset( $edit_exam->min_attendance_pct ) ? floatval( $edit_exam->min_attendance_pct ) : 75.00;
+            $total_work_days   = isset( $edit_exam->total_working_days ) ? absint( $edit_exam->total_working_days ) : 0;
+            $include_att       = isset( $edit_exam->include_attendance ) ? sanitize_text_field( $edit_exam->include_attendance ) : 'yes';
         } else {
             $is_edit = false;
         }
@@ -106,21 +128,51 @@ function educore_exam_add_edit_view() {
 
         $start_date     = ! empty( $_POST['start_date'] ) ? sanitize_text_field( wp_unslash( $_POST['start_date'] ) ) : current_time( 'Y-m-d' );
         $end_date       = ! empty( $_POST['end_date'] ) ? sanitize_text_field( wp_unslash( $_POST['end_date'] ) ) : current_time( 'Y-m-d' );
-        $att_start_date = ! empty( $_POST['att_start_date'] ) ? sanitize_text_field( wp_unslash( $_POST['att_start_date'] ) ) : $start_date;
-        $att_end_date   = ! empty( $_POST['att_end_date'] ) ? sanitize_text_field( wp_unslash( $_POST['att_end_date'] ) ) : $end_date;
+        
+        // Normalize Dates from Picker Format safely
+        $raw_att_start  = ! empty( $_POST['att_start_date'] ) ? sanitize_text_field( wp_unslash( $_POST['att_start_date'] ) ) : $start_date;
+        $raw_att_end    = ! empty( $_POST['att_end_date'] ) ? sanitize_text_field( wp_unslash( $_POST['att_end_date'] ) ) : $end_date;
+
+        $att_start_date = ( strpos( $raw_att_start, '/' ) !== false ) ? gmdate( 'Y-m-d', strtotime( str_replace( '/', '-', $raw_att_start ) ) ) : $raw_att_start;
+        $att_end_date   = ( strpos( $raw_att_end, '/' ) !== false ) ? gmdate( 'Y-m-d', strtotime( str_replace( '/', '-', $raw_att_end ) ) ) : $raw_att_end;
+
+        $min_att_pct    = isset( $_POST['min_attendance_pct'] ) ? floatval( wp_unslash( $_POST['min_attendance_pct'] ) ) : 75.00;
+        $include_att    = isset( $_POST['include_attendance'] ) ? 'yes' : 'no';
         $status         = isset( $_POST['status'] ) ? sanitize_text_field( wp_unslash( $_POST['status'] ) ) : 'Upcoming';
 
+        // Auto-Calculate Working Days server-side based on Date Range (excluding Fridays)
+        $total_working_days = 0;
+        if ( 'yes' === $include_att && ! empty( $att_start_date ) && ! empty( $att_end_date ) ) {
+            $begin = new DateTime( $att_start_date );
+            $end   = new DateTime( $att_end_date );
+            $end->modify( '+1 day' );
+            $interval = new DateInterval( 'P1D' );
+            $period = new DatePeriod( $begin, $interval, $end );
+            
+            $calculated_days = 0;
+            foreach ( $period as $dt ) {
+                $day_num = $dt->format( 'N' );
+                if ( '5' !== $day_num ) { // Exclude Friday
+                    $calculated_days++;
+                }
+            }
+            $total_working_days = max( 1, $calculated_days );
+        }
+
         $data = array(
-            'exam_name'      => $full_exam_name,
-            'class_name'     => $class_name,
-            'subject_ids'    => $subject_ids_json,
-            'start_date'     => $start_date,
-            'end_date'       => $end_date,
-            'att_start_date' => $att_start_date,
-            'att_end_date'   => $att_end_date,
-            'status'         => $status,
+            'exam_name'          => $full_exam_name,
+            'class_name'         => $class_name,
+            'subject_ids'        => $subject_ids_json,
+            'start_date'         => $start_date,
+            'end_date'           => $end_date,
+            'att_start_date'     => $att_start_date,
+            'att_end_date'       => $att_end_date,
+            'min_attendance_pct' => $min_att_pct,
+            'total_working_days' => $total_working_days,
+            'include_attendance' => $include_att,
+            'status'             => $status,
         );
-        $format = array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' );
+        $format = array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%f', '%d', '%s', '%s' );
 
         // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         if ( $exam_id_input > 0 ) {
@@ -187,7 +239,6 @@ function educore_exam_add_edit_view() {
             if ( ! isset( $class_subjects_map[ $cn ] ) ) {
                 $class_subjects_map[ $cn ] = array();
             }
-            // Ensure distinct subjects per class
             $exists_sub = false;
             foreach ( $class_subjects_map[ $cn ] as $es ) {
                 if ( $es['id'] === (int) $sub_item->id || strcasecmp( $es['name'], $sub_item->subject_name ) === 0 ) {
@@ -225,7 +276,6 @@ function educore_exam_add_edit_view() {
             font-size: 13px !important;
             font-weight: 700 !important;
             color: #334155 !important;
-            text-transform: uppercase !important;
             letter-spacing: 0.3px !important;
             margin-bottom: 8px !important;
         }
@@ -427,6 +477,12 @@ function educore_exam_add_edit_view() {
             border-radius: 12px !important;
             padding: 16px 20px !important;
             margin-bottom: 22px !important;
+            transition: opacity 0.2s ease;
+        }
+        .ifs-attendance-range-card.is-disabled {
+            opacity: 0.55;
+            background: #f8fafc !important;
+            border-color: #cbd5e1 !important;
         }
 
         .ifs-educore-btn-save {
@@ -550,29 +606,60 @@ function educore_exam_add_edit_view() {
                 </div>
             </div>
 
-            <!-- Attendance Calculation Period / Range (e.g. June 1 - Sep 20) -->
-            <div class="ifs-attendance-range-card">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <!-- Attendance Calculation Period & Target Thresholds with Enable Checkbox -->
+            <div class="ifs-attendance-range-card <?php echo ( 'yes' !== $include_att ) ? 'is-disabled' : ''; ?>" id="attendanceSettingsCard">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid #bbf7d0; padding-bottom:10px;">
                     <div>
-                        <strong style="color:#00523c; font-size:13.5px; text-transform:uppercase; display:flex; align-items:center; gap:6px;">
+                        <strong style="color:#00523c; font-size:13.5px; text-transform:capitalize; display:flex; align-items:center; gap:6px;">
                             <span class="dashicons dashicons-calendar-alt"></span>
-                            <?php esc_html_e( 'Attendance Calculation Date Range (Term Scope)', 'ifsedu-school-management' ); ?>
+                            <?php esc_html_e( 'Attendance Percentage & Days Calculation', 'ifsedu-school-management' ); ?>
                         </strong>
-                        <small style="color:#475569; font-size:12px; display:block; margin-top:2px;">
-                            <?php esc_html_e( 'Specifies the date boundaries (e.g., June 01 to September 20) used to count total working days and student attendance percentages for this exam.', 'ifsedu-school-management' ); ?>
-                        </small>
+                    </div>
+                    <div>
+                        <label style="font-weight:700; font-size:13px; color:#065f46; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+                            <input type="checkbox" name="include_attendance" id="includeAttendanceCheckbox" value="yes" <?php checked( $include_att, 'yes' ); ?> style="width:16px; height:16px; accent-color:#00523c; cursor:pointer;">
+                            <?php esc_html_e( 'Calculate Attendance Percentage in Report Cards', 'ifsedu-school-management' ); ?>
+                        </label>
                     </div>
                 </div>
 
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
-                    <div>
-                        <label class="ifs-educore-form-label" style="font-size:12px; color:#065f46;"><?php esc_html_e( 'Attendance Count Starts From', 'ifsedu-school-management' ); ?> <span style="color:#ef4444;">*</span></label>
-                        <input type="date" name="att_start_date" id="att_start_date" class="ifs-educore-input-field" value="<?php echo esc_attr( $att_start_default ); ?>" required>
+                <div id="attendanceFieldsWrapper" style="display: <?php echo ( 'yes' === $include_att ) ? 'block' : 'none'; ?>;">
+                    <small style="color:#475569; font-size:12px; display:block; margin-bottom:12px;">
+                        <?php esc_html_e( 'Specifies the working date range and minimum attendance quota. Total Working Days and Minimum Required Days are auto-calculated dynamically.', 'ifsedu-school-management' ); ?>
+                    </small>
+
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:14px;">
+                        <div>
+                            <label class="ifs-educore-form-label" style="font-size:12px; color:#065f46;"><?php esc_html_e( 'Attendance Count Starts From', 'ifsedu-school-management' ); ?> <span style="color:#ef4444;">*</span></label>
+                            <input type="date" name="att_start_date" id="att_start_date" class="ifs-educore-input-field" value="<?php echo esc_attr( $att_start_default ); ?>">
+                        </div>
+
+                        <div>
+                            <label class="ifs-educore-form-label" style="font-size:12px; color:#065f46;"><?php esc_html_e( 'Attendance Count Ends On', 'ifsedu-school-management' ); ?> <span style="color:#ef4444;">*</span></label>
+                            <input type="date" name="att_end_date" id="att_end_date" class="ifs-educore-input-field" value="<?php echo esc_attr( $att_end_default ); ?>">
+                        </div>
                     </div>
 
-                    <div>
-                        <label class="ifs-educore-form-label" style="font-size:12px; color:#065f46;"><?php esc_html_e( 'Attendance Count Ends On', 'ifsedu-school-management' ); ?> <span style="color:#ef4444;">*</span></label>
-                        <input type="date" name="att_end_date" id="att_end_date" class="ifs-educore-input-field" value="<?php echo esc_attr( $att_end_default ); ?>" required>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:16px; align-items: center;">
+                        <div>
+                            <label class="ifs-educore-form-label" style="font-size:12px; color:#065f46;"><?php esc_html_e( 'Minimum Attendance Quota (%)', 'ifsedu-school-management' ); ?></label>
+                            <input type="number" step="0.01" min="0" max="100" name="min_attendance_pct" id="min_attendance_pct_input" class="ifs-educore-input-field" value="<?php echo esc_attr( $min_att_pct ); ?>" placeholder="75.00">
+                        </div>
+
+                        <div>
+                            <label class="ifs-educore-form-label" style="font-size:12px; color:#065f46;"><?php esc_html_e( 'Min. Days Required', 'ifsedu-school-management' ); ?></label>
+                            <div style="background: #ffffff; border: 1.5px solid #bbf7d0; border-radius: 8px; height: 44px; display: flex; align-items: center; padding: 0 14px; font-weight: 800; color: #0284c7; font-size: 15px;">
+                                <span id="displayMinDaysRequired">0</span>&nbsp;<?php esc_html_e( 'Days', 'ifsedu-school-management' ); ?>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="ifs-educore-form-label" style="font-size:12px; color:#065f46;"><?php esc_html_e( 'Total Working Days', 'ifsedu-school-management' ); ?></label>
+                            <div style="background: #ffffff; border: 1.5px solid #bbf7d0; border-radius: 8px; height: 44px; display: flex; align-items: center; padding: 0 14px; font-weight: 800; color: #047857; font-size: 15px;">
+                                <span id="displayWorkingDaysCount">0</span>&nbsp;<?php esc_html_e( 'Days', 'ifsedu-school-management' ); ?>
+                            </div>
+                            <input type="hidden" name="total_working_days" id="total_working_days_hidden" value="<?php echo esc_attr( $total_work_days ); ?>">
+                        </div>
                     </div>
                 </div>
             </div>
@@ -615,6 +702,80 @@ function educore_exam_add_edit_view() {
         var searchInput = document.getElementById('classSearchInput');
         var countBadge = document.getElementById('selectedClassCountBadge');
         var form = document.getElementById('educoreExamForm');
+        var includeAttCheckbox = document.getElementById('includeAttendanceCheckbox');
+        var attSettingsCard = document.getElementById('attendanceSettingsCard');
+        var attFieldsWrapper = document.getElementById('attendanceFieldsWrapper');
+        
+        var attStartInput = document.getElementById('att_start_date');
+        var attEndInput = document.getElementById('att_end_date');
+        var displayDaysSpan = document.getElementById('displayWorkingDaysCount');
+        var hiddenDaysInput = document.getElementById('total_working_days_hidden');
+        var minPctInput = document.getElementById('min_attendance_pct_input');
+        var displayMinDaysSpan = document.getElementById('displayMinDaysRequired');
+
+        // Live calculation of working days and target minimum days required
+        function calculateLiveWorkingDays() {
+            if (!attStartInput || !attEndInput || !displayDaysSpan) return;
+            var startVal = attStartInput.value;
+            var endVal = attEndInput.value;
+            if (!startVal || !endVal) return;
+
+            if (startVal.indexOf('/') !== -1) {
+                var p1 = startVal.split('/');
+                startVal = p1[2] + '-' + p1[0] + '-' + p1[1];
+            }
+            if (endVal.indexOf('/') !== -1) {
+                var p2 = endVal.split('/');
+                endVal = p2[2] + '-' + p2[0] + '-' + p2[1];
+            }
+
+            var d1 = new Date(startVal);
+            var d2 = new Date(endVal);
+            if (isNaN(d1) || isNaN(d2) || d1 > d2) return;
+
+            var count = 0;
+            var cur = new Date(d1.getTime());
+            while (cur <= d2) {
+                var dayOfWeek = cur.getDay(); 
+                if (dayOfWeek !== 5) { // exclude Friday
+                    count++;
+                }
+                cur.setDate(cur.getDate() + 1);
+            }
+
+            displayDaysSpan.textContent = count;
+            if (hiddenDaysInput) {
+                hiddenDaysInput.value = count;
+            }
+
+            if (minPctInput && displayMinDaysSpan) {
+                var pct = parseFloat(minPctInput.value) || 0;
+                var requiredDays = Math.ceil((count * pct) / 100);
+                displayMinDaysSpan.textContent = requiredDays;
+            }
+        }
+
+        if (attStartInput && attEndInput) {
+            attStartInput.addEventListener('change', calculateLiveWorkingDays);
+            attEndInput.addEventListener('change', calculateLiveWorkingDays);
+            calculateLiveWorkingDays();
+        }
+
+        if (minPctInput) {
+            minPctInput.addEventListener('input', calculateLiveWorkingDays);
+        }
+
+        if (includeAttCheckbox) {
+            includeAttCheckbox.addEventListener('change', function() {
+                if (this.checked) {
+                    attSettingsCard.classList.remove('is-disabled');
+                    attFieldsWrapper.style.display = 'block';
+                } else {
+                    attSettingsCard.classList.add('is-disabled');
+                    attFieldsWrapper.style.display = 'none';
+                }
+            });
+        }
 
         function syncClassSubjectBoxes() {
             var checkedClasses = [];

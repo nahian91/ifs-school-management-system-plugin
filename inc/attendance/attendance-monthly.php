@@ -141,9 +141,9 @@ function educore_monthly_attendance_summary_view( $classes, $sections, $filter_c
     $filter_student = isset( $_GET['filter_student'] ) ? absint( wp_unslash( $_GET['filter_student'] ) ) : 0;
     // phpcs:enable WordPress.Security.NonceVerification.Recommended
     
-    $start_date    = $selected_month . '-01';
-    $end_date      = gmdate( 'Y-m-t', strtotime( $start_date ) );
-    $days_in_month = (int) gmdate( 't', strtotime( $start_date ) );
+    $start_date     = $selected_month . '-01';
+    $end_date       = gmdate( 'Y-m-t', strtotime( $start_date ) );
+    $days_in_month  = (int) gmdate( 't', strtotime( $start_date ) );
 
     $students       = array();
     $daily_records  = array();
@@ -164,8 +164,8 @@ function educore_monthly_attendance_summary_view( $classes, $sections, $filter_c
             $params[] = $filter_section;
         } elseif ( ! $is_admin && ! empty( $teacher_assigned_sections ) ) {
             $sec_placeholders = implode( ',', array_fill( 0, count( $teacher_assigned_sections ), '%s' ) );
-            $query            .= " AND section_name IN ({$sec_placeholders})";
-            $params            = array_merge( $params, $teacher_assigned_sections );
+            $query           .= " AND section_name IN ({$sec_placeholders})";
+            $params           = array_merge( $params, $teacher_assigned_sections );
         }
 
         if ( $filter_student > 0 ) {
@@ -209,35 +209,35 @@ function educore_monthly_attendance_summary_view( $classes, $sections, $filter_c
     }
     ?>
 
-    <div class="ifs-educore-attendance-root">
+    <div class="ifs-educore-attendance-monthly-root">
 
         <!-- Monthly Filter Control Bento Card -->
-        <div class="ifs-educore-bento-card no-print" style="margin-bottom:24px;">
+        <div class="ifs-educore-bento-card no-print">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
                 <h4 style="margin:0; font-size:16px; font-weight:800; color:#00523c;"><?php esc_html_e( 'Monthly Attendance Summary & Audit', 'ifsedu-school-management' ); ?></h4>
                 <?php if ( ! $is_admin ) : ?>
-                    <span style="background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:700;">
+                    <span class="ifs-educore-teacher-mode-pill">
                         <span class="dashicons dashicons-lock" style="font-size:14px; width:14px; height:14px; vertical-align:middle;"></span>
                         <?php esc_html_e( 'Teacher Mode: Assigned Allocations Only', 'ifsedu-school-management' ); ?>
                     </span>
                 <?php endif; ?>
             </div>
 
-            <form method="GET" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>" style="display:flex; gap:16px; align-items:flex-end; flex-wrap:wrap;">
+            <form method="GET" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>" class="ifs-educore-monthly-filter-grid">
                 <input type="hidden" name="page" value="school_management_system">
                 <input type="hidden" name="tab" value="attendance">
                 <input type="hidden" name="sub" value="monthly">
 
-                <div class="ifs-educore-form-group" style="flex:1; min-width:160px;">
-                    <label style="display:block; font-size:12px; font-weight:700; color:#475569; margin-bottom:6px;"><?php esc_html_e( 'Target Month', 'ifsedu-school-management' ); ?> *</label>
+                <div class="ifs-educore-monthly-filter-node">
+                    <label class="ifs-educore-monthly-filter-label"><?php esc_html_e( 'Target Month', 'ifsedu-school-management' ); ?> *</label>
                     <input type="month" name="month" class="ifs-educore-input-field" value="<?php echo esc_attr( $selected_month ); ?>" max="<?php echo esc_attr( current_time( 'Y-m' ) ); ?>" required>
                 </div>
 
-                <div class="ifs-educore-form-group" style="flex:1; min-width:160px;">
-                    <label style="display:block; font-size:12px; font-weight:700; color:#475569; margin-bottom:6px;">
+                <div class="ifs-educore-monthly-filter-node">
+                    <label class="ifs-educore-monthly-filter-label">
                         <?php esc_html_e( 'Class', 'ifsedu-school-management' ); ?> *
                         <?php if ( ! $is_admin ) : ?>
-                            <span style="color:#059669; font-size:11px; font-weight:700;">(<?php esc_html_e( 'Assigned Only', 'ifsedu-school-management' ); ?>)</span>
+                            <span class="ifs-educore-monthly-filter-sublabel">(<?php esc_html_e( 'Assigned Only', 'ifsedu-school-management' ); ?>)</span>
                         <?php endif; ?>
                     </label>
                     <select name="class_name" id="ifs_educore_attendance_class_select" class="ifs-educore-select-field" required>
@@ -248,11 +248,11 @@ function educore_monthly_attendance_summary_view( $classes, $sections, $filter_c
                     </select>
                 </div>
 
-                <div class="ifs-educore-form-group" style="flex:1; min-width:160px;">
-                    <label style="display:block; font-size:12px; font-weight:700; color:#475569; margin-bottom:6px;">
+                <div class="ifs-educore-monthly-filter-node">
+                    <label class="ifs-educore-monthly-filter-label">
                         <?php esc_html_e( 'Section', 'ifsedu-school-management' ); ?>
                         <?php if ( ! $is_admin ) : ?>
-                            <span style="color:#059669; font-size:11px; font-weight:700;">(<?php esc_html_e( 'Assigned', 'ifsedu-school-management' ); ?>)</span>
+                            <span class="ifs-educore-monthly-filter-sublabel">(<?php esc_html_e( 'Assigned', 'ifsedu-school-management' ); ?>)</span>
                         <?php endif; ?>
                     </label>
                     <select name="section_name" id="ifs_educore_attendance_section_select" class="ifs-educore-select-field">
@@ -260,14 +260,14 @@ function educore_monthly_attendance_summary_view( $classes, $sections, $filter_c
                     </select>
                 </div>
                 
-                <div class="ifs-educore-form-group" style="flex:1; min-width:200px;">
-                    <label style="display:block; font-size:12px; font-weight:700; color:#475569; margin-bottom:6px;"><?php esc_html_e( 'Student (Optional)', 'ifsedu-school-management' ); ?></label>
+                <div class="ifs-educore-monthly-filter-node-wide">
+                    <label class="ifs-educore-monthly-filter-label"><?php esc_html_e( 'Student (Optional)', 'ifsedu-school-management' ); ?></label>
                     <select name="filter_student" id="ifs_educore_attendance_student_select" class="ifs-educore-select-field">
                         <option value=""><?php esc_html_e( '-- All Students --', 'ifsedu-school-management' ); ?></option>
                     </select>
                 </div>
 
-                <div class="ifs-educore-form-group">
+                <div>
                     <button type="submit" class="ifs-educore-btn-primary"><?php esc_html_e( 'Generate Monthly Audit', 'ifsedu-school-management' ); ?></button>
                 </div>
             </form>
@@ -298,7 +298,7 @@ function educore_monthly_attendance_summary_view( $classes, $sections, $filter_c
                             ?>
                         </span>
                     </div>
-                    <button type="button" onclick="window.print();" class="no-print" style="height:36px; padding:0 16px; background:#0f172a; color:#fff; border:none; border-radius:6px; font-weight:600; cursor:pointer;">
+                    <button type="button" onclick="window.print();" class="ifs-educore-print-btn no-print">
                         <span class="dashicons dashicons-printer" style="vertical-align:middle; font-size:16px; width:16px; height:16px;"></span>
                         <?php esc_html_e( 'Print Summary', 'ifsedu-school-management' ); ?>
                     </button>

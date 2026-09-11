@@ -290,7 +290,7 @@ function educore_accounting_add_edit_view() {
             font-size: 11.5px;
             font-weight: 700;
             color: #475569;
-            text-transform: uppercase;
+            text-transform: capitalize;
             letter-spacing: 0.4px;
             margin-bottom: 8px;
             display: block;
@@ -463,11 +463,11 @@ function educore_accounting_add_edit_view() {
             <!-- Live Summary Preview Strip -->
             <div class="ifs-educore-live-summary-box">
                 <div>
-                    <span style="font-size:11px; text-transform:uppercase; color:#64748b; font-weight:700; display:block;"><?php esc_html_e( 'Voucher / Purpose Preview', 'ifsedu-school-management' ); ?></span>
+                    <span style="font-size:11px; text-transform:capitalize; color:#64748b; font-weight:700; display:block;"><?php esc_html_e( 'Voucher / Purpose Preview', 'ifsedu-school-management' ); ?></span>
                     <strong id="ifs_educore_preview_title" style="color:#0f172a; font-size:14px;"><?php esc_html_e( 'New General Ledger Voucher', 'ifsedu-school-management' ); ?></strong>
                 </div>
                 <div style="text-align:right;">
-                    <span style="font-size:11px; text-transform:uppercase; color:#64748b; font-weight:700; display:block;"><?php esc_html_e( 'Net Amount Preview', 'ifsedu-school-management' ); ?></span>
+                    <span style="font-size:11px; text-transform:capitalize; color:#64748b; font-weight:700; display:block;"><?php esc_html_e( 'Net Amount Preview', 'ifsedu-school-management' ); ?></span>
                     <strong id="ifs_educore_preview_amount" style="color:#059669; font-size:16px;">৳0.00</strong>
                 </div>
             </div>

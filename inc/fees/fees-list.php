@@ -132,14 +132,11 @@ function educore_fees_list_view() {
     $collectors_staff = $wpdb->get_results(
         "SELECT id, full_name, designation FROM `{$table_staff}` WHERE status = 'Active' ORDER BY full_name ASC"
     );
-    $collectors_users = $wpdb->get_results(
-        "SELECT ID as id, display_name as full_name FROM `{$wpdb->users}` ORDER BY display_name ASC"
-    );
     // phpcs:enable
 
     // 4. Construct SQL Query WHERE Conditions
     $where_clauses = array( '1=1' );
-    $query_args    = array();
+    $query_args     = array();
 
     if ( ! empty( $filter_class ) ) {
         $where_clauses[] = 's.class_name = %s';
@@ -223,6 +220,129 @@ function educore_fees_list_view() {
     $months_list = array( 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December' );
     ?>
 
+    <style>
+        /* Modern Pro Spacing & Size Overhaul for Filter Card */
+        .ifs-educore-filter-card {
+            background: #ffffff !important;
+            border: 1px solid #e2e8f0 !important;
+            border-radius: 16px !important;
+            padding: 26px 28px !important;
+            margin-bottom: 28px !important;
+            box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.04) !important;
+            box-sizing: border-box !important;
+        }
+        .ifs-educore-filter-form {
+            display: grid !important;
+            grid-template-columns: repeat(4, 1fr) !important;
+            gap: 20px !important;
+            align-items: flex-end !important;
+            box-sizing: border-box !important;
+        }
+        .ifs-educore-filter-group {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 7px !important;
+            box-sizing: border-box !important;
+        }
+        .ifs-educore-filter-group label {
+            font-size: 12px !important;
+            font-weight: 700 !important;
+            color: #475569 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.05em !important;
+        }
+        .ifs-educore-filter-select,
+        .ifs-educore-filter-input {
+            width: 100% !important;
+            height: 42px !important;
+            padding: 0 14px !important;
+            background: #f8fafc !important;
+            border: 1.5px solid #cbd5e1 !important;
+            border-radius: 9px !important;
+            font-size: 13.5px !important;
+            color: #0f172a !important;
+            box-sizing: border-box !important;
+            outline: none !important;
+            transition: all 0.2s ease !important;
+        }
+        .ifs-educore-filter-select:focus,
+        .ifs-educore-filter-input:focus {
+            border-color: #00523c !important;
+            background: #ffffff !important;
+            box-shadow: 0 0 0 3px rgba(0, 82, 60, 0.12) !important;
+        }
+        .ifs-educore-filter-actions {
+            display: flex !important;
+            gap: 10px !important;
+            grid-column: span 4 !important;
+            justify-content: flex-end !important;
+            margin-top: 6px !important;
+            padding-top: 16px !important;
+            border-top: 1px solid #f1f5f9 !important;
+        }
+        .ifs-educore-btn-filter-submit {
+            background: #00523c !important;
+            color: #ffffff !important;
+            border: none !important;
+            height: 42px !important;
+            padding: 0 24px !important;
+            border-radius: 9px !important;
+            font-size: 14px !important;
+            font-weight: 700 !important;
+            cursor: pointer !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 8px !important;
+            box-shadow: 0 4px 12px rgba(0, 82, 60, 0.2) !important;
+            transition: all 0.2s ease !important;
+        }
+        .ifs-educore-btn-filter-submit:hover {
+            background: #047857 !important;
+            transform: translateY(-1px);
+        }
+        .ifs-educore-btn-filter-reset {
+            background: #f1f5f9 !important;
+            color: #64748b !important;
+            border: 1.5px solid #cbd5e1 !important;
+            height: 42px !important;
+            padding: 0 18px !important;
+            border-radius: 9px !important;
+            font-size: 13.5px !important;
+            font-weight: 700 !important;
+            text-decoration: none !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 6px !important;
+            transition: all 0.2s ease !important;
+            box-sizing: border-box !important;
+        }
+        .ifs-educore-btn-filter-reset:hover {
+            background: #e2e8f0 !important;
+            color: #0f172a !important;
+            border-color: #94a3b8 !important;
+        }
+
+        /* Responsive Breakpoint for Filters */
+        @media screen and (max-width: 1200px) {
+            .ifs-educore-filter-form {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+            .ifs-educore-filter-actions {
+                grid-column: span 2 !important;
+            }
+        }
+        @media screen and (max-width: 700px) {
+            .ifs-educore-filter-form {
+                grid-template-columns: 1fr !important;
+            }
+            .ifs-educore-filter-actions {
+                grid-column: span 1 !important;
+            }
+        }
+    </style>
+
     <div class="ifs-educore-fees-list-container">
 
         <!-- Flash Notice Feedback Banner -->
@@ -261,7 +381,7 @@ function educore_fees_list_view() {
             </div>
         </div>
 
-        <!-- Dynamic Filter Controls Card -->
+        <!-- Modern Dynamic Filter Controls Card -->
         <div class="ifs-educore-filter-card">
             <form method="get" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>" class="ifs-educore-filter-form">
                 <input type="hidden" name="page" value="school_management_system" />
@@ -568,7 +688,7 @@ function educore_fees_list_view() {
     <!-- Dynamic Script Layer: Section Chaining, Modal Control & DataTables Engine -->
     <script type="text/javascript">
     document.addEventListener('DOMContentLoaded', function() {
-        var unitsMap       = <?php echo wp_json_encode( ! empty( $all_units ) ? $all_units : array() ); ?>;
+        var unitsMap      = <?php echo wp_json_encode( ! empty( $all_units ) ? $all_units : array() ); ?>;
         var currentSection = "<?php echo esc_js( $filter_section ); ?>";
         var classSelect    = document.getElementById('filter_class');
         var sectionSelect  = document.getElementById('filter_section');
@@ -614,7 +734,7 @@ function educore_fees_list_view() {
         // --------------------------------------------------------------------------
         // EDIT MODAL AJAX ENGINE FOR FEES LEDGER
         // --------------------------------------------------------------------------
-        var modal          = document.getElementById('ifs_educore_edit_fee_modal');
+        var modal         = document.getElementById('ifs_educore_edit_fee_modal');
         var closeModalBtn  = document.getElementById('ifs_educore_close_fee_modal');
         var cancelModalBtn = document.getElementById('ifs_educore_cancel_fee_edit');
         var editForm       = document.getElementById('ifs_educore_edit_fee_form');

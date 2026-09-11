@@ -232,10 +232,10 @@ function educore_render_class_setup_view() {
             <table class="ifs-educore-architecture-table" id="ifs_educore_units_table" style="width:100%; border-collapse:collapse;">
                 <thead>
                     <tr style="background:#f8fafc; text-align:left;">
-                        <th style="width: 15%; padding:12px 16px; border-bottom:2px solid #e2e8f0; color:#475569; font-size:12px; text-transform:uppercase;"><?php esc_html_e( 'Order', 'ifsedu-school-management' ); ?></th>
-                        <th style="width: 35%; padding:12px 16px; border-bottom:2px solid #e2e8f0; color:#475569; font-size:12px; text-transform:uppercase;"><?php esc_html_e( 'Class Name', 'ifsedu-school-management' ); ?></th>
-                        <th style="width: 30%; padding:12px 16px; border-bottom:2px solid #e2e8f0; color:#475569; font-size:12px; text-transform:uppercase;"><?php esc_html_e( 'Section Name', 'ifsedu-school-management' ); ?></th>
-                        <th style="width: 20%; text-align: right; padding:12px 16px; border-bottom:2px solid #e2e8f0; color:#475569; font-size:12px; text-transform:uppercase;"><?php esc_html_e( 'Actions', 'ifsedu-school-management' ); ?></th>
+                        <th style="width: 15%; padding:12px 16px; border-bottom:2px solid #e2e8f0; color:#475569; font-size:12px; text-transform:capitalize;"><?php esc_html_e( 'Order', 'ifsedu-school-management' ); ?></th>
+                        <th style="width: 35%; padding:12px 16px; border-bottom:2px solid #e2e8f0; color:#475569; font-size:12px; text-transform:capitalize;"><?php esc_html_e( 'Class Name', 'ifsedu-school-management' ); ?></th>
+                        <th style="width: 30%; padding:12px 16px; border-bottom:2px solid #e2e8f0; color:#475569; font-size:12px; text-transform:capitalize;"><?php esc_html_e( 'Section Name', 'ifsedu-school-management' ); ?></th>
+                        <th style="width: 20%; text-align: right; padding:12px 16px; border-bottom:2px solid #e2e8f0; color:#475569; font-size:12px; text-transform:capitalize;"><?php esc_html_e( 'Actions', 'ifsedu-school-management' ); ?></th>
                     </tr>
                 </thead>
                 <tbody>

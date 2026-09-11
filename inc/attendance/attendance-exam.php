@@ -14,12 +14,12 @@ function educore_exam_attendance_view() {
     global $wpdb;
     $current_user = wp_get_current_user();
 
-    $table_students         = $wpdb->prefix . 'sms_students';
-    $table_exams            = $wpdb->prefix . 'sms_exams';
-    $table_units            = $wpdb->prefix . 'sms_academic_units';
-    $table_subjects         = $wpdb->prefix . 'sms_subjects';
-    $table_exam_att         = $wpdb->prefix . 'sms_exam_attendance';
-    $table_staff            = $wpdb->prefix . 'sms_staff';
+    $table_students        = $wpdb->prefix . 'sms_students';
+    $table_exams           = $wpdb->prefix . 'sms_exams';
+    $table_units           = $wpdb->prefix . 'sms_academic_units';
+    $table_subjects        = $wpdb->prefix . 'sms_subjects';
+    $table_exam_att        = $wpdb->prefix . 'sms_exam_attendance';
+    $table_staff           = $wpdb->prefix . 'sms_staff';
     $table_teacher_subjects = $wpdb->prefix . 'sms_teacher_subjects';
 
     // 1. Procedural Role & Capability Validation

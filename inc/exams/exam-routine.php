@@ -301,12 +301,12 @@ function educore_exam_routine_view() {
                 <table style="width:100%; border-collapse:separate; border-spacing:0; font-size:13px;">
                     <thead>
                         <tr style="background:#f8fafc;">
-                            <th style="padding:10px 12px; text-align:left; border-bottom:2px solid #e2e8f0; font-size:11px; text-transform:uppercase; color:#475569;"><?php esc_html_e( 'Date & Time', 'ifsedu-school-management' ); ?></th>
-                            <th style="padding:10px 12px; text-align:left; border-bottom:2px solid #e2e8f0; font-size:11px; text-transform:uppercase; color:#475569;"><?php esc_html_e( 'Exam', 'ifsedu-school-management' ); ?></th>
-                            <th style="padding:10px 12px; text-align:left; border-bottom:2px solid #e2e8f0; font-size:11px; text-transform:uppercase; color:#475569;"><?php esc_html_e( 'Class / Shift', 'ifsedu-school-management' ); ?></th>
-                            <th style="padding:10px 12px; text-align:left; border-bottom:2px solid #e2e8f0; font-size:11px; text-transform:uppercase; color:#475569;"><?php esc_html_e( 'Subject', 'ifsedu-school-management' ); ?></th>
-                            <th style="padding:10px 12px; text-align:left; border-bottom:2px solid #e2e8f0; font-size:11px; text-transform:uppercase; color:#475569;"><?php esc_html_e( 'Room', 'ifsedu-school-management' ); ?></th>
-                            <th style="padding:10px 12px; text-align:right; border-bottom:2px solid #e2e8f0; font-size:11px; text-transform:uppercase; color:#475569;"><?php esc_html_e( 'Action', 'ifsedu-school-management' ); ?></th>
+                            <th style="padding:10px 12px; text-align:left; border-bottom:2px solid #e2e8f0; font-size:11px; text-transform:capitalize; color:#475569;"><?php esc_html_e( 'Date & Time', 'ifsedu-school-management' ); ?></th>
+                            <th style="padding:10px 12px; text-align:left; border-bottom:2px solid #e2e8f0; font-size:11px; text-transform:capitalize; color:#475569;"><?php esc_html_e( 'Exam', 'ifsedu-school-management' ); ?></th>
+                            <th style="padding:10px 12px; text-align:left; border-bottom:2px solid #e2e8f0; font-size:11px; text-transform:capitalize; color:#475569;"><?php esc_html_e( 'Class / Shift', 'ifsedu-school-management' ); ?></th>
+                            <th style="padding:10px 12px; text-align:left; border-bottom:2px solid #e2e8f0; font-size:11px; text-transform:capitalize; color:#475569;"><?php esc_html_e( 'Subject', 'ifsedu-school-management' ); ?></th>
+                            <th style="padding:10px 12px; text-align:left; border-bottom:2px solid #e2e8f0; font-size:11px; text-transform:capitalize; color:#475569;"><?php esc_html_e( 'Room', 'ifsedu-school-management' ); ?></th>
+                            <th style="padding:10px 12px; text-align:right; border-bottom:2px solid #e2e8f0; font-size:11px; text-transform:capitalize; color:#475569;"><?php esc_html_e( 'Action', 'ifsedu-school-management' ); ?></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -405,7 +405,7 @@ function educore_exam_routine_view() {
                         <!-- Date Header -->
                         <div class="ifs-educore-date-header">
                             <span><?php echo esc_html( $formatted_date ); ?></span>
-                            <span style="font-size:11px; opacity:0.9; text-transform:uppercase; font-weight:700;"><?php echo esc_html( $day_name ); ?></span>
+                            <span style="font-size:11px; opacity:0.9; text-transform:capitalize; font-weight:700;"><?php echo esc_html( $day_name ); ?></span>
                         </div>
 
                         <!-- Slots under this Date -->

@@ -14,11 +14,11 @@ function educore_monthly_attendance_summary_view( $classes, $sections, $filter_c
     $current_user = wp_get_current_user();
     $is_admin     = current_user_can( 'manage_options' );
 
-    $table_students          = $wpdb->prefix . 'sms_students';
-    $table_attendance        = $wpdb->prefix . 'sms_attendance';
-    $table_units             = $wpdb->prefix . 'sms_academic_units';
-    $table_staff             = $wpdb->prefix . 'sms_staff';
-    $table_teacher_subjects  = $wpdb->prefix . 'sms_teacher_subjects';
+    $table_students         = $wpdb->prefix . 'sms_students';
+    $table_attendance       = $wpdb->prefix . 'sms_attendance';
+    $table_units            = $wpdb->prefix . 'sms_academic_units';
+    $table_staff            = $wpdb->prefix . 'sms_staff';
+    $table_teacher_subjects = $wpdb->prefix . 'sms_teacher_subjects';
 
     // 1. Resolve Exact Assigned Classes & Sections for Non-Admin Teachers from sms_teacher_subjects
     $teacher_assigned_classes  = array();
@@ -66,7 +66,7 @@ function educore_monthly_attendance_summary_view( $classes, $sections, $filter_c
     if ( ! $is_admin && ! empty( $assigned_unit_ids ) ) {
         $assigned_unit_ids = array_map( 'absint', $assigned_unit_ids );
         $unit_placeholders = implode( ',', array_fill( 0, count( $assigned_unit_ids ), '%d' ) );
-        
+
         // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $all_units = $wpdb->get_results( $wpdb->prepare(
             "SELECT id, class_name, section_name FROM `{$table_units}` WHERE id IN ($unit_placeholders) AND section_name != '' ORDER BY section_name ASC",
@@ -105,7 +105,7 @@ function educore_monthly_attendance_summary_view( $classes, $sections, $filter_c
         }
 
         $st_query .= ' ORDER BY CAST(roll_no AS UNSIGNED) ASC, roll_no ASC';
-        
+
         // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $all_active_students = $wpdb->get_results( $wpdb->prepare( $st_query, ...$st_args ) );
         // phpcs:enable
@@ -119,7 +119,7 @@ function educore_monthly_attendance_summary_view( $classes, $sections, $filter_c
     $selected_month = isset( $_GET['month'] ) ? sanitize_text_field( wp_unslash( $_GET['month'] ) ) : current_time( 'Y-m' );
     $filter_student = isset( $_GET['filter_student'] ) ? absint( wp_unslash( $_GET['filter_student'] ) ) : 0;
     // phpcs:enable WordPress.Security.NonceVerification.Recommended
-    
+
     $start_date    = $selected_month . '-01';
     $end_date      = gmdate( 'Y-m-t', strtotime( $start_date ) );
     $days_in_month = (int) gmdate( 't', strtotime( $start_date ) );
@@ -153,7 +153,7 @@ function educore_monthly_attendance_summary_view( $classes, $sections, $filter_c
         }
 
         $query .= ' ORDER BY CAST(roll_no AS UNSIGNED) ASC, roll_no ASC';
-        
+
         // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $students = $wpdb->get_results( $wpdb->prepare( $query, ...$params ) );
         // phpcs:enable
@@ -177,7 +177,7 @@ function educore_monthly_attendance_summary_view( $classes, $sections, $filter_c
                     $day_num = (int) gmdate( 'j', strtotime( $entry->attendance_date ) );
                     $st_entry_id = absint( $entry->student_id );
                     $daily_records[ $st_entry_id ][ $day_num ] = $entry->status;
-                    
+
                     if ( ! isset( $summary_counts[ $st_entry_id ][ $entry->status ] ) ) {
                         $summary_counts[ $st_entry_id ][ $entry->status ] = 0;
                     }
@@ -188,35 +188,293 @@ function educore_monthly_attendance_summary_view( $classes, $sections, $filter_c
     }
     ?>
 
+    <style id="ifs-educore-attendance-monthly-styles">
+        .ifs-educore-attendance-root {
+            font-family: inherit;
+        }
+        .ifs-educore-filter-bento {
+            margin-bottom: 24px;
+        }
+        .ifs-educore-filter-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+        .ifs-educore-filter-title {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 800;
+            color: #00523c;
+        }
+        .ifs-educore-teacher-mode-pill {
+            background: #ecfdf5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .ifs-educore-teacher-mode-pill .dashicons {
+            font-size: 14px;
+            width: 14px;
+            height: 14px;
+        }
+        .ifs-educore-filter-form {
+            display: flex;
+            gap: 16px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+        .ifs-educore-fg-sm {
+            flex: 1;
+            min-width: 160px;
+        }
+        .ifs-educore-fg-lg {
+            flex: 1;
+            min-width: 200px;
+        }
+        .ifs-educore-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 700;
+            color: #475569;
+            margin-bottom: 6px;
+        }
+        .ifs-educore-assigned-subtext {
+            color: #059669;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .ifs-educore-audit-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #f1f5f9;
+            padding-bottom: 16px;
+            margin-bottom: 20px;
+        }
+        .ifs-educore-audit-title {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 800;
+            color: #0f172a;
+        }
+        .ifs-educore-audit-meta {
+            color: #64748b;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .ifs-educore-print-btn {
+            height: 36px;
+            padding: 0 16px;
+            background: #0f172a;
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .ifs-educore-print-btn:hover {
+            background: #1e293b;
+        }
+        .ifs-educore-print-btn .dashicons {
+            font-size: 16px;
+            width: 16px;
+            height: 16px;
+        }
+        .ifs-educore-audit-table-wrap {
+            overflow-x: auto;
+        }
+        .ifs-educore-audit-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 12.5px;
+        }
+        .ifs-educore-audit-table thead tr {
+            background: #f8fafc;
+        }
+        .ifs-educore-th-sticky-roll {
+            padding: 10px 8px;
+            color: #475569;
+            border-bottom: 1px solid #e2e8f0;
+            position: sticky;
+            left: 0;
+            background: #f8fafc;
+            min-width: 50px;
+            z-index: 2;
+        }
+        .ifs-educore-th-sticky-name {
+            padding: 10px 8px;
+            color: #475569;
+            border-bottom: 1px solid #e2e8f0;
+            position: sticky;
+            left: 50px;
+            background: #f8fafc;
+            min-width: 140px;
+            z-index: 2;
+        }
+        .ifs-educore-th-day {
+            padding: 6px 2px;
+            color: #475569;
+            border-bottom: 1px solid #e2e8f0;
+            text-align: center;
+            min-width: 28px;
+            font-size: 11px;
+        }
+        .ifs-educore-th-stat {
+            padding: 10px 8px;
+            border-bottom: 1px solid #e2e8f0;
+            text-align: center;
+            font-weight: 800;
+        }
+        .ifs-educore-th-ratio {
+            padding: 10px 8px;
+            color: #475569;
+            border-bottom: 1px solid #e2e8f0;
+            text-align: right;
+            min-width: 100px;
+        }
+        .ifs-educore-row {
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .ifs-educore-td-roll {
+            padding: 10px 8px;
+            position: sticky;
+            left: 0;
+            background: #ffffff;
+            z-index: 1;
+        }
+        .ifs-educore-td-name {
+            padding: 10px 8px;
+            position: sticky;
+            left: 50px;
+            background: #ffffff;
+            z-index: 1;
+        }
+        .ifs-educore-student-name {
+            color: #0f172a;
+        }
+        .ifs-educore-td-day {
+            padding: 4px 1px;
+            text-align: center;
+        }
+        .ifs-educore-td-stat-p {
+            padding: 10px 6px;
+            text-align: center;
+            font-weight: 800;
+            color: #059669;
+            background: rgba(5, 150, 105, 0.03);
+        }
+        .ifs-educore-td-stat-a {
+            padding: 10px 6px;
+            text-align: center;
+            font-weight: 800;
+            color: #dc2626;
+            background: rgba(220, 38, 38, 0.03);
+        }
+        .ifs-educore-td-stat-l {
+            padding: 10px 6px;
+            text-align: center;
+            font-weight: 800;
+            color: #d97706;
+            background: rgba(217, 119, 6, 0.03);
+        }
+        .ifs-educore-td-ratio {
+            padding: 10px 8px;
+            text-align: right;
+        }
+        .ifs-educore-ratio-text {
+            font-size: 12px;
+            font-weight: 800;
+        }
+        .ifs-educore-ratio-track {
+            height: 5px;
+            background: #e2e8f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+        .ifs-educore-ratio-bar {
+            width: var(--att-pct, 0%);
+            height: 100%;
+            border-radius: 10px;
+        }
+        .ifs-educore-color-green {
+            color: #059669;
+        }
+        .ifs-educore-color-yellow {
+            color: #d97706;
+        }
+        .ifs-educore-color-red {
+            color: #dc2626;
+        }
+        .ifs-educore-bg-green {
+            background-color: #059669;
+        }
+        .ifs-educore-bg-yellow {
+            background-color: #d97706;
+        }
+        .ifs-educore-bg-red {
+            background-color: #dc2626;
+        }
+        .ifs-educore-alert-icon {
+            font-size: 24px;
+            width: 24px;
+            height: 24px;
+            margin: 0 auto 10px;
+            display: block;
+        }
+        .ifs-educore-m-0 {
+            margin: 0;
+        }
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            .ifs-educore-audit-table-wrap {
+                overflow: visible !important;
+            }
+        }
+    </style>
+
     <div class="ifs-educore-attendance-root">
 
         <!-- Monthly Filter Control Bento Card -->
-        <div class="ifs-educore-bento-card no-print" style="margin-bottom:24px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-                <h4 style="margin:0; font-size:16px; font-weight:800; color:#00523c;"><?php esc_html_e( 'Monthly Attendance Summary & Audit', 'ifsedu-school-management' ); ?></h4>
+        <div class="ifs-educore-bento-card ifs-educore-filter-bento no-print">
+            <div class="ifs-educore-filter-header">
+                <h4 class="ifs-educore-filter-title"><?php esc_html_e( 'Monthly Attendance Summary & Audit', 'ifsedu-school-management' ); ?></h4>
                 <?php if ( ! $is_admin ) : ?>
-                    <span style="background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:700;">
-                        <span class="dashicons dashicons-lock" style="font-size:14px; width:14px; height:14px; vertical-align:middle;"></span>
+                    <span class="ifs-educore-teacher-mode-pill">
+                        <span class="dashicons dashicons-lock"></span>
                         <?php esc_html_e( 'Teacher Mode: Assigned Allocations Only', 'ifsedu-school-management' ); ?>
                     </span>
                 <?php endif; ?>
             </div>
 
-            <form method="GET" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>" style="display:flex; gap:16px; align-items:flex-end; flex-wrap:wrap;">
+            <form method="GET" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>" class="ifs-educore-filter-form">
                 <input type="hidden" name="page" value="school_management_system">
                 <input type="hidden" name="tab" value="attendance">
                 <input type="hidden" name="sub" value="monthly">
 
-                <div class="ifs-educore-form-group" style="flex:1; min-width:160px;">
-                    <label style="display:block; font-size:12px; font-weight:700; color:#475569; margin-bottom:6px;"><?php esc_html_e( 'Target Month', 'ifsedu-school-management' ); ?> *</label>
+                <div class="ifs-educore-form-group ifs-educore-fg-sm">
+                    <label class="ifs-educore-label"><?php esc_html_e( 'Target Month', 'ifsedu-school-management' ); ?> *</label>
                     <input type="month" name="month" class="ifs-educore-input-field" value="<?php echo esc_attr( $selected_month ); ?>" max="<?php echo esc_attr( current_time( 'Y-m' ) ); ?>" required>
                 </div>
 
-                <div class="ifs-educore-form-group" style="flex:1; min-width:160px;">
-                    <label style="display:block; font-size:12px; font-weight:700; color:#475569; margin-bottom:6px;">
+                <div class="ifs-educore-form-group ifs-educore-fg-sm">
+                    <label class="ifs-educore-label">
                         <?php esc_html_e( 'Class', 'ifsedu-school-management' ); ?> *
                         <?php if ( ! $is_admin ) : ?>
-                            <span style="color:#059669; font-size:11px; font-weight:700;">(<?php esc_html_e( 'Assigned Only', 'ifsedu-school-management' ); ?>)</span>
+                            <span class="ifs-educore-assigned-subtext">(<?php esc_html_e( 'Assigned Only', 'ifsedu-school-management' ); ?>)</span>
                         <?php endif; ?>
                     </label>
                     <select name="class_name" id="educore_attendance_class_select" class="ifs-educore-select-field" required>
@@ -227,11 +485,11 @@ function educore_monthly_attendance_summary_view( $classes, $sections, $filter_c
                     </select>
                 </div>
 
-                <div class="ifs-educore-form-group" style="flex:1; min-width:160px;">
-                    <label style="display:block; font-size:12px; font-weight:700; color:#475569; margin-bottom:6px;">
+                <div class="ifs-educore-form-group ifs-educore-fg-sm">
+                    <label class="ifs-educore-label">
                         <?php esc_html_e( 'Section', 'ifsedu-school-management' ); ?>
                         <?php if ( ! $is_admin ) : ?>
-                            <span style="color:#059669; font-size:11px; font-weight:700;">(<?php esc_html_e( 'Assigned', 'ifsedu-school-management' ); ?>)</span>
+                            <span class="ifs-educore-assigned-subtext">(<?php esc_html_e( 'Assigned', 'ifsedu-school-management' ); ?>)</span>
                         <?php endif; ?>
                     </label>
                     <select name="section_name" id="educore_attendance_section_select" class="ifs-educore-select-field">
@@ -239,8 +497,8 @@ function educore_monthly_attendance_summary_view( $classes, $sections, $filter_c
                     </select>
                 </div>
                 
-                <div class="ifs-educore-form-group" style="flex:1; min-width:200px;">
-                    <label style="display:block; font-size:12px; font-weight:700; color:#475569; margin-bottom:6px;"><?php esc_html_e( 'Student (Optional)', 'ifsedu-school-management' ); ?></label>
+                <div class="ifs-educore-form-group ifs-educore-fg-lg">
+                    <label class="ifs-educore-label"><?php esc_html_e( 'Student (Optional)', 'ifsedu-school-management' ); ?></label>
                     <select name="filter_student" id="educore_attendance_student_select" class="ifs-educore-select-field">
                         <option value=""><?php esc_html_e( '-- All Students --', 'ifsedu-school-management' ); ?></option>
                     </select>
@@ -257,9 +515,9 @@ function educore_monthly_attendance_summary_view( $classes, $sections, $filter_c
             $month_display_str = $start_ts ? date_i18n( 'F Y', $start_ts ) : $selected_month;
         ?>
             <div class="ifs-educore-bento-card">
-                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #f1f5f9; padding-bottom:16px; margin-bottom:20px;">
+                <div class="ifs-educore-audit-header">
                     <div>
-                        <h3 style="margin:0; font-size:18px; font-weight:800; color:#0f172a;">
+                        <h3 class="ifs-educore-audit-title">
                             <?php
                             printf(
                                 /* translators: %s: Month and year (e.g. August 2026) */
@@ -268,7 +526,7 @@ function educore_monthly_attendance_summary_view( $classes, $sections, $filter_c
                             );
                             ?>
                         </h3>
-                        <span style="color:#64748b; font-size:13px; font-weight:600;">
+                        <span class="ifs-educore-audit-meta">
                             <?php
                             printf(
                                 /* translators: 1: Class name, 2: Section name (optional) */
@@ -279,28 +537,28 @@ function educore_monthly_attendance_summary_view( $classes, $sections, $filter_c
                             ?>
                         </span>
                     </div>
-                    <button type="button" onclick="window.print();" class="no-print" style="height:36px; padding:0 16px; background:#0f172a; color:#fff; border:none; border-radius:6px; font-weight:600; cursor:pointer;">
-                        <span class="dashicons dashicons-printer" style="vertical-align:middle; font-size:16px; width:16px; height:16px;"></span>
+                    <button type="button" onclick="window.print();" class="ifs-educore-print-btn no-print">
+                        <span class="dashicons dashicons-printer"></span>
                         <?php esc_html_e( 'Print Summary', 'ifsedu-school-management' ); ?>
                     </button>
                 </div>
 
-                <div style="overflow-x:auto;">
-                    <table style="width:100%; border-collapse:collapse; text-align:left; font-size:12.5px;">
+                <div class="ifs-educore-audit-table-wrap">
+                    <table class="ifs-educore-audit-table">
                         <thead>
-                            <tr style="background:#f8fafc;">
-                                <th style="padding:10px 8px; color:#475569; border-bottom:1px solid #e2e8f0; position:sticky; left:0; background:#f8fafc; min-width:50px;"><?php esc_html_e( 'Roll', 'ifsedu-school-management' ); ?></th>
-                                <th style="padding:10px 8px; color:#475569; border-bottom:1px solid #e2e8f0; position:sticky; left:0; background:#f8fafc; min-width:140px;"><?php esc_html_e( 'Student Name', 'ifsedu-school-management' ); ?></th>
+                            <tr>
+                                <th class="ifs-educore-th-sticky-roll"><?php esc_html_e( 'Roll', 'ifsedu-school-management' ); ?></th>
+                                <th class="ifs-educore-th-sticky-name"><?php esc_html_e( 'Student Name', 'ifsedu-school-management' ); ?></th>
                                 
                                 <!-- Calendar Days Columns -->
                                 <?php for ( $d = 1; $d <= $days_in_month; $d++ ) : ?>
-                                    <th style="padding:6px 2px; color:#475569; border-bottom:1px solid #e2e8f0; text-align:center; min-width:28px; font-size:11px;"><?php echo absint( $d ); ?></th>
+                                    <th class="ifs-educore-th-day"><?php echo absint( $d ); ?></th>
                                 <?php endfor; ?>
 
-                                <th style="padding:10px 8px; border-bottom:1px solid #e2e8f0; text-align:center; color:#059669; font-weight:800;"><?php esc_html_e( 'P', 'ifsedu-school-management' ); ?></th>
-                                <th style="padding:10px 8px; border-bottom:1px solid #e2e8f0; text-align:center; color:#dc2626; font-weight:800;"><?php esc_html_e( 'A', 'ifsedu-school-management' ); ?></th>
-                                <th style="padding:10px 8px; border-bottom:1px solid #e2e8f0; text-align:center; color:#d97706; font-weight:800;"><?php esc_html_e( 'L', 'ifsedu-school-management' ); ?></th>
-                                <th style="padding:10px 8px; color:#475569; border-bottom:1px solid #e2e8f0; text-align:right; min-width:100px;"><?php esc_html_e( 'Ratio', 'ifsedu-school-management' ); ?></th>
+                                <th class="ifs-educore-th-stat ifs-educore-color-green"><?php esc_html_e( 'P', 'ifsedu-school-management' ); ?></th>
+                                <th class="ifs-educore-th-stat ifs-educore-color-red"><?php esc_html_e( 'A', 'ifsedu-school-management' ); ?></th>
+                                <th class="ifs-educore-th-stat ifs-educore-color-yellow"><?php esc_html_e( 'L', 'ifsedu-school-management' ); ?></th>
+                                <th class="ifs-educore-th-ratio"><?php esc_html_e( 'Ratio', 'ifsedu-school-management' ); ?></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -311,16 +569,16 @@ function educore_monthly_attendance_summary_view( $classes, $sections, $filter_c
                                 $l_cnt          = isset( $summary_counts[ $st_id ]['Late'] ) ? absint( $summary_counts[ $st_id ]['Late'] ) : 0;
                                 $total_recorded = $p_cnt + $a_cnt + $l_cnt;
                                 $pct            = $total_recorded > 0 ? round( ( $p_cnt / $total_recorded ) * 100, 1 ) : 0;
-                                $pct_color      = $pct >= 80 ? '#059669' : ( $pct >= 60 ? '#d97706' : '#dc2626' );
+                                $pct_class      = $pct >= 80 ? 'green' : ( $pct >= 60 ? 'yellow' : 'red' );
                             ?>
-                                <tr style="border-bottom:1px solid #f1f5f9;">
-                                    <td style="padding:10px 8px;"><strong>#<?php echo esc_html( $st->roll_no ); ?></strong></td>
-                                    <td style="padding:10px 8px;"><strong style="color:#0f172a;"><?php echo esc_html( $st->full_name ); ?></strong></td>
+                                <tr class="ifs-educore-row">
+                                    <td class="ifs-educore-td-roll"><strong>#<?php echo esc_html( $st->roll_no ); ?></strong></td>
+                                    <td class="ifs-educore-td-name"><strong class="ifs-educore-student-name"><?php echo esc_html( $st->full_name ); ?></strong></td>
                                     
                                     <?php for ( $d = 1; $d <= $days_in_month; $d++ ) : 
                                         $st_status = isset( $daily_records[ $st_id ][ $d ] ) ? $daily_records[ $st_id ][ $d ] : '';
                                     ?>
-                                        <td style="padding:4px 1px; text-align:center;">
+                                        <td class="ifs-educore-td-day">
                                             <?php if ( 'Present' === $st_status ) : ?>
                                                 <span class="att-status-badge att-badge-p">P</span>
                                             <?php elseif ( 'Absent' === $st_status ) : ?>
@@ -333,13 +591,13 @@ function educore_monthly_attendance_summary_view( $classes, $sections, $filter_c
                                         </td>
                                     <?php endfor; ?>
 
-                                    <td style="padding:10px 6px; text-align:center; font-weight:800; color:#059669; background:rgba(5, 150, 105, 0.03);"><?php echo absint( $p_cnt ); ?></td>
-                                    <td style="padding:10px 6px; text-align:center; font-weight:800; color:#dc2626; background:rgba(220, 38, 38, 0.03);"><?php echo absint( $a_cnt ); ?></td>
-                                    <td style="padding:10px 6px; text-align:center; font-weight:800; color:#d97706; background:rgba(217, 119, 6, 0.03);"><?php echo absint( $l_cnt ); ?></td>
-                                    <td style="padding:10px 8px; text-align:right;">
-                                        <strong style="color:<?php echo esc_attr( $pct_color ); ?>; font-size:12px;"><?php echo esc_html( $pct ); ?>%</strong>
-                                        <div style="height:5px; background:#e2e8f0; border-radius:10px; overflow:hidden; margin-top:4px;">
-                                            <div style="width:<?php echo esc_attr( min( 100, $pct ) ); ?>%; height:100%; background:<?php echo esc_attr( $pct_color ); ?>; border-radius:10px;"></div>
+                                    <td class="ifs-educore-td-stat-p"><?php echo absint( $p_cnt ); ?></td>
+                                    <td class="ifs-educore-td-stat-a"><?php echo absint( $a_cnt ); ?></td>
+                                    <td class="ifs-educore-td-stat-l"><?php echo absint( $l_cnt ); ?></td>
+                                    <td class="ifs-educore-td-ratio">
+                                        <strong class="ifs-educore-ratio-text ifs-educore-color-<?php echo esc_attr( $pct_class ); ?>"><?php echo esc_html( $pct ); ?>%</strong>
+                                        <div class="ifs-educore-ratio-track">
+                                            <div class="ifs-educore-ratio-bar ifs-educore-bg-<?php echo esc_attr( $pct_class ); ?>" style="--att-pct: <?php echo esc_attr( min( 100, $pct ) ); ?>%;"></div>
                                         </div>
                                     </td>
                                 </tr>
@@ -349,9 +607,9 @@ function educore_monthly_attendance_summary_view( $classes, $sections, $filter_c
                 </div>
             </div>
         <?php elseif ( ! empty( $filter_class ) ) : ?>
-            <div class="ifs-educore-alert-warning"><span class="dashicons dashicons-warning" style="font-size:24px; width:24px; height:24px; margin-bottom:10px; display:block; margin:0 auto;"></span><p style="margin:0;"><?php esc_html_e( 'No active student records found for the selected Class/Section.', 'ifsedu-school-management' ); ?></p></div>
+            <div class="ifs-educore-alert-warning"><span class="dashicons dashicons-warning ifs-educore-alert-icon"></span><p class="ifs-educore-m-0"><?php esc_html_e( 'No active student records found for the selected Class/Section.', 'ifsedu-school-management' ); ?></p></div>
         <?php else : ?>
-            <div class="ifs-educore-alert-info"><span class="dashicons dashicons-info" style="font-size:24px; width:24px; height:24px; margin-bottom:10px; display:block; margin:0 auto;"></span><p style="margin:0;"><?php esc_html_e( 'Select a Target Month and Academic Class above to generate the attendance audit statement.', 'ifsedu-school-management' ); ?></p></div>
+            <div class="ifs-educore-alert-info"><span class="dashicons dashicons-info ifs-educore-alert-icon"></span><p class="ifs-educore-m-0"><?php esc_html_e( 'Select a Target Month and Academic Class above to generate the attendance audit statement.', 'ifsedu-school-management' ); ?></p></div>
         <?php endif; ?>
 
         <!-- Dynamic JS Engine: Safe Class->Section->Student Chaining -->

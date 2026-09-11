@@ -242,7 +242,7 @@ function educore_exam_single_view() {
             font-size: 11.5px;
             font-weight: 800;
             color: #64748b;
-            text-transform: uppercase;
+            text-transform: capitalize;
             letter-spacing: 0.4px;
             display: flex;
             align-items: center;
@@ -265,7 +265,7 @@ function educore_exam_single_view() {
             font-weight: 800;
             padding: 4px 12px;
             border-radius: 999px;
-            text-transform: uppercase;
+            text-transform: capitalize;
             letter-spacing: 0.3px;
         }
         .ifs-exam-status-tag.upcoming {

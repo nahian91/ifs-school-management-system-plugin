@@ -1,6 +1,6 @@
 <?php
 /**
- * Gallery Module Internal Sub-Router & View Controller
+ * Institutional Photo Gallery & Album Management Suite
  * File: inc/notices/gallery.php
  * Text Domain: ifsedu-school-management
  */
@@ -10,18 +10,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Gallery Module Internal Sub-Router
- *
- * @param string $sub_tab The active sub-tab slug.
+ * Gallery Sub-Router
  */
 function educore_gallery_router( $sub_tab ) {
-    if ( ! current_user_can( 'manage_options' ) && ! current_user_can( 'edit_posts' ) ) {
-        wp_die( esc_html__( 'You do not have sufficient permissions to access the gallery module.', 'ifsedu-school-management' ) );
-    }
-
-    $allowed_sub_tabs = array( 'list', 'add', 'edit', 'view', 'delete_photo', 'delete' );
-    $sub_tab          = in_array( $sub_tab, $allowed_sub_tabs, true ) ? $sub_tab : 'list';
-
     switch ( $sub_tab ) {
         case 'add':
         case 'edit':
@@ -48,89 +39,276 @@ function educore_gallery_router( $sub_tab ) {
 }
 
 /**
- * Photo Albums Grid Directory View
- * Theme Aesthetic: Neo-Bento Card Grid Layout
+ * Gallery Albums Directory Listing
  */
 function educore_gallery_list_view() {
     global $wpdb;
     $table_albums = $wpdb->prefix . 'sms_gallery_albums';
     $table_photos = $wpdb->prefix . 'sms_gallery_photos';
 
-    if ( ! current_user_can( 'manage_options' ) && ! current_user_can( 'edit_posts' ) ) {
+    if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'Permission denied.', 'ifsedu-school-management' ) );
     }
 
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
     $albums = $wpdb->get_results( "SELECT * FROM `{$table_albums}` ORDER BY id DESC" );
     // phpcs:enable
-    $albums = is_array( $albums ) ? $albums : array();
-    
-    $add_url = add_query_arg(
-        array(
-            'page' => 'school_management_system',
-            'tab'  => 'notice',
-            'type' => 'gallery',
-            'sub'  => 'add',
-        ),
-        admin_url( 'admin.php' )
-    );
+    $albums  = is_array( $albums ) ? $albums : array();
+    $add_url = admin_url( 'admin.php?page=school_management_system&tab=notices&type=gallery&sub=add' );
     ?>
 
-    <div class="dpt-gallery-root">
-        
-        <div class="afdp-header-bar">
-            <h2 class="afdp-page-title">
+    <style id="ifs-educore-gallery-ui-styles">
+        .ifs-educore-gallery-root {
+            font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #0f172a;
+        }
+        .ifs-educore-header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 28px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            padding: 20px 24px;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.03);
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .ifs-educore-page-title {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 800;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .ifs-educore-page-title .dashicons {
+            color: #00523c;
+            font-size: 22px;
+            width: 22px;
+            height: 22px;
+        }
+        .ifs-educore-btn-primary {
+            background: #00523c;
+            color: #ffffff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 13.5px;
+            font-weight: 700;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(0, 82, 60, 0.2);
+            transition: all 0.2s ease;
+        }
+        .ifs-educore-btn-primary:hover {
+            background: #004030;
+            color: #ffffff;
+            transform: translateY(-1px);
+        }
+        .ifs-educore-bento-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 24px;
+        }
+        .ifs-educore-album-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+        }
+        .ifs-educore-album-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 25px -5px rgba(0, 82, 60, 0.08);
+            border-color: #cbd5e1;
+        }
+        .ifs-educore-cover-container {
+            position: relative;
+            height: 180px;
+            background: #f1f5f9;
+            overflow: hidden;
+        }
+        .ifs-educore-cover-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.4s ease;
+        }
+        .ifs-educore-album-card:hover .ifs-educore-cover-img {
+            transform: scale(1.05);
+        }
+        .ifs-educore-category-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(4px);
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 20px;
+            letter-spacing: 0.02em;
+        }
+        .ifs-educore-card-body {
+            padding: 18px 20px 12px 20px;
+            flex: 1;
+        }
+        .ifs-educore-album-title {
+            margin: 0 0 6px 0;
+            font-size: 15.5px;
+            font-weight: 800;
+            color: #0f172a;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .ifs-educore-photo-count {
+            font-size: 12.5px;
+            color: #64748b;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .ifs-educore-photo-count-icon {
+            font-size: 15px;
+            width: 15px;
+            height: 15px;
+            color: #00523c;
+        }
+        .ifs-educore-card-footer {
+            padding: 14px 20px;
+            border-top: 1px solid #f1f5f9;
+            background: #f8fafc;
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+        .ifs-educore-square-btn {
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+        }
+        .ifs-educore-square-btn .dashicons {
+            font-size: 16px;
+            width: 16px;
+            height: 16px;
+        }
+        .ifs-educore-btn-view {
+            background: #f0fdf4;
+            color: #059669;
+            border-color: #bbf7d0;
+        }
+        .ifs-educore-btn-view:hover {
+            background: #059669;
+            color: #fff;
+        }
+        .ifs-educore-btn-edit {
+            background: #f0f9ff;
+            color: #0284c7;
+            border-color: #bae6fd;
+        }
+        .ifs-educore-btn-edit:hover {
+            background: #0284c7;
+            color: #fff;
+        }
+        .ifs-educore-btn-delete {
+            background: #fef2f2;
+            color: #dc2626;
+            border-color: #fecaca;
+        }
+        .ifs-educore-btn-delete:hover {
+            background: #dc2626;
+            color: #fff;
+        }
+        .ifs-educore-empty-state {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 60px 20px;
+            text-align: center;
+            color: #64748b;
+        }
+        .ifs-educore-empty-state .dashicons {
+            font-size: 48px;
+            width: 48px;
+            height: 48px;
+            color: #cbd5e1;
+            margin-bottom: 12px;
+        }
+        .ifs-educore-empty-state h5 {
+            margin: 0;
+            font-size: 15px;
+            font-weight: 700;
+            color: #334155;
+        }
+    </style>
+
+    <div class="ifs-educore-gallery-root">
+        <div class="ifs-educore-header-bar">
+            <h2 class="ifs-educore-page-title">
                 <span class="dashicons dashicons-format-gallery"></span> 
                 <?php esc_html_e( 'Photo Albums Directory', 'ifsedu-school-management' ); ?>
             </h2>
-            <a href="<?php echo esc_url( $add_url ); ?>" class="dpt-btn-primary">
-                <span class="dashicons dashicons-plus-alt2" style="font-size:16px; width:16px; height:16px;"></span>
+            <a href="<?php echo esc_url( $add_url ); ?>" class="ifs-educore-btn-primary">
+                <span class="dashicons dashicons-plus-alt2"></span>
                 <?php esc_html_e( 'Create New Album', 'ifsedu-school-management' ); ?>
             </a>
         </div>
 
         <?php if ( ! empty( $albums ) ) : ?>
-            <div class="dpt-bento-grid">
+            <div class="ifs-educore-bento-grid">
                 <?php foreach ( $albums as $album ) : 
-                    $album_id       = absint( $album->id );
-                    $base_admin_url = admin_url( 'admin.php' );
-                    $view_url       = add_query_arg( array( 'page' => 'school_management_system', 'tab' => 'notice', 'type' => 'gallery', 'sub' => 'view', 'id' => $album_id ), $base_admin_url );
-                    $edit_url       = add_query_arg( array( 'page' => 'school_management_system', 'tab' => 'notice', 'type' => 'gallery', 'sub' => 'edit', 'id' => $album_id ), $base_admin_url );
-                    $delete_url     = wp_nonce_url( 
-                        add_query_arg( array( 'page' => 'school_management_system', 'tab' => 'notice', 'type' => 'gallery', 'sub' => 'delete', 'id' => $album_id ), $base_admin_url ), 
-                        'delete_gallery_' . $album_id 
-                    );
+                    $album_id   = absint( $album->id );
+                    $view_url   = admin_url( 'admin.php?page=school_management_system&tab=notices&type=gallery&sub=view&id=' . $album_id );
+                    $edit_url   = admin_url( 'admin.php?page=school_management_system&tab=notices&type=gallery&sub=edit&id=' . $album_id );
+                    $delete_url = wp_nonce_url( admin_url( 'admin.php?page=school_management_system&tab=notices&type=gallery&sub=delete&id=' . $album_id ), 'delete_gallery_' . $album_id );
                     
                     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-                    $photo_count = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(id) FROM `{$table_photos}` WHERE album_id = %d", $album_id ) );
+                    $photo_count = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(id) FROM `{$table_photos}` WHERE album_id = %d", $album_id ) );
                     // phpcs:enable
 
-                    $cover_src = ! empty( $album->cover_image ) ? $album->cover_image : ( defined( 'EDUCORE_URL' ) ? EDUCORE_URL . 'assets/img/logo.png' : '' );
+                    $cover_src = ! empty( $album->cover_image ) ? $album->cover_image : EDUCORE_URL . 'assets/img/logo.png';
                 ?>
-                <div class="dpt-album-card">
-                    <div class="dpt-cover-container">
-                        <img src="<?php echo esc_url( $cover_src ); ?>" class="dpt-cover-img" alt="<?php echo esc_attr( $album->title ); ?>">
-                        <span class="dpt-category-badge">
-                            <?php echo esc_html( ! empty( $album->category ) ? $album->category : 'General' ); ?>
+                <div class="ifs-educore-album-card">
+                    <div class="ifs-educore-cover-container">
+                        <img src="<?php echo esc_url( $cover_src ); ?>" class="ifs-educore-cover-img" alt="<?php echo esc_attr( $album->title ); ?>">
+                        <span class="ifs-educore-category-badge">
+                            <?php echo esc_html( $album->category ?? 'General' ); ?>
                         </span>
                     </div>
 
-                    <div class="dpt-card-body">
-                        <h3 class="dpt-album-title" title="<?php echo esc_attr( $album->title ); ?>"><?php echo esc_html( $album->title ); ?></h3>
-                        <span class="dpt-photo-count">
-                            <span class="dashicons dashicons-images-alt2" style="font-size: 14px; width:14px; height:14px;"></span> 
+                    <div class="ifs-educore-card-body">
+                        <h3 class="ifs-educore-album-title" title="<?php echo esc_attr( $album->title ); ?>"><?php echo esc_html( $album->title ); ?></h3>
+                        <span class="ifs-educore-photo-count">
+                            <span class="dashicons dashicons-images-alt2 ifs-educore-photo-count-icon"></span> 
                             <?php echo esc_html( $photo_count ); ?> <?php esc_html_e( 'Photos', 'ifsedu-school-management' ); ?>
                         </span>
                     </div>
 
-                    <div class="dpt-card-footer">
-                        <a href="<?php echo esc_url( $view_url ); ?>" class="dpt-square-btn dpt-btn-view" title="<?php esc_attr_e( 'View Album', 'ifsedu-school-management' ); ?>">
+                    <div class="ifs-educore-card-footer">
+                        <a href="<?php echo esc_url( $view_url ); ?>" class="ifs-educore-square-btn ifs-educore-btn-view" title="<?php esc_attr_e( 'View Album', 'ifsedu-school-management' ); ?>">
                             <span class="dashicons dashicons-visibility"></span>
                         </a>
-                        <a href="<?php echo esc_url( $edit_url ); ?>" class="dpt-square-btn dpt-btn-edit" title="<?php esc_attr_e( 'Edit Album', 'ifsedu-school-management' ); ?>">
+                        <a href="<?php echo esc_url( $edit_url ); ?>" class="ifs-educore-square-btn ifs-educore-btn-edit" title="<?php esc_attr_e( 'Edit Album', 'ifsedu-school-management' ); ?>">
                             <span class="dashicons dashicons-edit"></span>
                         </a>
-                        <a href="<?php echo esc_url( $delete_url ); ?>" class="dpt-square-btn dpt-btn-delete" title="<?php esc_attr_e( 'Delete Album', 'ifsedu-school-management' ); ?>" onclick="return confirm('<?php echo esc_js( __( 'Delete this album and all its images?', 'ifsedu-school-management' ) ); ?>');">
+                        <a href="<?php echo esc_url( $delete_url ); ?>" class="ifs-educore-square-btn ifs-educore-btn-delete" title="<?php esc_attr_e( 'Delete Album', 'ifsedu-school-management' ); ?>" onclick="return confirm('<?php echo esc_js( __( 'Delete this album and all its images?', 'ifsedu-school-management' ) ); ?>');">
                             <span class="dashicons dashicons-trash"></span>
                         </a>
                     </div>
@@ -138,18 +316,17 @@ function educore_gallery_list_view() {
                 <?php endforeach; ?>
             </div>
         <?php else : ?>
-            <div class="dpt-empty-state">
+            <div class="ifs-educore-empty-state">
                 <span class="dashicons dashicons-format-gallery"></span>
                 <h5><?php esc_html_e( 'No photo albums created yet.', 'ifsedu-school-management' ); ?></h5>
             </div>
         <?php endif; ?>
-
     </div>
     <?php
 }
 
 /**
- * Single Album Gallery Photo View
+ * Single Album Photo Grid View
  */
 function educore_gallery_single_album_view() {
     global $wpdb;
@@ -157,30 +334,16 @@ function educore_gallery_single_album_view() {
     $table_photos = $wpdb->prefix . 'sms_gallery_photos';
 
     // phpcs:disable WordPress.Security.NonceVerification.Recommended
-    $album_id = isset( $_GET['id'] ) ? absint( wp_unslash( $_GET['id'] ) ) : 0;
+    $album_id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
     // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-    $album = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table_albums}` WHERE id = %d LIMIT 1", $album_id ) );
+    $album = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table_albums}` WHERE id = %d", $album_id ) );
+    // phpcs:enable
 
     if ( ! $album ) {
         ?>
-        <style>
-            .afdp-alert-error {
-                background: #fef2f2;
-                border: 1px solid #fecaca;
-                color: #b91c1c;
-                padding: 16px 20px;
-                border-radius: 12px;
-                font-weight: 700;
-                font-size: 14px;
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                margin-top: 20px;
-            }
-        </style>
-        <div class="afdp-alert-error">
+        <div style="background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; padding: 20px; border-radius: 12px; font-weight: 600; display: flex; align-items: center; gap: 10px;">
             <span class="dashicons dashicons-dismiss"></span>
             <?php esc_html_e( 'Album not found or has been deleted.', 'ifsedu-school-management' ); ?>
         </div>
@@ -188,213 +351,171 @@ function educore_gallery_single_album_view() {
         return;
     }
 
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
     $photos = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM `{$table_photos}` WHERE album_id = %d ORDER BY id DESC", $album_id ) );
     // phpcs:enable
-    $photos = is_array( $photos ) ? $photos : array();
-    
-    $base_admin_url = admin_url( 'admin.php' );
-    $back_url       = add_query_arg( array( 'page' => 'school_management_system', 'tab' => 'notice', 'type' => 'gallery', 'sub' => 'list' ), $base_admin_url );
-    $edit_url       = add_query_arg( array( 'page' => 'school_management_system', 'tab' => 'notice', 'type' => 'gallery', 'sub' => 'edit', 'id' => $album_id ), $base_admin_url );
+    $photos   = is_array( $photos ) ? $photos : array();
+    $back_url = admin_url( 'admin.php?page=school_management_system&tab=notices&type=gallery&sub=list' );
+    $edit_url = admin_url( 'admin.php?page=school_management_system&tab=notices&type=gallery&sub=edit&id=' . $album_id );
     ?>
 
-    <style>
-        /* ==========================================================================
-           SINGLE ALBUM VIEW - NEO-BENTO SYSTEM
-           ========================================================================== */
-        .dpt-single-root {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+    <style id="ifs-educore-single-gallery-styles">
+        .ifs-educore-single-root {
+            font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             color: #0f172a;
         }
-
-        .dpt-top-action-bar {
+        .ifs-educore-top-action-bar {
+            margin-bottom: 24px;
             display: flex;
-            align-items: center;
             justify-content: space-between;
-            margin-bottom: 20px;
-            gap: 16px;
+            align-items: center;
             flex-wrap: wrap;
+            gap: 12px;
         }
-
-        .dpt-btn-back {
+        .ifs-educore-btn-back, .ifs-educore-btn-action {
             display: inline-flex;
             align-items: center;
             gap: 6px;
             padding: 8px 16px;
             background: #ffffff;
-            border: 1px solid #cbd5e1;
-            border-radius: 10px;
-            color: #334155;
-            font-size: 13px;
-            font-weight: 700;
+            border: 1px solid #e2e8f0;
+            color: #475569;
             text-decoration: none;
+            border-radius: 8px;
+            font-size: 13.5px;
+            font-weight: 700;
             transition: all 0.2s ease;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
         }
-
-        .dpt-btn-back:hover {
+        .ifs-educore-btn-back:hover, .ifs-educore-btn-action:hover {
             background: #f8fafc;
-            border-color: #94a3b8;
-            color: #0f172a;
+            color: #00523c;
+            border-color: #cbd5e1;
         }
-
-        .dpt-btn-action {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
-            background: #2563eb;
-            color: #ffffff;
-            font-size: 13px;
-            font-weight: 700;
-            border-radius: 10px;
-            text-decoration: none;
-            transition: all 0.2s ease;
-            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
-        }
-
-        .dpt-btn-action:hover {
-            background: #1d4ed8;
-            color: #ffffff;
-        }
-
-        /* Detail Card */
-        .dpt-album-detail-card {
+        .ifs-educore-album-detail-card {
             background: #ffffff;
             border: 1px solid #e2e8f0;
             border-radius: 16px;
-            padding: 24px;
-            margin-bottom: 24px;
-            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
+            padding: 24px 28px;
+            margin-bottom: 28px;
+            box-shadow: 0 4px 15px -3px rgba(0,0,0,0.03);
         }
-
-        .afdp-album-header-title {
-            font-size: 22px;
-            font-weight: 800;
-            color: #00523c;
+        .ifs-educore-album-header-title {
             margin: 0 0 8px 0;
-            letter-spacing: -0.4px;
+            font-size: 20px;
+            font-weight: 800;
+            color: #0f172a;
         }
-
-        .dpt-meta-strip {
+        .ifs-educore-album-meta-row {
             display: flex;
             align-items: center;
-            gap: 16px;
-            font-size: 12.5px;
+            gap: 10px;
+            font-size: 13px;
             color: #64748b;
-            font-weight: 600;
             margin-bottom: 12px;
         }
-
-        .dpt-album-desc {
-            color: #334155;
+        .ifs-educore-album-desc-text {
+            margin: 0;
             font-size: 14px;
-            line-height: 1.6;
-            margin: 12px 0 0 0;
-            padding-top: 12px;
-            border-top: 1px solid #f1f5f9;
+            color: #334155;
+            line-height: 1.5;
         }
-
-        /* Photo Gallery Responsive Grid */
-        .dpt-photo-grid {
+        .ifs-educore-photo-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-            gap: 16px;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
         }
-
-        .dpt-photo-card {
+        .ifs-educore-photo-card {
             background: #ffffff;
             border: 1px solid #e2e8f0;
             border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+            height: 160px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
             transition: all 0.2s ease;
         }
-
-        .dpt-photo-card:hover {
-            transform: scale(1.02);
-            border-color: #cbd5e1;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+        .ifs-educore-photo-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.06);
+            border-color: #00523c;
         }
-
-        .dpt-photo-link {
-            display: block;
-            height: 140px;
-            width: 100%;
-        }
-
-        .dpt-photo-link img {
+        .ifs-educore-photo-link img {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            transition: transform 0.3s ease;
         }
-
-        .dpt-empty-box {
+        .ifs-educore-photo-card:hover img {
+            transform: scale(1.04);
+        }
+        .ifs-educore-empty-photos-box {
             background: #ffffff;
             border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 40px;
+            border-radius: 16px;
+            padding: 50px;
             text-align: center;
             color: #64748b;
             font-weight: 600;
         }
     </style>
 
-    <div class="dpt-single-root">
-        
-        <div class="dpt-top-action-bar">
-            <a href="<?php echo esc_url( $back_url ); ?>" class="dpt-btn-back">
+    <div class="ifs-educore-single-root">
+        <div class="ifs-educore-top-action-bar">
+            <a href="<?php echo esc_url( $back_url ); ?>" class="ifs-educore-btn-back">
                 <span class="dashicons dashicons-arrow-left-alt"></span>
                 <?php esc_html_e( 'Back to Album Directory', 'ifsedu-school-management' ); ?>
             </a>
-            <a href="<?php echo esc_url( $edit_url ); ?>" class="dpt-btn-action">
+            <a href="<?php echo esc_url( $edit_url ); ?>" class="ifs-educore-btn-action">
                 <span class="dashicons dashicons-edit"></span>
                 <?php esc_html_e( 'Edit / Upload More Photos', 'ifsedu-school-management' ); ?>
             </a>
         </div>
 
-        <div class="dpt-album-detail-card">
-            <h3 class="afdp-album-header-title"><?php echo esc_html( $album->title ); ?></h3>
-            <div class="dpt-meta-strip">
-                <span><strong><?php esc_html_e( 'Category:', 'ifsedu-school-management' ); ?></strong> <?php echo esc_html( $album->category ); ?></span>
+        <div class="ifs-educore-album-detail-card">
+            <h3 class="ifs-educore-album-header-title"><?php echo esc_html( $album->title ); ?></h3>
+            <div class="ifs-educore-album-meta-row">
+                <span><strong>Category:</strong> <?php echo esc_html( $album->category ); ?></span>
                 <span>•</span>
-                <span><strong><?php esc_html_e( 'Total Photos:', 'ifsedu-school-management' ); ?></strong> <?php echo esc_html( count( $photos ) ); ?></span>
+                <span><strong>Total Photos:</strong> <?php echo esc_html( count( $photos ) ); ?></span>
             </div>
             <?php if ( ! empty( $album->description ) ) : ?>
-                <p class="dpt-album-desc"><?php echo esc_html( $album->description ); ?></p>
+                <p class="ifs-educore-album-desc-text"><?php echo esc_html( $album->description ); ?></p>
             <?php endif; ?>
         </div>
 
         <?php if ( ! empty( $photos ) ) : ?>
-            <div class="dpt-photo-grid">
+            <div class="ifs-educore-photo-grid">
                 <?php foreach ( $photos as $photo ) : ?>
-                    <div class="dpt-photo-card">
-                        <a href="<?php echo esc_url( $photo->image_url ); ?>" target="_blank" class="dpt-photo-link">
-                            <img src="<?php echo esc_url( $photo->image_url ); ?>" alt="<?php esc_attr_e( 'Gallery Photo', 'ifsedu-school-management' ); ?>">
+                    <div class="ifs-educore-photo-card">
+                        <a href="<?php echo esc_url( $photo->image_url ); ?>" target="_blank" class="ifs-educore-photo-link">
+                            <img src="<?php echo esc_url( $photo->image_url ); ?>" alt="Gallery Photo">
                         </a>
                     </div>
                 <?php endforeach; ?>
             </div>
         <?php else : ?>
-            <div class="dpt-empty-box">
+            <div class="ifs-educore-empty-photos-box">
                 <?php esc_html_e( 'This album contains no photos yet.', 'ifsedu-school-management' ); ?>
             </div>
         <?php endif; ?>
-
     </div>
     <?php
 }
 
 /**
- * Add / Edit Gallery Album Form
+ * Album Create & Edit Form View (WordPress Media Library Enabled)
  */
 function educore_gallery_add_edit_view() {
     global $wpdb;
     $table_albums = $wpdb->prefix . 'sms_gallery_albums';
     $table_photos = $wpdb->prefix . 'sms_gallery_photos';
 
+    // Enqueue WordPress Media Library uploader
+    wp_enqueue_media();
+
     // phpcs:disable WordPress.Security.NonceVerification.Recommended
-    $is_edit  = isset( $_GET['sub'] ) && 'edit' === sanitize_key( wp_unslash( $_GET['sub'] ) );
-    $album_id = isset( $_GET['id'] ) ? absint( wp_unslash( $_GET['id'] ) ) : 0;
+    $is_edit  = isset( $_GET['sub'] ) && 'edit' === $_GET['sub'];
+    $album_id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
     // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
     $album         = null;
@@ -403,221 +524,151 @@ function educore_gallery_add_edit_view() {
 
     if ( $is_edit && $album_id > 0 ) {
         // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $album  = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table_albums}` WHERE id = %d LIMIT 1", $album_id ) );
+        $album  = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table_albums}` WHERE id = %d", $album_id ) );
         $photos = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM `{$table_photos}` WHERE album_id = %d ORDER BY id DESC", $album_id ) );
         // phpcs:enable
         $photos = is_array( $photos ) ? $photos : array();
     }
 
-    $req_method = isset( $_SERVER['REQUEST_METHOD'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : '';
-    if ( 'POST' === $req_method && isset( $_POST['educore_save_gallery'] ) ) {
-        $gallery_nonce = isset( $_POST['educore_gallery_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['educore_gallery_nonce'] ) ) : '';
-        if ( wp_verify_nonce( $gallery_nonce, 'save_gallery_action' ) ) {
-            $cover_image = $album ? $album->cover_image : '';
+    $gallery_nonce = isset( $_POST['educore_gallery_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['educore_gallery_nonce'] ) ) : '';
+    if ( isset( $_POST['educore_save_gallery'] ) && wp_verify_nonce( $gallery_nonce, 'save_gallery_action' ) ) {
+        $cover_image       = isset( $_POST['cover_image'] ) ? esc_url_raw( wp_unslash( $_POST['cover_image'] ) ) : ( $album->cover_image ?? '' );
+        $album_title       = isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : '';
+        $album_category    = isset( $_POST['category'] ) ? sanitize_text_field( wp_unslash( $_POST['category'] ) ) : 'General';
+        $album_description = isset( $_POST['description'] ) ? sanitize_textarea_field( wp_unslash( $_POST['description'] ) ) : '';
+        $album_status      = isset( $_POST['status'] ) ? sanitize_text_field( wp_unslash( $_POST['status'] ) ) : 'Published';
 
-            // Handle Cover Image Upload with Strict MIME Check
-            if ( ! empty( $_FILES['cover_image']['name'] ) && isset( $_FILES['cover_image']['error'] ) && UPLOAD_ERR_OK === $_FILES['cover_image']['error'] ) {
-                $allowed_mimes = array(
-                    'jpg|jpeg|jpe' => 'image/jpeg',
-                    'png'          => 'image/png',
-                    'webp'         => 'image/webp',
-                );
+        $album_data = array(
+            'title'       => $album_title,
+            'category'    => $album_category,
+            'description' => $album_description,
+            'cover_image' => $cover_image,
+            'status'      => $album_status,
+        );
 
-                // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-                $file_info = wp_check_filetype( sanitize_file_name( $_FILES['cover_image']['name'] ), $allowed_mimes );
-
-                if ( in_array( $file_info['type'], $allowed_mimes, true ) ) {
-                    require_once ABSPATH . 'wp-admin/includes/file.php';
-                    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-                    $upload = wp_handle_upload( $_FILES['cover_image'], array( 'test_form' => false, 'mimes' => $allowed_mimes ) );
-                    if ( ! isset( $upload['error'] ) && isset( $upload['url'] ) ) {
-                        $cover_image = esc_url_raw( $upload['url'] );
-                    }
-                }
-            }
-
-            $album_title       = isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : '';
-            $album_category    = isset( $_POST['category'] ) ? sanitize_text_field( wp_unslash( $_POST['category'] ) ) : 'General';
-            $album_description = isset( $_POST['description'] ) ? sanitize_textarea_field( wp_unslash( $_POST['description'] ) ) : '';
-            $album_status      = isset( $_POST['status'] ) ? sanitize_text_field( wp_unslash( $_POST['status'] ) ) : 'Published';
-
-            $album_data = array(
-                'title'       => $album_title,
-                'category'    => $album_category,
-                'description' => $album_description,
-                'cover_image' => sanitize_url( $cover_image ),
-                'status'      => $album_status,
-            );
-
-            $album_formats = array( '%s', '%s', '%s', '%s', '%s' );
-
-            $current_id = 0;
-            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
-            if ( $is_edit && $album_id > 0 ) {
-                $wpdb->update( $table_albums, $album_data, array( 'id' => $album_id ), $album_formats, array( '%d' ) );
-                $current_id = $album_id;
-            } else {
-                $wpdb->insert( $table_albums, $album_data, $album_formats );
-                $current_id = (int) $wpdb->insert_id;
-            }
+        if ( $is_edit && $album_id > 0 ) {
+            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            $wpdb->update( $table_albums, $album_data, array( 'id' => $album_id ) );
             // phpcs:enable
+            $current_id = $album_id;
+        } else {
+            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery
+            $wpdb->insert( $table_albums, $album_data );
+            // phpcs:enable
+            $current_id = (int) $wpdb->insert_id;
+        }
 
-            // Multi-File Upload Processing with MIME Check
-            if ( ! empty( $_FILES['gallery_photos']['name'][0] ) && $current_id > 0 ) {
-                $allowed_mimes = array(
-                    'jpg|jpeg|jpe' => 'image/jpeg',
-                    'png'          => 'image/png',
-                    'webp'         => 'image/webp',
-                );
+        // Handle JSON array of selected photo URLs from WP Media Library
+        if ( ! empty( $_POST['gallery_photo_urls'] ) && $current_id > 0 ) {
+            $raw_urls = sanitize_text_field( wp_unslash( $_POST['gallery_photo_urls'] ) );
+            $photo_urls = json_decode( stripslashes( $raw_urls ), true );
 
-                require_once ABSPATH . 'wp-admin/includes/file.php';
-                // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-                $files = $_FILES['gallery_photos'];
-                
-                foreach ( $files['name'] as $k => $v ) {
-                    if ( ! empty( $files['name'][ $k ] ) && UPLOAD_ERR_OK === $files['error'][ $k ] ) {
-                        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-                        $file_info = wp_check_filetype( sanitize_file_name( $files['name'][ $k ] ), $allowed_mimes );
-                        if ( ! in_array( $file_info['type'], $allowed_mimes, true ) ) {
-                            continue;
-                        }
+            if ( is_array( $photo_urls ) && ! empty( $photo_urls ) ) {
+                foreach ( $photo_urls as $url ) {
+                    $clean_url = esc_url_raw( trim( $url ) );
+                    if ( ! empty( $clean_url ) ) {
+                        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery
+                        $wpdb->insert( $table_photos, array( 'album_id' => $current_id, 'image_url' => $clean_url ) );
+                        // phpcs:enable
 
-                        $file = array(
-                            'name'     => $files['name'][ $k ],
-                            'type'     => $files['type'][ $k ],
-                            'tmp_name' => $files['tmp_name'][ $k ],
-                            'error'    => $files['error'][ $k ],
-                            'size'     => $files['size'][ $k ],
-                        );
-                        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-                        $up = wp_handle_upload( $file, array( 'test_form' => false, 'mimes' => $allowed_mimes ) );
-                        if ( ! isset( $up['error'] ) && isset( $up['url'] ) ) {
-                            $sanitized_url = esc_url_raw( $up['url'] );
-                            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
-                            $wpdb->insert( $table_photos, array( 'album_id' => $current_id, 'image_url' => $sanitized_url ), array( '%d', '%s' ) );
-
-                            if ( empty( $cover_image ) ) {
-                                $cover_image = $sanitized_url;
-                                $wpdb->update( $table_albums, array( 'cover_image' => $cover_image ), array( 'id' => $current_id ), array( '%s' ), array( '%d' ) );
-                            }
+                        if ( empty( $cover_image ) ) {
+                            $cover_image = $clean_url;
+                            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+                            $wpdb->update( $table_albums, array( 'cover_image' => $cover_image ), array( 'id' => $current_id ) );
                             // phpcs:enable
                         }
                     }
                 }
             }
-
-            $saved_message = true;
-
-            // Reload data
-            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-            $album  = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table_albums}` WHERE id = %d LIMIT 1", $current_id ) );
-            $photos = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM `{$table_photos}` WHERE album_id = %d ORDER BY id DESC", $current_id ) );
-            // phpcs:enable
-            $photos = is_array( $photos ) ? $photos : array();
         }
+
+        $saved_message = true;
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        $album  = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table_albums}` WHERE id = %d", $current_id ) );
+        $photos = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM `{$table_photos}` WHERE album_id = %d ORDER BY id DESC", $current_id ) );
+        // phpcs:enable
+        $photos = is_array( $photos ) ? $photos : array();
     }
 
-    $base_admin_url = admin_url( 'admin.php' );
-    $back_url       = add_query_arg( array( 'page' => 'school_management_system', 'tab' => 'notice', 'type' => 'gallery', 'sub' => 'list' ), $base_admin_url );
+    $back_url = admin_url( 'admin.php?page=school_management_system&tab=notices&type=gallery&sub=list' );
     ?>
 
-    <style>
-        /* ==========================================================================
-           ADD/EDIT FORM - NEO-BENTO ARCHITECTURE
-           ========================================================================== */
-        .dpt-form-root {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+    <style id="ifs-educore-form-gallery-styles">
+        .ifs-educore-form-root {
+            font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             color: #0f172a;
         }
-
-        .dpt-top-action-bar {
-            margin-bottom: 20px;
+        .ifs-educore-top-action-bar {
+            margin-bottom: 24px;
         }
-
-        .dpt-btn-back {
+        .ifs-educore-btn-back {
             display: inline-flex;
             align-items: center;
             gap: 6px;
             padding: 8px 16px;
             background: #ffffff;
-            border: 1px solid #cbd5e1;
-            border-radius: 10px;
-            color: #334155;
-            font-size: 13px;
-            font-weight: 700;
+            border: 1px solid #e2e8f0;
+            color: #475569;
             text-decoration: none;
+            border-radius: 8px;
+            font-size: 13.5px;
+            font-weight: 700;
             transition: all 0.2s ease;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
         }
-
-        .dpt-btn-back:hover {
+        .ifs-educore-btn-back:hover {
             background: #f8fafc;
-            border-color: #94a3b8;
-            color: #0f172a;
+            color: #00523c;
+            border-color: #cbd5e1;
         }
-
-        .afdp-alert-success {
+        .ifs-educore-alert-success-box {
             background: #ecfdf5;
             border: 1px solid #a7f3d0;
             color: #047857;
-            padding: 14px 20px;
-            border-radius: 12px;
-            font-weight: 700;
-            font-size: 14px;
+            padding: 14px 18px;
+            border-radius: 10px;
+            font-size: 13.5px;
+            font-weight: 600;
+            margin-bottom: 24px;
             display: flex;
             align-items: center;
             gap: 10px;
-            margin-bottom: 20px;
         }
-
-        .dpt-bento-form-card {
+        .ifs-educore-bento-form-card {
             background: #ffffff;
             border: 1px solid #e2e8f0;
             border-radius: 16px;
             padding: 32px;
-            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
         }
-
-        .afdp-form-title {
-            font-size: 20px;
-            font-weight: 800;
-            color: #00523c;
+        .ifs-educore-form-title {
             margin: 0 0 24px 0;
+            font-size: 17px;
+            font-weight: 800;
+            color: #0f172a;
+            border-bottom: 1px solid #f1f5f9;
             padding-bottom: 16px;
-            border-bottom: 2px solid #f1f5f9;
-            letter-spacing: -0.4px;
         }
-
-        /* Form Grid Mechanics */
-        .dpt-form-row {
+        .ifs-educore-form-row {
             display: grid;
-            grid-template-columns: 2fr 1fr 1fr;
+            grid-template-columns: repeat(3, 1fr);
             gap: 20px;
             margin-bottom: 20px;
         }
-
-        @media (max-width: 768px) {
-            .dpt-form-row {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .dpt-form-group {
+        .ifs-educore-form-group {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 6px;
             margin-bottom: 20px;
         }
-
-        .dpt-form-group label {
+        .ifs-educore-form-group label {
             font-size: 13px;
             font-weight: 700;
             color: #334155;
         }
-
-        .dpt-field-input,
-        .dpt-field-select,
-        .dpt-field-textarea {
+        .ifs-educore-field-input, 
+        .ifs-educore-field-select,
+        .ifs-educore-field-textarea {
             width: 100%;
             padding: 10px 14px;
             background: #f8fafc;
@@ -625,206 +676,134 @@ function educore_gallery_add_edit_view() {
             border-radius: 10px;
             font-size: 14px;
             color: #0f172a;
-            transition: all 0.2s ease;
             box-sizing: border-box;
+            transition: all 0.2s ease;
         }
-
-        .dpt-field-input:focus,
-        .dpt-field-select:focus,
-        .dpt-field-textarea:focus {
+        .ifs-educore-field-input:focus, 
+        .ifs-educore-field-select:focus,
+        .ifs-educore-field-textarea:focus {
             outline: none;
             border-color: #00523c;
             background: #ffffff;
-            box-shadow: 0 0 0 3px rgba(0, 106, 78, 0.1);
+            box-shadow: 0 0 0 3px rgba(0, 82, 60, 0.12);
         }
-
-        /* Upload Area Accent Node */
-        .dpt-upload-bento-node {
-            background: #f0fdf4;
-            border: 1px dashed #86efac;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 24px;
-        }
-
-        .dpt-upload-bento-node label {
-            color: #065f46;
-            font-size: 14px;
-            font-weight: 800;
-            margin-bottom: 6px;
-            display: block;
-        }
-
-        /* Current Photos Management Grid */
-        .dpt-photos-manager {
-            margin-bottom: 28px;
-        }
-
-        .dpt-photos-manager-title {
-            font-size: 15px;
-            font-weight: 800;
-            color: #0f172a;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #f1f5f9;
-            margin: 0 0 16px 0;
-        }
-
-        .dpt-manage-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-            gap: 12px;
-        }
-
-        .dpt-manage-photo-card {
-            position: relative;
-            border: 1px solid #e2e8f0;
-            border-radius: 10px;
-            padding: 4px;
-            background: #ffffff;
-            height: 90px;
-        }
-
-        .dpt-manage-photo-card img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            border-radius: 6px;
-        }
-
-        .dpt-btn-photo-del {
-            position: absolute;
-            top: -6px;
-            right: -6px;
-            width: 24px;
-            height: 24px;
-            background: #dc2626;
-            color: #ffffff;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 800;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            transition: transform 0.2s ease;
-        }
-
-        .dpt-btn-photo-del:hover {
-            transform: scale(1.15);
-            color: #ffffff;
-        }
-
-        .dpt-btn-submit {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            padding: 12px 32px;
+        .ifs-educore-btn-submit {
             background: #00523c;
             color: #ffffff;
-            font-size: 14px;
-            font-weight: 800;
-            border-radius: 10px;
             border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
             cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 4px 12px rgba(0, 106, 78, 0.25);
+            box-shadow: 0 4px 12px rgba(0, 82, 60, 0.25);
+            transition: background 0.2s ease;
         }
-
-        .dpt-btn-submit:hover {
-            background: #004080;
-            transform: translateY(-1px);
+        .ifs-educore-btn-submit:hover {
+            background: #004030;
+        }
+        @media screen and (max-width: 900px) {
+            .ifs-educore-form-row {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 
-    <div class="dpt-form-root">
-        
-        <div class="dpt-top-action-bar">
-            <a href="<?php echo esc_url( $back_url ); ?>" class="dpt-btn-back">
+    <div class="ifs-educore-form-root">
+        <div class="ifs-educore-top-action-bar">
+            <a href="<?php echo esc_url( $back_url ); ?>" class="ifs-educore-btn-back">
                 <span class="dashicons dashicons-arrow-left-alt"></span>
                 <?php esc_html_e( 'Back to Gallery', 'ifsedu-school-management' ); ?>
             </a>
         </div>
 
         <?php if ( $saved_message ) : ?>
-            <div class="afdp-alert-success">
+            <div class="ifs-educore-alert-success-box">
                 <span class="dashicons dashicons-yes-alt"></span>
                 <?php esc_html_e( 'Album saved successfully.', 'ifsedu-school-management' ); ?>
             </div>
         <?php endif; ?>
 
-        <div class="dpt-bento-form-card">
-            <h3 class="afdp-form-title">
+        <div class="ifs-educore-bento-form-card">
+            <h3 class="ifs-educore-form-title">
                 <?php echo $is_edit ? esc_html__( 'Edit Album Details', 'ifsedu-school-management' ) : esc_html__( 'Create Photo Album', 'ifsedu-school-management' ); ?>
             </h3>
 
-            <form method="POST" action="" enctype="multipart/form-data">
+            <form method="POST" action="">
                 <?php wp_nonce_field( 'save_gallery_action', 'educore_gallery_nonce' ); ?>
 
-                <div class="dpt-form-row">
-                    <div class="dpt-form-group" style="margin-bottom:0;">
-                        <label><?php esc_html_e( 'Album Title', 'ifsedu-school-management' ); ?></label>
-                        <input type="text" name="title" class="dpt-field-input" value="<?php echo $album ? esc_attr( $album->title ) : ''; ?>" required>
+                <div class="ifs-educore-form-row">
+                    <div class="ifs-educore-form-group" style="margin-bottom:0;">
+                        <label><?php esc_html_e( 'Album Title', 'ifsedu-school-management' ); ?> *</label>
+                        <input type="text" name="title" class="ifs-educore-field-input" value="<?php echo $album ? esc_attr( $album->title ) : ''; ?>" required>
                     </div>
-                    <div class="dpt-form-group" style="margin-bottom:0;">
+                    <div class="ifs-educore-form-group" style="margin-bottom:0;">
                         <label><?php esc_html_e( 'Category', 'ifsedu-school-management' ); ?></label>
-                        <select name="category" class="dpt-field-select">
-                            <option value="Academic" <?php selected( $album ? $album->category : '', 'Academic' ); ?>><?php esc_html_e( 'Academic', 'ifsedu-school-management' ); ?></option>
-                            <option value="Sports" <?php selected( $album ? $album->category : '', 'Sports' ); ?>><?php esc_html_e( 'Sports', 'ifsedu-school-management' ); ?></option>
-                            <option value="Cultural" <?php selected( $album ? $album->category : '', 'Cultural' ); ?>><?php esc_html_e( 'Cultural', 'ifsedu-school-management' ); ?></option>
-                            <option value="Campus" <?php selected( $album ? $album->category : '', 'Campus' ); ?>><?php esc_html_e( 'Campus & Infrastructure', 'ifsedu-school-management' ); ?></option>
-                            <option value="General" <?php selected( $album ? $album->category : '', 'General' ); ?>><?php esc_html_e( 'General', 'ifsedu-school-management' ); ?></option>
+                        <select name="category" class="ifs-educore-field-select">
+                            <option value="Academic" <?php selected( $album ? $album->category : '', 'Academic' ); ?>>Academic</option>
+                            <option value="Sports" <?php selected( $album ? $album->category : '', 'Sports' ); ?>>Sports</option>
+                            <option value="Cultural" <?php selected( $album ? $album->category : '', 'Cultural' ); ?>>Cultural</option>
+                            <option value="Campus" <?php selected( $album ? $album->category : '', 'Campus' ); ?>>Campus & Infrastructure</option>
+                            <option value="General" <?php selected( $album ? $album->category : '', 'General' ); ?>>General</option>
                         </select>
                     </div>
-                    <div class="dpt-form-group" style="margin-bottom:0;">
+                    <div class="ifs-educore-form-group" style="margin-bottom:0;">
                         <label><?php esc_html_e( 'Status', 'ifsedu-school-management' ); ?></label>
-                        <select name="status" class="dpt-field-select">
-                            <option value="Published" <?php selected( $album ? $album->status : '', 'Published' ); ?>><?php esc_html_e( 'Published', 'ifsedu-school-management' ); ?></option>
-                            <option value="Draft" <?php selected( $album ? $album->status : '', 'Draft' ); ?>><?php esc_html_e( 'Draft', 'ifsedu-school-management' ); ?></option>
+                        <select name="status" class="ifs-educore-field-select">
+                            <option value="Published" <?php selected( $album ? $album->status : '', 'Published' ); ?>>Published</option>
+                            <option value="Draft" <?php selected( $album ? $album->status : '', 'Draft' ); ?>>Draft</option>
                         </select>
                     </div>
                 </div>
 
-                <div class="dpt-form-group">
+                <div class="ifs-educore-form-group">
                     <label><?php esc_html_e( 'Description', 'ifsedu-school-management' ); ?></label>
-                    <textarea name="description" class="dpt-field-textarea" rows="3"><?php echo $album ? esc_textarea( $album->description ) : ''; ?></textarea>
+                    <textarea name="description" class="ifs-educore-field-textarea" rows="3"><?php echo $album ? esc_textarea( $album->description ) : ''; ?></textarea>
                 </div>
 
-                <div class="dpt-form-group">
+                <!-- Cover Image Media Uploader -->
+                <div class="ifs-educore-form-group">
                     <label><?php esc_html_e( 'Cover Image (Thumbnail)', 'ifsedu-school-management' ); ?></label>
-                    <input type="file" name="cover_image" class="dpt-field-input" accept="image/jpeg,image/png,image/webp">
+                    <div style="display: flex; gap: 10px; align-items: center; margin-top: 6px;">
+                        <input type="text" name="cover_image" id="ifs_cover_image_input" class="ifs-educore-field-input" value="<?php echo $album ? esc_attr( $album->cover_image ) : ''; ?>" readonly style="flex: 1;">
+                        <button type="button" class="ifs-educore-btn-primary" id="ifs_upload_cover_btn" style="padding: 10px 16px; font-size: 13px; box-shadow: none;"><?php esc_html_e( 'Choose Image', 'ifsedu-school-management' ); ?></button>
+                    </div>
                     <?php if ( $album && ! empty( $album->cover_image ) ) : ?>
-                        <div style="margin-top: 10px;">
-                            <img src="<?php echo esc_url( $album->cover_image ); ?>" alt="<?php esc_attr_e( 'Cover Thumbnail', 'ifsedu-school-management' ); ?>" style="width: 80px; height: 60px; object-fit: cover; border-radius: 8px; border: 1px solid #cbd5e1;">
+                        <div class="ifs-educore-cover-preview-box" style="margin-top: 10px;">
+                            <img src="<?php echo esc_url( $album->cover_image ); ?>" class="ifs-educore-cover-preview-img" alt="Cover Preview" style="max-height: 100px; border-radius: 8px; border: 1px solid #cbd5e1;">
                         </div>
                     <?php endif; ?>
                 </div>
 
-                <div class="dpt-upload-bento-node">
-                    <label><?php esc_html_e( 'Upload Photos to Album', 'ifsedu-school-management' ); ?></label>
-                    <input type="file" name="gallery_photos[]" class="dpt-field-input" accept="image/jpeg,image/png,image/webp" multiple>
-                    <p style="margin: 6px 0 0 0; font-size: 12px; color: #047857; font-weight: 600;">
-                        <?php esc_html_e( 'Select multiple files to batch upload images into this gallery.', 'ifsedu-school-management' ); ?>
+                <!-- Multi-Photo WP Media Uploader Node -->
+                <div class="ifs-educore-upload-bento-node" style="background: #f8fafc; border: 2px dashed #cbd5e1; padding: 24px; border-radius: 12px; text-align: center; margin-top: 24px;">
+                    <label style="font-weight: 700; color: #0f172a; display: block; margin-bottom: 8px; font-size: 14px;"><?php esc_html_e( 'Upload Multiple Photos to Album', 'ifsedu-school-management' ); ?></label>
+                    <input type="hidden" name="gallery_photo_urls" id="ifs_gallery_photo_urls_input" value="">
+                    <button type="button" class="ifs-educore-btn-primary" id="ifs_upload_multi_photos_btn" style="box-shadow: none;">
+                        <span class="dashicons dashicons-images-alt2" style="vertical-align: middle; margin-top: 3px;"></span> 
+                        <?php esc_html_e( 'Select Multiple Photos from Media Library', 'ifsedu-school-management' ); ?>
+                    </button>
+                    <p class="ifs-educore-upload-hint" style="margin-top: 8px; font-size: 12.5px; color: #64748b;">
+                        <?php esc_html_e( 'Click to open WordPress Media Library. Hold Ctrl/Cmd to select multiple images simultaneously.', 'ifsedu-school-management' ); ?>
                     </p>
+                    <div id="ifs_selected_previews_container" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; justify-content: center;"></div>
                 </div>
 
                 <?php if ( $is_edit && ! empty( $photos ) ) : ?>
-                    <div class="dpt-photos-manager">
-                        <h4 class="dpt-photos-manager-title">
-                            <?php esc_html_e( 'Manage Existing Album Photos', 'ifsedu-school-management' ); ?> (<?php echo count( $photos ); ?>)
+                    <div class="ifs-educore-photos-manage-section" style="margin-top: 28px;">
+                        <h4 style="font-size: 14.5px; font-weight: 700; color: #0f172a; margin-bottom: 12px;">
+                            <?php esc_html_e( 'Manage Existing Album Photos', 'ifsedu-school-management' ); ?> (<?php echo esc_html( count( $photos ) ); ?>)
                         </h4>
-                        <div class="dpt-manage-grid">
+                        <div class="ifs-educore-manage-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 12px;">
                             <?php foreach ( $photos as $photo ) : 
-                                $photo_internal_id = absint( $photo->id );
-                                $base_admin_url    = admin_url( 'admin.php' );
-                                $photo_del_url     = wp_nonce_url( 
-                                    add_query_arg( array( 'page' => 'school_management_system', 'tab' => 'notice', 'type' => 'gallery', 'sub' => 'delete_photo', 'photo_id' => $photo_internal_id, 'album_id' => $album_id ), $base_admin_url ), 
-                                    'delete_photo_' . $photo_internal_id 
+                                $photo_del_url = wp_nonce_url( 
+                                    admin_url( 'admin.php?page=school_management_system&tab=notices&type=gallery&sub=delete_photo&photo_id=' . $photo->id . '&album_id=' . $album_id ), 
+                                    'delete_photo_' . $photo->id 
                                 );
                             ?>
-                                <div class="dpt-manage-photo-card">
-                                    <img src="<?php echo esc_url( $photo->image_url ); ?>" alt="<?php esc_attr_e( 'Gallery Image', 'ifsedu-school-management' ); ?>">
-                                    <a href="<?php echo esc_url( $photo_del_url ); ?>" class="dpt-btn-photo-del" title="<?php esc_attr_e( 'Delete Photo', 'ifsedu-school-management' ); ?>" onclick="return confirm('<?php echo esc_js( __( 'Remove this photo?', 'ifsedu-school-management' ) ); ?>');">
+                                <div class="ifs-educore-manage-photo-card" style="position: relative; height: 110px; border-radius: 8px; overflow: hidden; border: 1px solid #cbd5e1; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                                    <img src="<?php echo esc_url( $photo->image_url ); ?>" alt="Gallery Image" style="width: 100%; height: 100%; object-fit: cover;">
+                                    <a href="<?php echo esc_url( $photo_del_url ); ?>" class="ifs-educore-btn-photo-del" title="<?php esc_attr_e( 'Delete Photo', 'ifsedu-school-management' ); ?>" onclick="return confirm('<?php echo esc_js( __( 'Remove this photo?', 'ifsedu-school-management' ) ); ?>');" style="position: absolute; top: 6px; right: 6px; background: rgba(220,38,38,0.9); color: #fff; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; text-decoration: none; font-weight: bold; font-size: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
                                         &times;
                                     </a>
                                 </div>
@@ -833,109 +812,127 @@ function educore_gallery_add_edit_view() {
                     </div>
                 <?php endif; ?>
 
-                <button type="submit" name="educore_save_gallery" class="dpt-btn-submit">
-                    <?php echo $is_edit ? esc_html__( 'Update Album', 'ifsedu-school-management' ) : esc_html__( 'Publish Album', 'ifsedu-school-management' ); ?>
-                </button>
+                <div style="margin-top: 32px; border-top: 1px solid #f1f5f9; padding-top: 24px;">
+                    <button type="submit" name="educore_save_gallery" class="ifs-educore-btn-submit">
+                        <span class="dashicons dashicons-saved" style="vertical-align: middle; margin-top: 3px;"></span>
+                        <?php echo $is_edit ? esc_html__( 'Update Album', 'ifsedu-school-management' ) : esc_html__( 'Publish Album', 'ifsedu-school-management' ); ?>
+                    </button>
+                </div>
             </form>
         </div>
-
     </div>
+
+    <!-- WordPress Media Library Integration Script -->
+    <script type="text/javascript">
+    jQuery(document).ready(function($) {
+        // Cover Image Uploader
+        var coverFrame;
+        $('#ifs_upload_cover_btn').on('click', function(e) {
+            e.preventDefault();
+            if (coverFrame) {
+                coverFrame.open();
+                return;
+            }
+            coverFrame = wp.media({
+                title: '<?php echo esc_js( __( 'Select Cover Image', 'ifsedu-school-management' ) ); ?>',
+                button: { text: '<?php echo esc_js( __( 'Use as Cover', 'ifsedu-school-management' ) ); ?>' },
+                multiple: false
+            });
+            coverFrame.on('select', function() {
+                var attachment = coverFrame.state().get('selection').first().toJSON();
+                $('#ifs_cover_image_input').val(attachment.url);
+            });
+            coverFrame.open();
+        });
+
+        // Multi-Photo Selector Uploader
+        var multiFrame;
+        var selectedUrls = [];
+        $('#ifs_upload_multi_photos_btn').on('click', function(e) {
+            e.preventDefault();
+            if (multiFrame) {
+                multiFrame.open();
+                return;
+            }
+            multiFrame = wp.media({
+                title: '<?php echo esc_js( __( 'Select Gallery Photos', 'ifsedu-school-management' ) ); ?>',
+                button: { text: '<?php echo esc_js( __( 'Add Selected Photos', 'ifsedu-school-management' ) ); ?>' },
+                multiple: true
+            });
+
+            multiFrame.on('select', function() {
+                var selection = multiFrame.state().get('selection');
+                selection.each(function(attachment) {
+                    var url = attachment.toJSON().url;
+                    if (selectedUrls.indexOf(url) === -1) {
+                        selectedUrls.push(url);
+                        $('#ifs_selected_previews_container').append(
+                            '<div style="width: 70px; height: 70px; border-radius: 8px; overflow: hidden; border: 2px solid #00523c; position: relative; box-shadow: 0 2px 6px rgba(0,0,0,0.08);">' +
+                            '<img src="' + url + '" style="width: 100%; height: 100%; object-fit: cover;">' +
+                            '</div>'
+                        );
+                    }
+                });
+                $('#ifs_gallery_photo_urls_input').val(JSON.stringify(selectedUrls));
+            });
+            multiFrame.open();
+        });
+    });
+    </script>
     <?php
 }
 
 /**
- * Action Handler: Delete Individual Gallery Photo
+ * Gallery Photo Single Deletion
  */
 function educore_gallery_photo_delete_action() {
     global $wpdb;
     $table_photos = $wpdb->prefix . 'sms_gallery_photos';
 
-    if ( ! current_user_can( 'manage_options' ) && ! current_user_can( 'edit_posts' ) ) {
+    if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'Permission denied.', 'ifsedu-school-management' ) );
     }
 
     // phpcs:disable WordPress.Security.NonceVerification.Recommended
-    $photo_id  = isset( $_GET['photo_id'] ) ? absint( wp_unslash( $_GET['photo_id'] ) ) : 0;
-    $album_id  = isset( $_GET['album_id'] ) ? absint( wp_unslash( $_GET['album_id'] ) ) : 0;
+    $photo_id  = isset( $_GET['photo_id'] ) ? absint( $_GET['photo_id'] ) : 0;
+    $album_id  = isset( $_GET['album_id'] ) ? absint( $_GET['album_id'] ) : 0;
     $del_nonce = isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) : '';
     // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
     if ( $photo_id > 0 && wp_verify_nonce( $del_nonce, 'delete_photo_' . $photo_id ) ) {
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $wpdb->delete( $table_photos, array( 'id' => $photo_id ), array( '%d' ) );
         // phpcs:enable
-        if ( function_exists( 'educore_log_activity' ) ) {
-            /* translators: %d: Photo ID */
-            educore_log_activity( sprintf( __( 'Deleted gallery photo ID #%d', 'ifsedu-school-management' ), $photo_id ) );
-        }
     }
 
-    $redirect_url = add_query_arg(
-        array(
-            'page' => 'school_management_system',
-            'tab'  => 'notice',
-            'type' => 'gallery',
-            'sub'  => 'edit',
-            'id'   => $album_id,
-        ),
-        admin_url( 'admin.php' )
-    );
-
-    if ( ! headers_sent() ) {
-        wp_safe_redirect( $redirect_url );
-        exit;
-    } else {
-        echo '<script type="text/javascript">window.location.href=' . wp_json_encode( esc_url_raw( $redirect_url ) ) . ';</script>';
-        exit;
-    }
+    $redirect_url = admin_url( 'admin.php?page=school_management_system&tab=notices&type=gallery&sub=edit&id=' . $album_id );
+    educore_safe_redirect( $redirect_url );
 }
 
 /**
- * Action Handler: Delete Complete Photo Album & Associated Photos
+ * Gallery Album Complete Deletion
  */
 function educore_gallery_delete_action() {
     global $wpdb;
     $table_albums = $wpdb->prefix . 'sms_gallery_albums';
     $table_photos = $wpdb->prefix . 'sms_gallery_photos';
 
-    if ( ! current_user_can( 'manage_options' ) && ! current_user_can( 'edit_posts' ) ) {
+    if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'Permission denied.', 'ifsedu-school-management' ) );
     }
 
     // phpcs:disable WordPress.Security.NonceVerification.Recommended
-    $album_id  = isset( $_GET['id'] ) ? absint( wp_unslash( $_GET['id'] ) ) : 0;
+    $album_id  = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
     $del_nonce = isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) : '';
     // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
     if ( $album_id > 0 && wp_verify_nonce( $del_nonce, 'delete_gallery_' . $album_id ) ) {
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $album = $wpdb->get_row( $wpdb->prepare( "SELECT title FROM `{$table_albums}` WHERE id = %d LIMIT 1", $album_id ) );
-        
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $wpdb->delete( $table_photos, array( 'album_id' => $album_id ), array( '%d' ) );
         $wpdb->delete( $table_albums, array( 'id' => $album_id ), array( '%d' ) );
         // phpcs:enable
-
-        if ( $album && function_exists( 'educore_log_activity' ) ) {
-            /* translators: %s: Album title */
-            educore_log_activity( sprintf( __( 'Deleted photo album: %s', 'ifsedu-school-management' ), $album->title ) );
-        }
     }
 
-    $redirect_url = add_query_arg(
-        array(
-            'page' => 'school_management_system',
-            'tab'  => 'notice',
-            'type' => 'gallery',
-            'sub'  => 'list',
-        ),
-        admin_url( 'admin.php' )
-    );
-
-    if ( ! headers_sent() ) {
-        wp_safe_redirect( $redirect_url );
-        exit;
-    } else {
-        echo '<script type="text/javascript">window.location.href=' . wp_json_encode( esc_url_raw( $redirect_url ) ) . ';</script>';
-        exit;
-    }
+    $redirect_url = admin_url( 'admin.php?page=school_management_system&tab=notices&type=gallery&sub=list' );
+    educore_safe_redirect( $redirect_url );
 }

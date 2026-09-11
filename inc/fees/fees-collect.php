@@ -554,7 +554,7 @@ function educore_fees_collect_view() {
                             <span class="dashicons dashicons-search" style="font-size:13px; width:13px; height:13px; vertical-align:middle;"></span>
                             <?php esc_html_e( 'Live ID Search', 'ifsedu-school-management' ); ?>
                         </label>
-                        <input type="text" id="ifs_educore_live_id_search" class="ifs-educore-field-input" placeholder="<?php esc_attr_e( 'Type ID e.g. STU-0001', 'ifsedu-school-management' ); ?>" style="font-weight:700; border-color:#00523c; background:#ffffff; text-transform:uppercase;" autocomplete="off">
+                        <input type="text" id="ifs_educore_live_id_search" class="ifs-educore-field-input" placeholder="<?php esc_attr_e( 'Type ID e.g. STU-0001', 'ifsedu-school-management' ); ?>" style="font-weight:700; border-color:#00523c; background:#ffffff; text-transform:capitalize;" autocomplete="off">
                     </div>
 
                     <!-- 2. Class Filter -->
@@ -668,7 +668,7 @@ function educore_fees_collect_view() {
                     <div class="ifs-educore-form-group">
                         <label class="ifs-educore-form-label" style="color: #b91c1c;">
                             <?php esc_html_e( 'Previous Arrears / Due (৳)', 'ifsedu-school-management' ); ?>
-                            <button type="button" id="btn_clear_past_due" style="background:none; border:none; color:#2563eb; font-size:10px; cursor:pointer; font-weight:700;"><?php esc_html_e( '[Clear/Ignore]', 'ifsedu-school-management' ); ?></button>
+                            <button type="button" id="btn_clear_past_due" style="background:none; border:none; color:#2563eb; font-size:10px; cursor:pointer; font-weight:700;"></button>
                         </label>
                         <input type="number" step="0.01" name="previous_due" id="ifs_educore_fee_previous_due" class="ifs-educore-field-input" value="0.00" min="0" readonly style="border-color:#fca5a5; font-weight:800; color:#b91c1c; background:#fef2f2; cursor:not-allowed;">
                     </div>

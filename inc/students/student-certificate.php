@@ -1,7 +1,7 @@
 <?php
 /**
  * Enterprise Academic Certificate, Testimonial & TC Compiler Engine
- * File: student-certificate-view.php
+ * File: inc/students/student-certificate.php
  * Text Domain: ifsedu-school-management
  */
 
@@ -21,7 +21,7 @@ function educore_student_certificate_view() {
     // Request routing
     // phpcs:disable WordPress.Security.NonceVerification.Recommended
     $action     = isset( $_GET['cert_action'] ) ? sanitize_key( wp_unslash( $_GET['cert_action'] ) ) : '';
-    $student_id = isset( $_GET['student_id'] ) ? absint( $_GET['student_id'] ) : 0;
+    $student_id = isset( $_GET['student_id'] ) ? absint( wp_unslash( $_GET['student_id'] ) ) : 0;
     $doc_type   = isset( $_GET['doc_type'] ) ? sanitize_key( wp_unslash( $_GET['doc_type'] ) ) : 'certificate';
     // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
@@ -77,217 +77,217 @@ function educore_student_certificate_view() {
         $student_uid      = strtoupper( (string) $student->student_id );
         ?>
 
-        <style>
-        .cert-print-container {
-            padding: 20px 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            font-family: 'Cinzel', 'Georgia', serif;
-        }
-
-        .cert-action-bar {
-            width: 100%;
-            max-width: 280mm;
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        .cert-btn {
-            border: none;
-            border-radius: 6px;
-            padding: 8px 18px;
-            font-size: 13px;
-            font-weight: 700;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            text-decoration: none;
-            transition: background 0.2s ease;
-        }
-
-        .cert-btn-primary {
-            background: #00523c;
-            color: #ffffff;
-        }
-
-        .cert-btn-primary:hover {
-            background: #065f46;
-        }
-
-        .cert-btn-secondary {
-            background: #f1f5f9;
-            color: #334155;
-            border: 1px solid #cbd5e1;
-        }
-
-        .cert-btn-secondary:hover {
-            background: #e2e8f0;
-        }
-
-        /* Certificate A4 Landscape Document Box */
-        .cert-print-wrapper {
-            width: 280mm;
-            min-height: 195mm;
-            background: #ffffff;
-            border: 12px double #00523c;
-            padding: 30px 45px;
-            box-sizing: border-box;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-
-        .cert-header {
-            text-align: center;
-            border-bottom: 2px solid #e2e8f0;
-            padding-bottom: 14px;
-        }
-
-        .cert-school-brand-row {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-        }
-
-        .cert-logo-img {
-            width: 50px;
-            height: 50px;
-            object-fit: contain;
-        }
-
-        .cert-school-name {
-            margin: 0;
-            font-size: 28px;
-            font-weight: 800;
-            color: #00523c;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-        }
-
-        .cert-school-sub {
-            margin: 4px 0 0 0;
-            font-size: 13px;
-            color: #64748b;
-            font-family: 'Inter', sans-serif;
-        }
-
-        .cert-title-badge {
-            display: inline-block;
-            background: #00523c;
-            color: #ffffff;
-            font-size: 14px;
-            font-weight: 800;
-            padding: 6px 24px;
-            border-radius: 24px;
-            margin-top: 14px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-        }
-
-        .cert-body {
-            padding: 30px 20px;
-            font-size: 16px;
-            line-height: 2.2;
-            color: #1e293b;
-            text-align: justify;
-            font-family: 'Georgia', serif;
-        }
-
-        .cert-body .highlight {
-            font-weight: bold;
-            color: #00523c;
-            border-bottom: 1px dashed #00523c;
-            padding: 0 4px;
-        }
-
-        .cert-seal-box {
-            position: absolute;
-            bottom: 40mm;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 75px;
-            height: 75px;
-            border: 2px dashed #cbd5e1;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            font-size: 10px;
-            font-weight: 700;
-            color: #94a3b8;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            line-height: 1.2;
-        }
-
-        .cert-footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-            padding-top: 20px;
-            font-family: 'Inter', sans-serif;
-        }
-
-        .cert-sign-col {
-            text-align: center;
-            width: 220px;
-        }
-
-        .cert-sign-line {
-            border-top: 1px solid #0f172a;
-            padding-top: 6px;
-            font-size: 12px;
-            font-weight: 700;
-            color: #334155;
-        }
-
-        .cert-sig-img {
-            max-height: 35px;
-            object-fit: contain;
-            display: block;
-            margin: 0 auto 6px auto;
-        }
-
-        .cert-date {
-            font-size: 12px;
-            font-weight: 600;
-            color: #64748b;
-        }
-
-        @media print {
-            @page {
-                size: A4 landscape;
-                margin: 0;
+        <style id="ifs-educore-cert-print-styles">
+            .cert-print-container {
+                padding: 20px 0;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                font-family: 'Cinzel', 'Georgia', serif;
             }
 
-            #adminmenuwrap, #adminmenuback, #wpadminbar, #wpfooter, .no-print, .cert-action-bar, .educore-sidebar-container, .educore-dashboard-footer {
-                display: none !important;
+            .cert-action-bar {
+                width: 100%;
+                max-width: 280mm;
+                display: flex;
+                justify-content: flex-end;
+                gap: 10px;
+                margin-bottom: 20px;
             }
 
-            html, body, #wpcontent, #wpbody, #wpbody-content, #educore-wrapper, .educore-right-box, .cert-print-container {
-                background: #ffffff !important;
-                padding: 0 !important;
-                margin: 0 !important;
-                width: 100% !important;
+            .cert-btn {
+                border: none;
+                border-radius: 6px;
+                padding: 8px 18px;
+                font-size: 13px;
+                font-weight: 700;
+                cursor: pointer;
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                text-decoration: none;
+                transition: background 0.2s ease;
             }
 
+            .cert-btn-primary {
+                background: #00523c;
+                color: #ffffff;
+            }
+
+            .cert-btn-primary:hover {
+                background: #065f46;
+            }
+
+            .cert-btn-secondary {
+                background: #f1f5f9;
+                color: #334155;
+                border: 1px solid #cbd5e1;
+            }
+
+            .cert-btn-secondary:hover {
+                background: #e2e8f0;
+            }
+
+            /* Certificate A4 Landscape Document Box */
             .cert-print-wrapper {
-                box-shadow: none !important;
-                border: 10px double #00523c !important;
-                page-break-inside: avoid !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-                margin: 8mm auto !important;
+                width: 280mm;
+                min-height: 195mm;
+                background: #ffffff;
+                border: 12px double #00523c;
+                padding: 30px 45px;
+                box-sizing: border-box;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+                position: relative;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
             }
-        }
+
+            .cert-header {
+                text-align: center;
+                border-bottom: 2px solid #e2e8f0;
+                padding-bottom: 14px;
+            }
+
+            .cert-school-brand-row {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 12px;
+            }
+
+            .cert-logo-img {
+                width: 50px;
+                height: 50px;
+                object-fit: contain;
+            }
+
+            .cert-school-name {
+                margin: 0;
+                font-size: 28px;
+                font-weight: 800;
+                color: #00523c;
+                letter-spacing: 1px;
+                text-transform: capitalize;
+            }
+
+            .cert-school-sub {
+                margin: 4px 0 0 0;
+                font-size: 13px;
+                color: #64748b;
+                font-family: 'Inter', sans-serif;
+            }
+
+            .cert-title-badge {
+                display: inline-block;
+                background: #00523c;
+                color: #ffffff;
+                font-size: 14px;
+                font-weight: 800;
+                padding: 6px 24px;
+                border-radius: 24px;
+                margin-top: 14px;
+                letter-spacing: 2px;
+                text-transform: capitalize;
+            }
+
+            .cert-body {
+                padding: 30px 20px;
+                font-size: 16px;
+                line-height: 2.2;
+                color: #1e293b;
+                text-align: justify;
+                font-family: 'Georgia', serif;
+            }
+
+            .cert-body .highlight {
+                font-weight: bold;
+                color: #00523c;
+                border-bottom: 1px dashed #00523c;
+                padding: 0 4px;
+            }
+
+            .cert-seal-box {
+                position: absolute;
+                bottom: 40mm;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 75px;
+                height: 75px;
+                border: 2px dashed #cbd5e1;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                text-align: center;
+                font-size: 10px;
+                font-weight: 700;
+                color: #94a3b8;
+                text-transform: capitalize;
+                letter-spacing: 1px;
+                line-height: 1.2;
+            }
+
+            .cert-footer {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-end;
+                padding-top: 20px;
+                font-family: 'Inter', sans-serif;
+            }
+
+            .cert-sign-col {
+                text-align: center;
+                width: 220px;
+            }
+
+            .cert-sign-line {
+                border-top: 1px solid #0f172a;
+                padding-top: 6px;
+                font-size: 12px;
+                font-weight: 700;
+                color: #334155;
+            }
+
+            .cert-sig-img {
+                max-height: 35px;
+                object-fit: contain;
+                display: block;
+                margin: 0 auto 6px auto;
+            }
+
+            .cert-date {
+                font-size: 12px;
+                font-weight: 600;
+                color: #64748b;
+            }
+
+            @media print {
+                @page {
+                    size: A4 landscape;
+                    margin: 0;
+                }
+
+                #adminmenuwrap, #adminmenuback, #wpadminbar, #wpfooter, .no-print, .cert-action-bar, .educore-sidebar-container, .educore-dashboard-footer {
+                    display: none !important;
+                }
+
+                html, body, #wpcontent, #wpbody, #wpbody-content, #educore-wrapper, .educore-right-box, .cert-print-container {
+                    background: #ffffff !important;
+                    padding: 0 !important;
+                    margin: 0 !important;
+                    width: 100% !important;
+                }
+
+                .cert-print-wrapper {
+                    box-shadow: none !important;
+                    border: 10px double #00523c !important;
+                    page-break-inside: avoid !important;
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                    margin: 8mm auto !important;
+                }
+            }
         </style>
 
         <div class="cert-print-container">
@@ -363,8 +363,15 @@ function educore_student_certificate_view() {
                     <div class="cert-sign-col">
                         <div class="cert-sign-line"><?php esc_html_e( 'Class Teacher', 'ifsedu-school-management' ); ?></div>
                     </div>
-                    <?php /* translators: %s: Formatted date of issue */ ?>
-                    <div class="cert-date"><?php echo esc_html( sprintf( __( 'Date of Issue: %s', 'ifsedu-school-management' ), date_i18n( 'd F, Y' ) ) ); ?></div>
+                    <div class="cert-date">
+                        <?php
+                        printf(
+                            /* translators: %s: Formatted date of issue */
+                            esc_html__( 'Date of Issue: %s', 'ifsedu-school-management' ),
+                            esc_html( date_i18n( 'd F, Y' ) )
+                        );
+                        ?>
+                    </div>
                     <div class="cert-sign-col">
                         <?php if ( ! empty( $principal_sig ) ) : ?>
                             <img src="<?php echo esc_url( $principal_sig ); ?>" alt="<?php esc_attr_e( 'Signature', 'ifsedu-school-management' ); ?>" class="cert-sig-img">
@@ -437,70 +444,178 @@ function educore_student_certificate_view() {
     // phpcs:enable
     ?>
 
-    <div class="cert-form-box">
-        <div class="cert-form-header">
-            <span class="dashicons dashicons-awards" style="font-size: 44px; width: 44px; height: 44px; color: #00523c;"></span>
-            <h2><?php esc_html_e( 'Academic Document & Certificate Compiler', 'ifsedu-school-management' ); ?></h2>
-            <p><?php esc_html_e( 'Select the document type and student credentials to compile an official certificate.', 'ifsedu-school-management' ); ?></p>
-        </div>
-        
-        <form method="GET" action="">
-            <input type="hidden" name="page" value="school_management_system">
-            <input type="hidden" name="tab" value="students">
-            <input type="hidden" name="sub" value="certificate">
-            <input type="hidden" name="cert_action" value="print">
-            <input type="hidden" name="action" value="print">
-            
-            <div class="cert-grid-2">
-                <!-- 1. Document Type -->
-                <div class="cert-field-group">
-                    <label class="cert-field-label"><?php esc_html_e( '1. Select Document Type', 'ifsedu-school-management' ); ?> <span style="color:#ef4444;">*</span></label>
-                    <select name="doc_type" class="cert-select-input" required>
-                        <option value="certificate">🎓 <?php esc_html_e( 'Certificate of Achievement', 'ifsedu-school-management' ); ?></option>
-                        <option value="testimonial">📜 <?php esc_html_e( 'Academic Testimonial / Character Certificate', 'ifsedu-school-management' ); ?></option>
-                        <option value="transfer_certificate">📄 <?php esc_html_e( 'Transfer Certificate (TC)', 'ifsedu-school-management' ); ?></option>
-                    </select>
-                </div>
+    <style id="ifs-educore-cert-form-styles">
+        .ifs-educore-cert-root {
+            font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #0f172a;
+        }
 
-                <!-- 2. Class -->
-                <div class="cert-field-group">
-                    <label class="cert-field-label"><?php esc_html_e( '2. Filter By Class', 'ifsedu-school-management' ); ?></label>
-                    <select id="cert_class" class="cert-select-input">
-                        <option value=""><?php esc_html_e( '-- All Classes --', 'ifsedu-school-management' ); ?></option>
-                        <?php foreach ( $unique_classes as $cls ) : ?>
-                            <option value="<?php echo esc_attr( $cls ); ?>"><?php echo esc_html( $cls ); ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
+        .ifs-educore-bento-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
+            margin-bottom: 30px;
+        }
 
-                <!-- 3. Section -->
-                <div class="cert-field-group">
-                    <label class="cert-field-label"><?php esc_html_e( '3. Filter By Section', 'ifsedu-school-management' ); ?></label>
-                    <select id="cert_section" class="cert-select-input" disabled>
-                        <option value=""><?php esc_html_e( 'Select Class First', 'ifsedu-school-management' ); ?></option>
-                    </select>
-                </div>
+        .ifs-educore-cert-form-header {
+            text-align: center;
+            max-width: 600px;
+            margin: 0 auto 30px auto;
+        }
 
-                <!-- 4. Target Student Selector -->
-                <div class="cert-field-group">
-                    <label class="cert-field-label"><?php esc_html_e( '4. Select Target Student', 'ifsedu-school-management' ); ?> <span style="color:#ef4444;">*</span></label>
-                    <select id="cert_student" name="student_id" class="cert-select-input" required>
-                        <option value=""><?php esc_html_e( '-- Choose Student --', 'ifsedu-school-management' ); ?></option>
-                        <?php foreach ( $students as $s ) : ?>
-                            <option value="<?php echo esc_attr( $s->id ); ?>" 
-                                    data-class="<?php echo esc_attr( $s->class_name ); ?>" 
-                                    data-section="<?php echo esc_attr( $s->section_name ); ?>">
-                                <?php echo esc_html( sprintf( '[Roll: %1$s] %2$s (%3$s - %4$s)', $s->roll_no, $s->full_name, strtoupper( (string) $s->student_id ), $s->class_name ) ); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
+        .ifs-educore-cert-form-header h2 {
+            margin: 12px 0 6px 0;
+            font-size: 22px;
+            font-weight: 800;
+            color: #00523c;
+            letter-spacing: -0.4px;
+        }
+
+        .ifs-educore-cert-form-header p {
+            margin: 0;
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        .ifs-educore-cert-grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 768px) {
+            .ifs-educore-cert-grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .ifs-educore-cert-field-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .ifs-educore-cert-field-label {
+            font-size: 13px;
+            font-weight: 700;
+            color: #334155;
+            letter-spacing: -0.1px;
+        }
+
+        .ifs-educore-cert-select-input {
+            width: 100%;
+            height: 44px;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 10px;
+            padding: 0 14px;
+            font-size: 13.5px;
+            color: #0f172a;
+            background-color: #f8fafc;
+            box-sizing: border-box;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .ifs-educore-cert-select-input:focus {
+            border-color: #00523c;
+            background-color: #ffffff;
+            box-shadow: 0 0 0 3px rgba(0, 82, 60, 0.1);
+        }
+
+        .ifs-educore-cert-submit-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            height: 46px;
+            background: #00523c;
+            color: #ffffff;
+            font-size: 14.5px;
+            font-weight: 800;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 106, 78, 0.25);
+            transition: all 0.2s ease;
+            margin-top: 10px;
+        }
+
+        .ifs-educore-cert-submit-btn:hover {
+            background: #003e2d;
+            transform: translateY(-1px);
+        }
+    </style>
+
+    <div class="ifs-educore-cert-root">
+        <div class="ifs-educore-bento-card">
+            <div class="ifs-educore-cert-form-header">
+                <span class="dashicons dashicons-awards" style="font-size: 44px; width: 44px; height: 44px; color: #00523c;"></span>
+                <h2><?php esc_html_e( 'Academic Document & Certificate Compiler', 'ifsedu-school-management' ); ?></h2>
+                <p><?php esc_html_e( 'Select the document type and student credentials to compile an official certificate.', 'ifsedu-school-management' ); ?></p>
             </div>
+            
+            <form method="GET" action="">
+                <input type="hidden" name="page" value="school_management_system">
+                <input type="hidden" name="tab" value="students">
+                <input type="hidden" name="sub" value="certificate">
+                <input type="hidden" name="cert_action" value="print">
+                <input type="hidden" name="action" value="print">
+                
+                <div class="ifs-educore-cert-grid-2">
+                    <!-- 1. Document Type -->
+                    <div class="ifs-educore-cert-field-group">
+                        <label class="ifs-educore-cert-field-label"><?php esc_html_e( '1. Select Document Type', 'ifsedu-school-management' ); ?> <span style="color:#ef4444;">*</span></label>
+                        <select name="doc_type" class="ifs-educore-cert-select-input" required>
+                            <option value="certificate">🎓 <?php esc_html_e( 'Certificate of Achievement', 'ifsedu-school-management' ); ?></option>
+                            <option value="testimonial">📜 <?php esc_html_e( 'Academic Testimonial / Character Certificate', 'ifsedu-school-management' ); ?></option>
+                            <option value="transfer_certificate">📄 <?php esc_html_e( 'Transfer Certificate (TC)', 'ifsedu-school-management' ); ?></option>
+                        </select>
+                    </div>
 
-            <button type="submit" class="cert-submit-btn">
-                <span class="dashicons dashicons-visibility"></span> <?php esc_html_e( 'Compile & Preview Document', 'ifsedu-school-management' ); ?>
-            </button>
-        </form>
+                    <!-- 2. Class -->
+                    <div class="ifs-educore-cert-field-group">
+                        <label class="ifs-educore-cert-field-label"><?php esc_html_e( '2. Filter By Class', 'ifsedu-school-management' ); ?></label>
+                        <select id="cert_class" class="ifs-educore-cert-select-input">
+                            <option value=""><?php esc_html_e( '-- All Classes --', 'ifsedu-school-management' ); ?></option>
+                            <?php foreach ( $unique_classes as $cls ) : ?>
+                                <option value="<?php echo esc_attr( $cls ); ?>"><?php echo esc_html( $cls ); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <!-- 3. Section -->
+                    <div class="ifs-educore-cert-field-group">
+                        <label class="ifs-educore-cert-field-label"><?php esc_html_e( '3. Filter By Section', 'ifsedu-school-management' ); ?></label>
+                        <select id="cert_section" class="ifs-educore-cert-select-input" disabled>
+                            <option value=""><?php esc_html_e( 'Select Class First', 'ifsedu-school-management' ); ?></option>
+                        </select>
+                    </div>
+
+                    <!-- 4. Target Student Selector -->
+                    <div class="ifs-educore-cert-field-group">
+                        <label class="ifs-educore-cert-field-label"><?php esc_html_e( '4. Select Target Student', 'ifsedu-school-management' ); ?> <span style="color:#ef4444;">*</span></label>
+                        <select id="cert_student" name="student_id" class="ifs-educore-cert-select-input" required>
+                            <option value=""><?php esc_html_e( '-- Choose Student --', 'ifsedu-school-management' ); ?></option>
+                            <?php foreach ( $students as $s ) : ?>
+                                <option value="<?php echo esc_attr( $s->id ); ?>" 
+                                        data-class="<?php echo esc_attr( $s->class_name ); ?>" 
+                                        data-section="<?php echo esc_attr( $s->section_name ); ?>">
+                                    <?php echo esc_html( sprintf( '[Roll: %1$s] %2$s (%3$s - %4$s)', $s->roll_no, $s->full_name, strtoupper( (string) $s->student_id ), $s->class_name ) ); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+
+                <button type="submit" class="ifs-educore-cert-submit-btn">
+                    <span class="dashicons dashicons-visibility"></span> <?php esc_html_e( 'Compile & Preview Document', 'ifsedu-school-management' ); ?>
+                </button>
+            </form>
+        </div>
     </div>
 
     <!-- Client-Side Filter Chaining Engine -->

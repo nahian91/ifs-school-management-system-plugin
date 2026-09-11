@@ -249,10 +249,186 @@ function educore_student_promotion_view() {
     }
     ?>
 
+    <style id="ifs-educore-students-promotion-styles">
+        .ifs-educore-promotion-root {
+            font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #0f172a;
+        }
+
+        .ifs-educore-bento-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.03);
+            margin-bottom: 24px;
+        }
+
+        .ifs-educore-filter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) auto;
+            gap: 16px;
+            align-items: flex-end;
+        }
+
+        .ifs-educore-form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .ifs-educore-form-label {
+            font-size: 12.5px;
+            font-weight: 700;
+            color: #1e293b;
+            text-transform: capitalize;
+            letter-spacing: 0.3px;
+        }
+
+        .ifs-educore-select {
+            width: 100%;
+            height: 40px;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 0 12px;
+            font-size: 13.5px;
+            color: #0f172a;
+            background: #ffffff;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .ifs-educore-select:focus {
+            border-color: #00523c;
+            box-shadow: 0 0 0 3px rgba(0, 82, 60, 0.12);
+        }
+
+        .ifs-educore-btn-primary {
+            height: 40px;
+            padding: 0 24px;
+            background: #00523c;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 13.5px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 82, 60, 0.18);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: background 0.2s;
+        }
+
+        .ifs-educore-btn-primary:hover {
+            background: #047857;
+        }
+
+        .ifs-educore-promotion-target-bar {
+            padding: 16px 20px;
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .ifs-educore-promotion-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 13.5px;
+        }
+
+        .ifs-educore-promotion-table th {
+            padding: 12px 16px;
+            color: #475569;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 11.5px;
+            text-transform: capitalize;
+            font-weight: 800;
+        }
+
+        .ifs-educore-promotion-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: middle;
+        }
+
+        .ifs-educore-rank-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 800;
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #cbd5e1;
+        }
+
+        .ifs-educore-rank-badge.top {
+            background: #ecfdf5;
+            color: #047857;
+            border-color: #a7f3d0;
+        }
+
+        .ifs-educore-status-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11.5px;
+            font-weight: 700;
+        }
+
+        .status-pass {
+            background: #ecfdf5;
+            color: #059669;
+            border: 1px solid #bbf7d0;
+        }
+
+        .status-fail {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+        .ifs-educore-cell-input-sm {
+            height: 36px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 0 10px;
+            font-size: 13px;
+            color: #0f172a;
+            background: #ffffff;
+            outline: none;
+            width: 70px;
+            box-sizing: border-box;
+        }
+
+        .ifs-educore-cell-input-sm:focus {
+            border-color: #00523c;
+            box-shadow: 0 0 0 2px rgba(0, 82, 60, 0.1);
+        }
+
+        tr.row-failed {
+            background-color: #fffbfa;
+        }
+    </style>
+
     <div class="ifs-educore-promotion-root">
 
         <?php if ( ! empty( $notice_msg ) ) : ?>
-            <div class="notice notice-success is-dismissible" style="padding:14px; margin:0; font-weight:700; border-left:4px solid #00523c; background:#ecfdf5; color:#065f46; border-radius:8px;">
+            <div class="notice notice-success is-dismissible" style="padding:14px; margin:0 0 20px 0; font-weight:700; border-left:4px solid #00523c; background:#ecfdf5; color:#065f46; border-radius:8px;">
                 <span class="dashicons dashicons-yes-alt" style="vertical-align:middle; margin-right:4px;"></span>
                 <?php echo esc_html( $notice_msg ); ?>
             </div>
@@ -260,7 +436,6 @@ function educore_student_promotion_view() {
 
         <!-- Step 1: Exam & Source Cohort Selection -->
         <div class="ifs-educore-bento-card">
-
             <form method="GET" action="<?php echo esc_url( $base_url ); ?>" id="ifs_educore_promotion_filter_form">
                 <input type="hidden" name="page" value="school_management_system">
                 <input type="hidden" name="tab" value="students">

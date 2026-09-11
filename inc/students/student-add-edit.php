@@ -234,6 +234,320 @@ function educore_student_add_edit_view() {
     $default_avatar = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="150" height="150" viewBox="0 0 150 150"><rect fill="%23e2e8f0" width="150" height="150"/><text fill="%2364748b" font-family="sans-serif" font-size="14" dy="5" font-weight="bold" x="50%" y="50%" text-anchor="middle">No Photo</text></svg>';
     ?>
 
+    <style id="ifs-educore-student-add-edit-styles">
+        .ifs-educore-admission-root {
+            font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #0f172a;
+        }
+
+        .ifs-educore-header-bar {
+            margin-bottom: 20px;
+        }
+
+        .ifs-educore-back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            background: #ffffff;
+            color: #475569;
+            font-size: 13px;
+            font-weight: 700;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .ifs-educore-back-btn:hover {
+            background: #f1f5f9;
+            color: #0f172a;
+        }
+
+        .ifs-educore-form-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
+            margin-bottom: 40px;
+        }
+
+        .ifs-educore-form-title {
+            margin: 0 0 24px 0;
+            font-size: 20px;
+            font-weight: 800;
+            color: #00523c;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ifs-educore-stepper-bar {
+            display: flex;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 8px;
+            margin-bottom: 30px;
+            gap: 8px;
+        }
+
+        .ifs-educore-step-node {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 10px;
+            padding: 10px 14px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s ease;
+        }
+
+        .ifs-educore-step-node:hover {
+            background: #f1f5f9;
+        }
+
+        .ifs-educore-step-node.active {
+            background: #ffffff;
+            border-color: #cbd5e1;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+        }
+
+        .ifs-educore-step-circle {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            color: #64748b;
+            font-size: 13px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .ifs-educore-step-node.active .ifs-educore-step-circle {
+            background: #00523c;
+            color: #ffffff;
+        }
+
+        .ifs-educore-step-node.completed .ifs-educore-step-circle {
+            background: #10b981;
+            color: #ffffff;
+        }
+
+        .ifs-educore-step-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .ifs-educore-step-title {
+            font-size: 13px;
+            font-weight: 800;
+            color: #334155;
+            line-height: 1.2;
+        }
+
+        .ifs-educore-step-node.active .ifs-educore-step-title {
+            color: #00523c;
+        }
+
+        .ifs-educore-step-sub {
+            font-size: 11px;
+            color: #64748b;
+            font-weight: 600;
+        }
+
+        .ifs-educore-step-panel {
+            display: none;
+        }
+
+        .ifs-educore-step-panel.active {
+            display: block;
+        }
+
+        .ifs-educore-grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .ifs-educore-grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .ifs-educore-grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 992px) {
+            .ifs-educore-stepper-bar {
+                flex-direction: column;
+            }
+            .ifs-educore-grid-3,
+            .ifs-educore-grid-4 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 576px) {
+            .ifs-educore-grid-2,
+            .ifs-educore-grid-3,
+            .ifs-educore-grid-4 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .ifs-educore-field-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .ifs-educore-field-label {
+            font-size: 12.5px;
+            font-weight: 700;
+            color: #334155;
+            letter-spacing: -0.1px;
+        }
+
+        .ifs-educore-input,
+        .ifs-educore-select,
+        .ifs-educore-textarea {
+            width: 100%;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 13.5px;
+            color: #0f172a;
+            background-color: #f8fafc;
+            box-sizing: border-box;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .ifs-educore-input {
+            height: 42px;
+        }
+
+        .ifs-educore-select {
+            height: 42px;
+        }
+
+        .ifs-educore-input:focus,
+        .ifs-educore-select:focus,
+        .ifs-educore-textarea:focus {
+            border-color: #00523c;
+            background-color: #ffffff;
+            box-shadow: 0 0 0 3px rgba(0, 82, 60, 0.1);
+        }
+
+        .ifs-educore-hint-text {
+            font-size: 11.5px;
+            color: #64748b;
+        }
+
+        .ifs-educore-section-heading {
+            font-size: 15px;
+            font-weight: 800;
+            color: #00523c;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 10px;
+            margin: 24px 0 16px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ifs-educore-photo-uploader-box {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .ifs-educore-avatar-preview {
+            width: 80px;
+            height: 80px;
+            border-radius: 10px;
+            object-fit: cover;
+            border: 1px solid #cbd5e1;
+        }
+
+        .ifs-educore-actions-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .ifs-educore-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            height: 42px;
+            padding: 0 24px;
+            font-size: 13.5px;
+            font-weight: 800;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .ifs-educore-btn-prev {
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #cbd5e1;
+        }
+
+        .ifs-educore-btn-prev:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+
+        .ifs-educore-btn-next {
+            background: #00523c;
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(0, 82, 60, 0.25);
+        }
+
+        .ifs-educore-btn-next:hover {
+            background: #003e2d;
+        }
+
+        .ifs-educore-btn-submit {
+            background: #00523c;
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(0, 82, 60, 0.25);
+        }
+
+        .ifs-educore-btn-submit:hover {
+            background: #003e2d;
+        }
+    </style>
+
     <div class="ifs-educore-admission-root">
         <!-- Top Header Navigation -->
         <div class="ifs-educore-header-bar">
@@ -302,7 +616,7 @@ function educore_student_add_edit_view() {
                     <div class="ifs-educore-grid-3">
                         <div class="ifs-educore-field-group">
                             <label class="ifs-educore-field-label"><?php esc_html_e( 'Student Unique ID / UID', 'ifsedu-school-management' ); ?> <span style="color:#ef4444;">*</span></label>
-                            <input type="text" name="student_id" id="ifs_educore_student_id_input" class="ifs-educore-input" style="font-weight:800; color:#00523c; text-transform:uppercase;" value="<?php echo $student ? esc_attr( $student->student_id ) : esc_attr( $generated_student_id ); ?>" required readonly>
+                            <input type="text" name="student_id" id="ifs_educore_student_id_input" class="ifs-educore-input" style="font-weight:800; color:#00523c; text-transform:capitalize;" value="<?php echo $student ? esc_attr( $student->student_id ) : esc_attr( $generated_student_id ); ?>" required readonly>
                             <span class="ifs-educore-hint-text"><?php esc_html_e( 'Unique Student Identity (Auto-generated)', 'ifsedu-school-management' ); ?></span>
                         </div>
 
@@ -445,22 +759,22 @@ function educore_student_add_edit_view() {
                 <div class="ifs-educore-step-panel" id="ifs_educore_step_2">
                     <div class="ifs-educore-grid-2">
                         <!-- Father's Card -->
-                        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:20px;">
-                            <h4 style="margin:0 0 16px 0; font-size:15px; font-weight:800; color:#0f172a; border-bottom:1px solid #e2e8f0; padding-bottom:8px;">
+                        <div class="ifs-educore-parent-card">
+                            <h4 class="ifs-educore-parent-card-title">
                                 <?php esc_html_e( 'Father Information', 'ifsedu-school-management' ); ?>
                             </h4>
 
-                            <div class="ifs-educore-field-group" style="margin-bottom:14px;">
+                            <div class="ifs-educore-parent-field-wrap">
                                 <label class="ifs-educore-field-label"><?php esc_html_e( 'Father Name (English)', 'ifsedu-school-management' ); ?></label>
                                 <input type="text" name="father_name" class="ifs-educore-input" value="<?php echo $student ? esc_attr( $student->father_name ) : ''; ?>" placeholder="<?php esc_attr_e( 'e.g. MD Rafiqul Islam', 'ifsedu-school-management' ); ?>">
                             </div>
 
-                            <div class="ifs-educore-field-group" style="margin-bottom:14px;">
+                            <div class="ifs-educore-parent-field-wrap">
                                 <label class="ifs-educore-field-label"><?php esc_html_e( 'Father NID', 'ifsedu-school-management' ); ?></label>
                                 <input type="text" name="father_nid" class="ifs-educore-input" value="<?php echo $student ? esc_attr( $student->father_nid ) : ''; ?>" placeholder="<?php esc_attr_e( 'National ID Card Number', 'ifsedu-school-management' ); ?>">
                             </div>
 
-                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                            <div class="ifs-educore-parent-dual-grid">
                                 <div class="ifs-educore-field-group">
                                     <label class="ifs-educore-field-label"><?php esc_html_e( 'Father Phone', 'ifsedu-school-management' ); ?></label>
                                     <input type="text" name="father_phone" class="ifs-educore-input" value="<?php echo $student ? esc_attr( $student->father_phone ) : ''; ?>" placeholder="<?php esc_attr_e( '01700000000', 'ifsedu-school-management' ); ?>">
@@ -473,22 +787,22 @@ function educore_student_add_edit_view() {
                         </div>
 
                         <!-- Mother's Card -->
-                        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:20px;">
-                            <h4 style="margin:0 0 16px 0; font-size:15px; font-weight:800; color:#0f172a; border-bottom:1px solid #e2e8f0; padding-bottom:8px;">
+                        <div class="ifs-educore-parent-card">
+                            <h4 class="ifs-educore-parent-card-title">
                                 <?php esc_html_e( 'Mother Information', 'ifsedu-school-management' ); ?>
                             </h4>
 
-                            <div class="ifs-educore-field-group" style="margin-bottom:14px;">
+                            <div class="ifs-educore-parent-field-wrap">
                                 <label class="ifs-educore-field-label"><?php esc_html_e( 'Mother Name (English)', 'ifsedu-school-management' ); ?></label>
                                 <input type="text" name="mother_name" class="ifs-educore-input" value="<?php echo $student ? esc_attr( $student->mother_name ) : ''; ?>" placeholder="<?php esc_attr_e( 'e.g. Nasima Begum', 'ifsedu-school-management' ); ?>">
                             </div>
 
-                            <div class="ifs-educore-field-group" style="margin-bottom:14px;">
+                            <div class="ifs-educore-parent-field-wrap">
                                 <label class="ifs-educore-field-label"><?php esc_html_e( 'Mother NID', 'ifsedu-school-management' ); ?></label>
                                 <input type="text" name="mother_nid" class="ifs-educore-input" value="<?php echo $student ? esc_attr( $student->mother_nid ) : ''; ?>" placeholder="<?php esc_attr_e( 'National ID Card Number', 'ifsedu-school-management' ); ?>">
                             </div>
 
-                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                            <div class="ifs-educore-parent-dual-grid">
                                 <div class="ifs-educore-field-group">
                                     <label class="ifs-educore-field-label"><?php esc_html_e( 'Mother Phone', 'ifsedu-school-management' ); ?></label>
                                     <input type="text" name="mother_phone" class="ifs-educore-input" value="<?php echo $student ? esc_attr( $student->mother_phone ) : ''; ?>" placeholder="<?php esc_attr_e( '01700000000', 'ifsedu-school-management' ); ?>">
@@ -563,8 +877,8 @@ function educore_student_add_edit_view() {
                         <span><?php esc_html_e( 'Permanent Financial Waiver & Reference Scheme', 'ifsedu-school-management' ); ?></span>
                     </div>
 
-                    <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; padding:20px; margin-bottom:24px;">
-                        <p style="margin:0 0 16px 0; color:#166534; font-size:13.5px; font-weight:600;">
+                    <div class="ifs-educore-waiver-banner">
+                        <p class="ifs-educore-waiver-desc">
                             <?php esc_html_e( 'Select any institutional faculty member to link this student and assign an ongoing percentage waiver for monthly tuition fees.', 'ifsedu-school-management' ); ?>
                         </p>
 
@@ -583,9 +897,9 @@ function educore_student_add_edit_view() {
 
                             <div class="ifs-educore-field-group">
                                 <label class="ifs-educore-field-label"><?php esc_html_e( 'All-Time Waiver / Discount Percentage (%)', 'ifsedu-school-management' ); ?></label>
-                                <div style="display:flex; align-items:center; gap:8px;">
-                                    <input type="number" step="0.01" min="0" max="100" name="waiver_percentage" class="ifs-educore-input" style="font-weight:800; font-size:15px; color:#00523c;" value="<?php echo $student ? esc_attr( $student->waiver_percentage ) : '0.00'; ?>" placeholder="<?php esc_attr_e( '0.00', 'ifsedu-school-management' ); ?>">
-                                    <span style="font-size:18px; font-weight:800; color:#00523c;">%</span>
+                                <div class="ifs-educore-waiver-input-row">
+                                    <input type="number" step="0.01" min="0" max="100" name="waiver_percentage" class="ifs-educore-input ifs-educore-waiver-number" value="<?php echo $student ? esc_attr( $student->waiver_percentage ) : '0.00'; ?>" placeholder="<?php esc_attr_e( '0.00', 'ifsedu-school-management' ); ?>">
+                                    <span class="ifs-educore-waiver-percent-symbol">%</span>
                                 </div>
                             </div>
                         </div>
@@ -596,7 +910,7 @@ function educore_student_add_edit_view() {
                 <div class="ifs-educore-step-panel" id="ifs_educore_step_5">
                     <div class="ifs-educore-section-heading">
                         <span><?php esc_html_e( 'Address Details', 'ifsedu-school-management' ); ?></span>
-                        <button type="button" id="ifs_educore_btnCopyAddress" style="background:none; border:none; color:#00523c; font-weight:700; font-size:12px; cursor:pointer;">
+                        <button type="button" id="ifs_educore_btnCopyAddress" class="ifs-educore-copy-address-btn">
                             <span class="dashicons dashicons-admin-page" style="vertical-align:middle;"></span> <?php esc_html_e( 'Same as Present Address', 'ifsedu-school-management' ); ?>
                         </button>
                     </div>
@@ -622,7 +936,7 @@ function educore_student_add_edit_view() {
 
                         <div class="ifs-educore-field-group" style="flex:1;">
                             <label class="ifs-educore-field-label"><?php esc_html_e( 'Upload Student Portrait Photo', 'ifsedu-school-management' ); ?></label>
-                            <input type="file" name="student_photo" id="ifs_educore_studentPhotoInput" accept="image/jpeg,image/png,image/webp" class="ifs-educore-input" style="padding-top:8px;">
+                            <input type="file" name="student_photo" id="ifs_educore_studentPhotoInput" accept="image/jpeg,image/png,image/webp" class="ifs-educore-input ifs-educore-file-input">
                             <span class="ifs-educore-hint-text"><?php esc_html_e( 'Upload passport-size student photograph (JPG, PNG, or WEBP)', 'ifsedu-school-management' ); ?></span>
                         </div>
                     </div>
@@ -639,12 +953,12 @@ function educore_student_add_edit_view() {
 
                         <div class="ifs-educore-field-group">
                             <label class="ifs-educore-field-label"><?php esc_html_e( 'Co-Curricular Activities', 'ifsedu-school-management' ); ?></label>
-                            <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:8px;">
+                            <div class="ifs-educore-checkbox-group-wrapper">
                                 <?php
-                                $activities = array('Scout', 'BNCC', 'Red Crescent', 'Sports Club', 'Cultural Club');
+                                $activities   = array('Scout', 'BNCC', 'Red Crescent', 'Sports Club', 'Cultural Club');
                                 $current_acts = ( $student && ! empty( $student->co_curricular ) ) ? array_map('trim', explode(',', $student->co_curricular)) : array();
                                 foreach ( $activities as $act ) : ?>
-                                    <label style="font-size:12px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:4px;">
+                                    <label class="ifs-educore-checkbox-label-item">
                                         <input type="checkbox" name="co_curricular[]" value="<?php echo esc_attr( $act ); ?>" <?php checked( in_array( $act, $current_acts, true ), true ); ?>> <?php echo esc_html( $act ); ?>
                                     </label>
                                 <?php endforeach; ?>
@@ -663,7 +977,7 @@ function educore_student_add_edit_view() {
 
                 <!-- Actions Footer Bar -->
                 <div class="ifs-educore-actions-footer">
-                    <button type="button" class="ifs-educore-btn ifs-educore-btn-prev" id="ifs_educore_btnPrevStep" style="visibility:hidden;">
+                    <button type="button" class="ifs-educore-btn ifs-educore-btn-prev" id="ifs_educore_btnPrevStep">
                         <span class="dashicons dashicons-arrow-left-alt2"></span> <?php esc_html_e( 'Previous', 'ifsedu-school-management' ); ?>
                     </button>
 
@@ -672,7 +986,7 @@ function educore_student_add_edit_view() {
                             <?php esc_html_e( 'Next Step', 'ifsedu-school-management' ); ?> <span class="dashicons dashicons-arrow-right-alt2"></span>
                         </button>
 
-                        <button type="submit" id="ifs_educore_btnSubmitForm" class="ifs-educore-btn ifs-educore-btn-submit" style="display:none;">
+                        <button type="submit" id="ifs_educore_btnSubmitForm" class="ifs-educore-btn ifs-educore-btn-submit">
                             <span class="dashicons dashicons-saved"></span> <?php echo $is_edit ? esc_html__( 'Update Record', 'ifsedu-school-management' ) : esc_html__( 'Finalize Admission', 'ifsedu-school-management' ); ?>
                         </button>
                     </div>
@@ -774,14 +1088,16 @@ function educore_student_add_edit_view() {
                 }
             });
 
-            btnPrev.style.visibility = (currentStep === 1) ? 'hidden' : 'visible';
+            if (btnPrev) {
+                btnPrev.style.visibility = (currentStep === 1) ? 'hidden' : 'visible';
+            }
 
             if (currentStep === totalSteps) {
-                btnNext.style.display = 'none';
-                btnSubmit.style.display = 'inline-flex';
+                if (btnNext) btnNext.style.display = 'none';
+                if (btnSubmit) btnSubmit.style.display = 'inline-flex';
             } else {
-                btnNext.style.display = 'inline-flex';
-                btnSubmit.style.display = 'none';
+                if (btnNext) btnNext.style.display = 'inline-flex';
+                if (btnSubmit) btnSubmit.style.display = 'none';
             }
         }
 
@@ -811,19 +1127,23 @@ function educore_student_add_edit_view() {
             return valid;
         }
 
-        btnNext.addEventListener('click', function() {
-            if (validateStep(currentStep) && currentStep < totalSteps) {
-                currentStep++;
-                renderStep();
-            }
-        });
+        if (btnNext) {
+            btnNext.addEventListener('click', function() {
+                if (validateStep(currentStep) && currentStep < totalSteps) {
+                    currentStep++;
+                    renderStep();
+                }
+            });
+        }
 
-        btnPrev.addEventListener('click', function() {
-            if (currentStep > 1) {
-                currentStep--;
-                renderStep();
-            }
-        });
+        if (btnPrev) {
+            btnPrev.addEventListener('click', function() {
+                if (currentStep > 1) {
+                    currentStep--;
+                    renderStep();
+                }
+            });
+        }
 
         stepNodes.forEach(function(node) {
             node.addEventListener('click', function() {
@@ -847,7 +1167,410 @@ function educore_student_add_edit_view() {
                 }
             });
         }
+
+        renderStep();
     });
     </script>
+    <style id="ifs-educore-student-add-edit-styles">
+        .ifs-educore-admission-root {
+            font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #0f172a;
+        }
+
+        .ifs-educore-header-bar {
+            margin-bottom: 20px;
+        }
+
+        .ifs-educore-back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            background: #ffffff;
+            color: #475569;
+            font-size: 13px;
+            font-weight: 700;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .ifs-educore-back-btn:hover {
+            background: #f1f5f9;
+            color: #0f172a;
+        }
+
+        .ifs-educore-form-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
+            margin-bottom: 40px;
+        }
+
+        .ifs-educore-form-title {
+            margin: 0 0 24px 0;
+            font-size: 20px;
+            font-weight: 800;
+            color: #00523c;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ifs-educore-stepper-bar {
+            display: flex;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 8px;
+            margin-bottom: 30px;
+            gap: 8px;
+        }
+
+        .ifs-educore-step-node {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 10px;
+            padding: 10px 14px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s ease;
+        }
+
+        .ifs-educore-step-node:hover {
+            background: #f1f5f9;
+        }
+
+        .ifs-educore-step-node.active {
+            background: #ffffff;
+            border-color: #cbd5e1;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+        }
+
+        .ifs-educore-step-circle {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            color: #64748b;
+            font-size: 13px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .ifs-educore-step-node.active .ifs-educore-step-circle {
+            background: #00523c;
+            color: #ffffff;
+        }
+
+        .ifs-educore-step-node.completed .ifs-educore-step-circle {
+            background: #10b981;
+            color: #ffffff;
+        }
+
+        .ifs-educore-step-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .ifs-educore-step-title {
+            font-size: 13px;
+            font-weight: 800;
+            color: #334155;
+            line-height: 1.2;
+        }
+
+        .ifs-educore-step-node.active .ifs-educore-step-title {
+            color: #00523c;
+        }
+
+        .ifs-educore-step-sub {
+            font-size: 11px;
+            color: #64748b;
+            font-weight: 600;
+        }
+
+        .ifs-educore-step-panel {
+            display: none;
+        }
+
+        .ifs-educore-step-panel.active {
+            display: block;
+        }
+
+        .ifs-educore-grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .ifs-educore-grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .ifs-educore-grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 992px) {
+            .ifs-educore-stepper-bar {
+                flex-direction: column;
+            }
+            .ifs-educore-grid-3,
+            .ifs-educore-grid-4 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 576px) {
+            .ifs-educore-grid-2,
+            .ifs-educore-grid-3,
+            .ifs-educore-grid-4 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .ifs-educore-field-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .ifs-educore-field-label {
+            font-size: 12.5px;
+            font-weight: 700;
+            color: #334155;
+            letter-spacing: -0.1px;
+        }
+
+        .ifs-educore-input,
+        .ifs-educore-select,
+        .ifs-educore-textarea {
+            width: 100%;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 13.5px;
+            color: #0f172a;
+            background-color: #f8fafc;
+            box-sizing: border-box;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .ifs-educore-input {
+            height: 42px;
+        }
+
+        .ifs-educore-select {
+            height: 42px;
+        }
+
+        .ifs-educore-input:focus,
+        .ifs-educore-select:focus,
+        .ifs-educore-textarea:focus {
+            border-color: #00523c;
+            background-color: #ffffff;
+            box-shadow: 0 0 0 3px rgba(0, 82, 60, 0.1);
+        }
+
+        .ifs-educore-hint-text {
+            font-size: 11.5px;
+            color: #64748b;
+        }
+
+        .ifs-educore-section-heading {
+            font-size: 15px;
+            font-weight: 800;
+            color: #00523c;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 10px;
+            margin: 24px 0 16px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ifs-educore-photo-uploader-box {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .ifs-educore-avatar-preview {
+            width: 80px;
+            height: 80px;
+            border-radius: 10px;
+            object-fit: cover;
+            border: 1px solid #cbd5e1;
+        }
+
+        .ifs-educore-actions-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .ifs-educore-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            height: 42px;
+            padding: 0 24px;
+            font-size: 13.5px;
+            font-weight: 800;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .ifs-educore-btn-prev {
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #cbd5e1;
+        }
+
+        .ifs-educore-btn-prev:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+
+        .ifs-educore-btn-next {
+            background: #00523c;
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(0, 82, 60, 0.25);
+        }
+
+        .ifs-educore-btn-next:hover {
+            background: #003e2d;
+        }
+
+        .ifs-educore-btn-submit {
+            background: #00523c;
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(0, 82, 60, 0.25);
+        }
+
+        .ifs-educore-btn-submit:hover {
+            background: #003e2d;
+        }
+
+        .ifs-educore-parent-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .ifs-educore-parent-card-title {
+            margin: 0 0 16px 0;
+            font-size: 15px;
+            font-weight: 800;
+            color: #0f172a;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 8px;
+        }
+
+        .ifs-educore-parent-field-wrap {
+            margin-bottom: 14px;
+        }
+
+        .ifs-educore-parent-dual-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .ifs-educore-waiver-banner {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .ifs-educore-waiver-desc {
+            margin: 0 0 16px 0;
+            color: #166534;
+            font-size: 13.5px;
+            font-weight: 600;
+        }
+
+        .ifs-educore-waiver-input-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ifs-educore-waiver-number {
+            font-weight: 800;
+            font-size: 15px;
+            color: #00523c;
+        }
+
+        .ifs-educore-waiver-percent-symbol {
+            font-size: 18px;
+            font-weight: 800;
+            color: #00523c;
+        }
+
+        .ifs-educore-copy-address-btn {
+            background: none;
+            border: none;
+            color: #00523c;
+            font-weight: 700;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .ifs-educore-file-input {
+            padding-top: 8px;
+        }
+
+        .ifs-educore-checkbox-group-wrapper {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .ifs-educore-checkbox-label-item {
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+    </style>
     <?php
 }

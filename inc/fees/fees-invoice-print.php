@@ -197,7 +197,7 @@ function educore_fees_invoice_print_view() {
                                 <td style="text-align: right;"><strong><?php esc_html_e( 'Roll:', 'ifsedu-school-management' ); ?></strong> #<?php echo esc_html( $receipt->roll_no ? $receipt->roll_no : __( 'N/A', 'ifsedu-school-management' ) ); ?></td>
                             </tr>
                             <tr>
-                                <td colspan="2"><strong><?php esc_html_e( 'Name:', 'ifsedu-school-management' ); ?></strong> <span style="text-transform: uppercase; font-weight: 800;"><?php echo esc_html( $receipt->full_name ? $receipt->full_name : __( 'N/A', 'ifsedu-school-management' ) ); ?></span></td>
+                                <td colspan="2"><strong><?php esc_html_e( 'Name:', 'ifsedu-school-management' ); ?></strong> <span style="text-transform: capitalize; font-weight: 800;"><?php echo esc_html( $receipt->full_name ? $receipt->full_name : __( 'N/A', 'ifsedu-school-management' ) ); ?></span></td>
                             </tr>
                             <tr>
                                 <td>

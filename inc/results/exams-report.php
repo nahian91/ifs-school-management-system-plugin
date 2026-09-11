@@ -316,7 +316,7 @@ function educore_exams_report_view() {
             font-size: 11.5px;
             font-weight: 700;
             color: #475569;
-            text-transform: uppercase;
+            text-transform: capitalize;
             letter-spacing: 0.4px;
             margin-bottom: 8px;
         }
@@ -428,7 +428,7 @@ function educore_exams_report_view() {
             font-size: 11.5px;
             font-weight: 800;
             color: #64748b;
-            text-transform: uppercase;
+            text-transform: capitalize;
         }
         .ifs-col-toggles-bar label {
             font-size: 12px;
@@ -472,7 +472,7 @@ function educore_exams_report_view() {
             margin: 0;
             font-size: 22px;
             font-weight: 900;
-            text-transform: uppercase;
+            text-transform: capitalize;
             color: #000;
             letter-spacing: -0.2px;
         }
@@ -480,7 +480,7 @@ function educore_exams_report_view() {
             font-size: 11.5px;
             color: #475569;
             font-weight: 700;
-            text-transform: uppercase;
+            text-transform: capitalize;
             letter-spacing: 1px;
             margin-top: 2px;
         }
@@ -503,7 +503,7 @@ function educore_exams_report_view() {
             font-size: 11px;
             font-weight: 700;
             color: #64748b;
-            text-transform: uppercase;
+            text-transform: capitalize;
         }
         .ifs-educore-summary-val {
             font-size: 18px;
@@ -555,7 +555,7 @@ function educore_exams_report_view() {
             background: #f1f5f9;
             font-weight: 800;
             font-size: 10.5px;
-            text-transform: uppercase;
+            text-transform: capitalize;
             color: #000000;
         }
         .ifs-educore-tabulation-table thead th.subject-parent-col {
@@ -593,7 +593,7 @@ function educore_exams_report_view() {
             background: #f1f5f9;
             font-weight: 800;
             font-size: 11.5px;
-            text-transform: uppercase;
+            text-transform: capitalize;
         }
         .ifs-educore-gpa-box {
             background: #f8fafc;
@@ -983,8 +983,8 @@ function educore_exams_report_view() {
             frameDoc.write('th, td { border: 1px solid #000; padding: 4px 5px; vertical-align: middle; }');
             frameDoc.write('thead th { background: #f1f5f9 !important; font-weight: bold; }');
             frameDoc.write('.ifs-educore-report-header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 15px; }');
-            frameDoc.write('.ifs-educore-header-title { font-size: 20px; font-weight: bold; margin: 0; text-transform: uppercase; }');
-            frameDoc.write('.ifs-educore-header-sub { font-size: 11px; color: #475569; font-weight: bold; text-transform: uppercase; margin-top: 2px; }');
+            frameDoc.write('.ifs-educore-header-title { font-size: 20px; font-weight: bold; margin: 0; text-transform: capitalize; }');
+            frameDoc.write('.ifs-educore-header-sub { font-size: 11px; color: #475569; font-weight: bold; text-transform: capitalize; margin-top: 2px; }');
             frameDoc.write('.ifs-educore-sign-row { display: flex; justify-content: space-between; margin-top: 40px; padding: 0 20px; }');
             frameDoc.write('.ifs-educore-signature-col { text-align: center; width: 180px; }');
             frameDoc.write('.ifs-educore-sign-line { border-top: 1.5px dashed #000; padding-top: 4px; font-size: 11px; font-weight: bold; }');
@@ -1144,7 +1144,7 @@ function educore_exams_report_view() {
 
                         <div style="display: flex; justify-content: space-between; background: #f8fafc; border: 1px solid #cbd5e1; padding: 14px 18px; border-radius: 8px; margin-bottom: 20px; font-size: 13px; line-height: 1.6;">
                             <div>
-                                <p style="margin: 2px 0;" class="col-name-cell"><strong><?php esc_html_e( 'Student Name:', 'ifsedu-school-management' ); ?></strong> <span style="text-transform: uppercase; font-weight: 800; color:#0f172a;"><?php echo esc_html( $student ? $student->full_name : '—' ); ?></span></p>
+                                <p style="margin: 2px 0;" class="col-name-cell"><strong><?php esc_html_e( 'Student Name:', 'ifsedu-school-management' ); ?></strong> <span style="text-transform: capitalize; font-weight: 800; color:#0f172a;"><?php echo esc_html( $student ? $student->full_name : '—' ); ?></span></p>
                                 <p style="margin: 2px 0;" class="col-id-cell"><strong><?php esc_html_e( 'Student ID:', 'ifsedu-school-management' ); ?></strong> <code><?php echo esc_html( $student ? (string) $student->student_id : '—' ); ?></code></p>
                                 <p style="margin: 2px 0;"><strong><?php esc_html_e( 'Guardian:', 'ifsedu-school-management' ); ?></strong> <?php echo esc_html( ! empty( $student->guardian_name ) ? $student->guardian_name : ( ! empty( $student->father_name ) ? $student->father_name : '—' ) ); ?></p>
                             </div>
@@ -1187,7 +1187,7 @@ function educore_exams_report_view() {
                         </table>
 
                         <div class="ifs-educore-gpa-box">
-                            <h4 style="margin: 0; font-weight: 800; color: #00523c; text-transform: uppercase; font-size: 13.5px;"><?php esc_html_e( 'Final Result Summary', 'ifsedu-school-management' ); ?></h4>
+                            <h4 style="margin: 0; font-weight: 800; color: #00523c; text-transform: capitalize; font-size: 13.5px;"><?php esc_html_e( 'Final Result Summary', 'ifsedu-school-management' ); ?></h4>
                             <p style="font-size: 14px; margin: 6px 0 0 0; color: #1e293b;">
                                 <?php esc_html_e( 'Status:', 'ifsedu-school-management' ); ?> 
                                 <strong style="color: <?php echo $has_failed ? '#dc2626' : '#059669'; ?>;">
@@ -1456,7 +1456,7 @@ function educore_exams_report_view() {
 
                     <!-- Grade Breakdown Bar -->
                     <div class="ifs-educore-grade-counts-bar no-print">
-                        <div style="font-size:11.5px; font-weight:800; color:#475569; text-transform:uppercase; margin-right:6px;">
+                        <div style="font-size:11.5px; font-weight:800; color:#475569; text-transform:capitalize; margin-right:6px;">
                             <span class="dashicons dashicons-chart-pie" style="font-size:15px; width:15px; height:15px; vertical-align:middle;"></span>
                             <?php esc_html_e( 'Grade Breakdown:', 'ifsedu-school-management' ); ?>
                         </div>

@@ -220,7 +220,7 @@ function educore_teacher_subjects_view() {
             font-size: 12px;
             font-weight: 700;
             color: #475569;
-            text-transform: uppercase;
+            text-transform: capitalize;
             letter-spacing: 0.3px;
             margin-bottom: 6px;
         }
@@ -332,7 +332,7 @@ function educore_teacher_subjects_view() {
             background: #f8fafc;
             font-size: 11px;
             font-weight: 800;
-            text-transform: uppercase;
+            text-transform: capitalize;
             color: #475569;
             border-bottom: 2px solid #e2e8f0;
             text-align: left;

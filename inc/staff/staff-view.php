@@ -1,6 +1,6 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Direct access lockdown
+    exit; // Lockdown direct access
 }
 
 /**
@@ -26,7 +26,11 @@ function educore_staff_profile_view() {
     // phpcs:enable
 
     if ( ! $staff ) {
-        echo '<div class="alert alert-danger my-4 border-0 shadow-sm">' . esc_html__( 'Staff record not found.', 'ifsedu-school-management' ) . '</div>';
+        ?>
+        <div class="ifs-educore-alert-box-danger my-4">
+            <?php esc_html_e( 'Staff record not found.', 'ifsedu-school-management' ); ?>
+        </div>
+        <?php
         return;
     }
 
@@ -47,25 +51,306 @@ function educore_staff_profile_view() {
     $staff_id_num = ! empty( $staff->staff_id ) ? strtoupper( (string) $staff->staff_id ) : '—';
     ?>
 
-    <div class="ifs-educore-profile-container my-3">
+    <style id="ifs-educore-staff-profile-view-styles">
+        .ifs-educore-profile-root {
+            font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #0f172a;
+        }
+
+        .ifs-educore-alert-box-danger {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+            padding: 14px 18px;
+            border-radius: 10px;
+            font-weight: 700;
+        }
+
+        .ifs-educore-profile-actions-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .ifs-educore-profile-btn-outline {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            height: 38px;
+            padding: 0 16px;
+            background: #ffffff;
+            color: #475569;
+            font-size: 13px;
+            font-weight: 700;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .ifs-educore-profile-btn-outline:hover {
+            background: #f1f5f9;
+            color: #0f172a;
+        }
+
+        .ifs-educore-profile-btn-light {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            height: 38px;
+            padding: 0 16px;
+            background: #f8fafc;
+            color: #0f172a;
+            font-size: 13px;
+            font-weight: 700;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .ifs-educore-profile-btn-light:hover {
+            background: #f1f5f9;
+        }
+
+        .ifs-educore-profile-btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            height: 38px;
+            padding: 0 20px;
+            background: #00523c;
+            color: #ffffff;
+            font-size: 13px;
+            font-weight: 800;
+            border-radius: 8px;
+            border: none;
+            text-decoration: none;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 106, 78, 0.25);
+            transition: all 0.2s ease;
+        }
+
+        .ifs-educore-profile-btn-primary:hover {
+            background: #003e2d;
+        }
+
+        .ifs-educore-bento-header-card {
+            background: linear-gradient(135deg, #00523c 0%, #047857 100%);
+            border-radius: 16px;
+            padding: 32px;
+            color: #ffffff;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 25px -5px rgba(0, 82, 60, 0.2);
+            margin-bottom: 24px;
+        }
+
+        .ifs-educore-bento-header-bg-pattern {
+            position: absolute;
+            right: -20px;
+            bottom: -20px;
+            opacity: 0.08;
+            pointer-events: none;
+            width: 200px;
+            height: 200px;
+        }
+
+        .ifs-educore-profile-avatar-wrapper {
+            width: 96px;
+            height: 96px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            border: 3px solid rgba(255, 255, 255, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            margin: 0 auto;
+        }
+
+        .ifs-educore-profile-avatar-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .ifs-educore-profile-avatar-placeholder {
+            font-size: 36px;
+            font-weight: 800;
+            color: #ffffff;
+            text-align: center;
+            line-height: 96px;
+        }
+
+        .ifs-educore-status-badge {
+            background: #ffffff;
+            color: #0f172a;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+        }
+
+        .ifs-educore-status-indicator-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .ifs-educore-status-dot-active {
+            background-color: #10b981;
+        }
+
+        .ifs-educore-status-dot-inactive {
+            background-color: #ef4444;
+        }
+
+        .ifs-educore-glass-id-badge {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: #ffffff;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .ifs-educore-bento-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.03);
+            height: 100%;
+        }
+
+        .ifs-educore-bento-section-title {
+            font-size: 15px;
+            font-weight: 800;
+            color: #00523c;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ifs-educore-info-label {
+            font-size: 11.5px;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: capitalize;
+            letter-spacing: 0.3px;
+            margin-bottom: 4px;
+        }
+
+        .ifs-educore-info-value {
+            font-size: 14px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .ifs-educore-address-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 16px;
+            min-height: 80px;
+            color: #475569;
+            font-size: 13.5px;
+            line-height: 1.5;
+        }
+
+        .ifs-educore-social-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
+            font-size: 12.5px;
+            font-weight: 700;
+            color: #334155;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .ifs-educore-social-pill:hover {
+            background: #00523c;
+            color: #ffffff;
+            border-color: #00523c;
+        }
+
+        .ifs-educore-social-pill svg {
+            width: 14px;
+            height: 14px;
+            fill: currentColor;
+        }
+
+        .ifs-educore-emergency-card {
+            background: #fff8f8;
+            border: 1px solid #fecaca;
+        }
+
+        .ifs-educore-emergency-title {
+            color: #dc2626;
+            border-bottom-color: #fee2e2;
+        }
+
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            body * {
+                visibility: hidden;
+            }
+            .ifs-educore-profile-root,
+            .ifs-educore-profile-root * {
+                visibility: visible;
+            }
+            .ifs-educore-profile-root {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+        }
+    </style>
+
+    <div class="ifs-educore-profile-root my-3">
         
         <!-- Navigation Controls Bar -->
-        <div class="d-flex justify-content-between align-items: center mb-4 no-print">
-            <a href="<?php echo esc_url( $back_url ); ?>" class="btn btn-outline-secondary btn-sm fw-bold px-3 py-2" style="border-radius: 8px;">
+        <div class="ifs-educore-profile-actions-bar no-print">
+            <a href="<?php echo esc_url( $back_url ); ?>" class="ifs-educore-profile-btn-outline">
                 &larr; <?php esc_html_e( 'Back to Directory', 'ifsedu-school-management' ); ?>
             </a>
-            <div class="d-flex gap-2">
-                <button onclick="window.print();" class="btn btn-light btn-sm border fw-bold px-3 py-2" style="border-radius: 8px;">
-                    <span class="dashicons dashicons-printer me-1" style="vertical-align:middle;"></span> <?php esc_html_e( 'Print Profile', 'ifsedu-school-management' ); ?>
+            <div style="display: flex; gap: 8px;">
+                <button onclick="window.print();" class="ifs-educore-profile-btn-light">
+                    <span class="dashicons dashicons-printer" style="vertical-align:middle;"></span> <?php esc_html_e( 'Print Profile', 'ifsedu-school-management' ); ?>
                 </button>
-                <a href="<?php echo esc_url( $edit_url ); ?>" class="btn btn-primary btn-sm fw-bold px-4 py-2" style="background-color: #00523c; border: none; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 106, 78, 0.25);">
-                    <span class="dashicons dashicons-edit me-1" style="vertical-align:middle;"></span> <?php esc_html_e( 'Edit Profile', 'ifsedu-school-management' ); ?>
+                <a href="<?php echo esc_url( $edit_url ); ?>" class="ifs-educore-profile-btn-primary">
+                    <span class="dashicons dashicons-edit" style="vertical-align:middle;"></span> <?php esc_html_e( 'Edit Profile', 'ifsedu-school-management' ); ?>
                 </a>
             </div>
         </div>
 
         <!-- Hero Header Card -->
-        <div class="ifs-educore-bento-header-card mb-4">
+        <div class="ifs-educore-bento-header-card">
             <svg class="ifs-educore-bento-header-bg-pattern" width="200" height="200" viewBox="0 0 24 24"><path fill="#ffffff" d="M12 2l-7 7v11c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V9l-7-7zm0 2.84L17.16 9H6.84L12 4.84zM7 19v-8h10v8H7z"/></svg>
 
             <div class="row align-items-center">
@@ -76,7 +361,7 @@ function educore_staff_profile_view() {
                         <?php else : 
                             $first_letter = mb_substr( (string) ( $staff->full_name ?? 'S' ), 0, 1, 'UTF-8' );
                         ?>
-                            <div class="ifs-educore-profile-avatar-placeholder mx-auto">
+                            <div class="ifs-educore-profile-avatar-placeholder">
                                 <?php echo esc_html( mb_strtoupper( $first_letter, 'UTF-8' ) ); ?>
                             </div>
                         <?php endif; ?>
@@ -84,15 +369,15 @@ function educore_staff_profile_view() {
                 </div>
 
                 <div class="col-md text-center text-md-start">
-                    <div class="d-flex flex-wrap align-items: center justify-content: center justify-content-md-start gap-2 mb-2">
+                    <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-md-start gap-2 mb-2">
                         <h2 class="m-0 fw-bold text-white" style="letter-spacing: -0.5px;"><?php echo esc_html( $staff->full_name ); ?></h2>
-                        <span class="badge rounded-pill bg-white text-dark px-3 py-1 fs-6 shadow-sm">
+                        <span class="ifs-educore-status-badge">
                             <span class="ifs-educore-status-indicator-dot <?php echo $is_active ? 'ifs-educore-status-dot-active' : 'ifs-educore-status-dot-inactive'; ?>"></span>
                             <?php echo esc_html( ucfirst( (string) $staff->status ) ); ?>
                         </span>
                     </div>
 
-                    <div class="d-flex flex-wrap align-items: center justify-content: center justify-content-md-start gap-2">
+                    <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-md-start gap-2">
                         <div class="ifs-educore-glass-id-badge">
                             <span class="dashicons dashicons-id text-white"></span>
                             <span>ID: <strong><?php echo esc_html( $staff_id_num ); ?></strong></span>
@@ -221,11 +506,11 @@ function educore_staff_profile_view() {
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <div class="ifs-educore-info-label"><?php esc_html_e( 'Present Address', 'ifsedu-school-management' ); ?></div>
-                                    <div class="ifs-educore-info-value text-secondary bg-light p-3 rounded-3 border" style="min-height: 80px;"><?php echo nl2br( esc_html( $staff->address ?: '—' ) ); ?></div>
+                                    <div class="ifs-educore-address-box"><?php echo nl2br( esc_html( $staff->address ?: '—' ) ); ?></div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="ifs-educore-info-label"><?php esc_html_e( 'Permanent Address', 'ifsedu-school-management' ); ?></div>
-                                    <div class="ifs-educore-info-value text-secondary bg-light p-3 rounded-3 border" style="min-height: 80px;"><?php echo nl2br( esc_html( $staff->permanent_address ?: '—' ) ); ?></div>
+                                    <div class="ifs-educore-address-box"><?php echo nl2br( esc_html( $staff->permanent_address ?: '—' ) ); ?></div>
                                 </div>
                             </div>
                         </div>
@@ -303,8 +588,8 @@ function educore_staff_profile_view() {
 
                     <!-- Emergency Contact -->
                     <div class="col-12">
-                        <div class="ifs-educore-bento-card border-danger-subtle" style="background: #fff8f8;">
-                            <div class="ifs-educore-bento-section-title text-danger" style="border-bottom-color: #fee2e2;">
+                        <div class="ifs-educore-bento-card ifs-educore-emergency-card">
+                            <div class="ifs-educore-bento-section-title ifs-educore-emergency-title">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
                                 <?php esc_html_e( 'Emergency Contact', 'ifsedu-school-management' ); ?>
                             </div>

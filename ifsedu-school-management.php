@@ -389,29 +389,27 @@ function educore_execute_database_migration() {
     dbDelta( $sql_subjects );
 
     // 10. Routine Table
-$table_routine = $wpdb->prefix . 'sms_routine';
-$sql_routine = "CREATE TABLE {$table_routine} (
-    id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-    class_id bigint(20) unsigned NOT NULL,
-    section_id bigint(20) unsigned DEFAULT 0 NOT NULL,
-    subject_id bigint(20) unsigned NOT NULL,
-    teacher_id bigint(20) unsigned DEFAULT 0 NOT NULL,
-    day_name varchar(15) NOT NULL,
-    shift varchar(50) DEFAULT 'Day' NOT NULL,
-    start_time time NOT NULL,
-    end_time time NOT NULL,
-    room_no varchar(50) DEFAULT '' NOT NULL,
-    academic_year varchar(20) DEFAULT '' NOT NULL,
-    created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    PRIMARY KEY  (id),
-    KEY class_section_idx (class_id, section_id),
-    KEY subject_id_idx (subject_id),
-    KEY teacher_id_idx (teacher_id),
-    KEY day_time_idx (day_name, start_time, end_time)
-) {$charset_collate};";
-
-require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-dbDelta( $sql_routine );
+    $table_routine = $wpdb->prefix . 'sms_routine';
+    $sql_routine = "CREATE TABLE {$table_routine} (
+        id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        class_id bigint(20) unsigned NOT NULL,
+        section_id bigint(20) unsigned DEFAULT 0 NOT NULL,
+        subject_id bigint(20) unsigned NOT NULL,
+        teacher_id bigint(20) unsigned DEFAULT 0 NOT NULL,
+        day_name varchar(15) NOT NULL,
+        shift varchar(50) DEFAULT 'Day' NOT NULL,
+        start_time time NOT NULL,
+        end_time time NOT NULL,
+        room_no varchar(50) DEFAULT '' NOT NULL,
+        academic_year varchar(20) DEFAULT '' NOT NULL,
+        created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        PRIMARY KEY  (id),
+        KEY class_section_idx (class_id, section_id),
+        KEY subject_id_idx (subject_id),
+        KEY teacher_id_idx (teacher_id),
+        KEY day_time_idx (day_name, start_time, end_time)
+    ) {$charset_collate};";
+    dbDelta( $sql_routine );
 
     // 11. Teacher-Subjects Mapping Table
     $table_teacher_subjects = $wpdb->prefix . 'sms_teacher_subjects';
@@ -523,8 +521,55 @@ dbDelta( $sql_routine );
     ) {$charset_collate};";
     dbDelta( $sql_photos );
 
+    // 17. Fee Types / Structure Table
+    $table_fee_types = $wpdb->prefix . 'sms_fee_types';
+    $sql_fee_types = "CREATE TABLE {$table_fee_types} (
+        id bigint(20) NOT NULL AUTO_INCREMENT,
+        class_name varchar(50) NOT NULL,
+        fee_title varchar(150) NOT NULL,
+        amount decimal(10,2) DEFAULT '0.00' NOT NULL,
+        period_type varchar(50) DEFAULT 'Monthly' NOT NULL,
+        PRIMARY KEY  (id),
+        KEY class_name_idx (class_name)
+    ) {$charset_collate};";
+    dbDelta( $sql_fee_types );
+
+    // 18. Late Fee Configuration Table
+    $table_late_cfg = $wpdb->prefix . 'sms_late_fee_config';
+    $sql_late_cfg = "CREATE TABLE {$table_late_cfg} (
+        id bigint(20) NOT NULL AUTO_INCREMENT,
+        fine_type varchar(30) DEFAULT 'Fixed' NOT NULL,
+        fine_amount decimal(10,2) DEFAULT '50.00' NOT NULL,
+        grace_days int(11) DEFAULT 5 NOT NULL,
+        fine_start_date int(11) DEFAULT 12 NOT NULL,
+        max_fine_cap decimal(10,2) DEFAULT '500.00' NOT NULL,
+        status varchar(20) DEFAULT 'Active' NOT NULL,
+        PRIMARY KEY  (id)
+    ) {$charset_collate};";
+    dbDelta( $sql_late_cfg );
+
+    // 19. Exam Routine Table (Fixes missing table error)
+    $table_exam_routine = $wpdb->prefix . 'sms_exam_routine';
+    $sql_exam_routine = "CREATE TABLE {$table_exam_routine} (
+        id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        exam_id bigint(20) unsigned NOT NULL,
+        class_id bigint(20) unsigned NOT NULL,
+        subject_id bigint(20) unsigned NOT NULL,
+        exam_date date NOT NULL,
+        start_time time NOT NULL,
+        end_time time NOT NULL,
+        room_no varchar(50) DEFAULT '' NOT NULL,
+        created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        PRIMARY KEY  (id),
+        KEY exam_id_idx (exam_id),
+        KEY class_id_idx (class_id),
+        KEY subject_id_idx (subject_id),
+        KEY exam_date_idx (exam_date)
+    ) {$charset_collate};";
+    dbDelta( $sql_exam_routine );
+
     // Update DB Version
-    $db_version = defined( 'EDUCORE_VERSION' ) ? EDUCORE_VERSION : '1.2.2';
+    $db_version = defined( 'EDUCORE_VERSION' ) ? EDUCORE_VERSION : '1.2.3';
     update_option( 'educore_db_version', $db_version );
 }
 register_activation_hook( __FILE__, 'educore_execute_database_migration' );
@@ -743,6 +788,15 @@ function educore_render_dynamic_router_interface() {
         $display_name  = $staff_row->full_name;
         $designation   = $staff_row->designation;
         $custom_avatar = $staff_row->profile_image;
+    }
+
+    // Fallback to institutional setting logo if staff profile image is not explicitly set
+    if ( empty( $custom_avatar ) ) {
+        // Replace 'educore_school_logo' with your settings option key if it differs
+        $settings_logo = get_option( 'educore_school_logo', '' );
+        if ( ! empty( $settings_logo ) ) {
+            $custom_avatar = $settings_logo;
+        }
     }
 
     if ( empty( $display_name ) ) {

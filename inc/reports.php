@@ -13,9 +13,9 @@ $educore_reports_dir = plugin_dir_path( __FILE__ ) . 'reports/';
 
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
 $educore_reports_files = array(
-    'reports-finance.php',     // Financial reports view
-    'reports-attendance.php',  // Attendance analytics view
-    'reports-tabs.php',        // Sub-navigation router: educore_reports_tab()
+    'reports-finance.php',
+    'reports-attendance.php',
+    'reports-tabs.php',
 );
 
 foreach ( $educore_reports_files as $educore_file ) {

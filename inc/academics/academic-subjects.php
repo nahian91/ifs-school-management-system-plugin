@@ -445,7 +445,7 @@ function educore_render_subjects_view() {
             font-size: 12px;
             font-weight: 700;
             color: #334155;
-            text-transform: uppercase;
+            text-transform: capitalize;
             letter-spacing: 0.3px;
             margin-bottom: 6px;
         }
@@ -717,7 +717,7 @@ function educore_render_subjects_view() {
             background: #ffffff;
             font-size: 11px;
             font-weight: 800;
-            text-transform: uppercase;
+            text-transform: capitalize;
             color: #64748b;
             border-bottom: 1.5px solid #e2e8f0;
             text-align: left;
@@ -942,7 +942,7 @@ function educore_render_subjects_view() {
                                 </div>
                             </div>
                             <div style="margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
-                                <small style="font-size:11.5px; font-weight:700; color:#475569; text-transform:uppercase;"><?php esc_html_e( 'Component Breakdown Items', 'ifsedu-school-management' ); ?></small>
+                                <small style="font-size:11.5px; font-weight:700; color:#475569; text-transform:capitalize;"><?php esc_html_e( 'Component Breakdown Items', 'ifsedu-school-management' ); ?></small>
                                 <small style="font-size:11.5px; color:#64748b;" class="custom-sum-indicator">(Sum of items: Total 100 | Pass 33)</small>
                             </div>
                             <div class="ifs-subitems-container">
@@ -1211,7 +1211,7 @@ function educore_render_subjects_view() {
                         </div>
                     </div>
                     <div style="margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
-                        <small style="font-size:11.5px; font-weight:700; color:#475569; text-transform:uppercase;"><?php esc_html_e( 'Component Breakdown Items', 'ifsedu-school-management' ); ?></small>
+                        <small style="font-size:11.5px; font-weight:700; color:#475569; text-transform:capitalize;"><?php esc_html_e( 'Component Breakdown Items', 'ifsedu-school-management' ); ?></small>
                         <small style="font-size:11.5px; color:#64748b;" id="edit_custom_sum_indicator"></small>
                     </div>
                     <div id="edit_subitems_container"></div>

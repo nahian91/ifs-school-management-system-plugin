@@ -248,7 +248,7 @@ function educore_merit_list_view() {
             font-size: 11.5px;
             font-weight: 700;
             color: #475569;
-            text-transform: uppercase;
+            text-transform: capitalize;
             letter-spacing: 0.4px;
             margin-bottom: 8px;
         }
@@ -331,7 +331,7 @@ function educore_merit_list_view() {
             font-size: 11.5px;
             font-weight: 700;
             color: #64748b;
-            text-transform: uppercase;
+            text-transform: capitalize;
             letter-spacing: 0.3px;
         }
         .ifs-educore-stat-value {
@@ -369,7 +369,7 @@ function educore_merit_list_view() {
             margin: 0;
             font-size: 22px;
             font-weight: 900;
-            text-transform: uppercase;
+            text-transform: capitalize;
             color: #000;
             letter-spacing: -0.2px;
         }
@@ -395,7 +395,7 @@ function educore_merit_list_view() {
             background: #f1f5f9;
             font-weight: 800;
             font-size: 11.5px;
-            text-transform: uppercase;
+            text-transform: capitalize;
             color: #000000;
         }
 
@@ -821,7 +821,7 @@ function educore_merit_list_view() {
                             <h3 class="ifs-educore-tabulation-title"><?php echo esc_html( $school_name ); ?></h3>
                         </div>
                         <?php if ( ! empty( $school_tagline ) ) : ?>
-                            <div style="font-size: 11.5px; color: #475569; font-weight: 700; margin-bottom: 4px; text-transform: uppercase;">
+                            <div style="font-size: 11.5px; color: #475569; font-weight: 700; margin-bottom: 4px; text-transform: capitalize;">
                                 <?php echo esc_html( $school_tagline ); ?>
                             </div>
                         <?php endif; ?>

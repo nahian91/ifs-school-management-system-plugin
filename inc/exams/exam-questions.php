@@ -436,7 +436,7 @@ function educore_exam_questions_view() {
             margin: 0;
             font-size: 22px;
             font-weight: 900;
-            text-transform: uppercase;
+            text-transform: capitalize;
             letter-spacing: -0.2px;
             color: #000;
         }
@@ -806,7 +806,7 @@ function educore_exam_questions_view() {
                             <h2 class="nctb-school-title" id="pv_school_name"><?php echo esc_html( $school_name ); ?></h2>
                         </div>
                         <?php if ( ! empty( $school_tagline ) ) : ?>
-                            <div style="font-size: 11.5px; color: #475569; font-weight: 700; margin-bottom: 4px; text-transform: uppercase;">
+                            <div style="font-size: 11.5px; color: #475569; font-weight: 700; margin-bottom: 4px; text-transform: capitalize;">
                                 <?php echo esc_html( $school_tagline ); ?>
                             </div>
                         <?php endif; ?>

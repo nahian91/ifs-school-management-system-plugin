@@ -41,7 +41,7 @@ function educore_settings_tab() {
     $allowed_sub_tabs = array( 'general', 'prefixes', 'academics', 'fees', 'permissions' );
 
     // phpcs:disable WordPress.Security.NonceVerification.Recommended
-    $raw_subtab    = isset( $_GET['subtab'] ) ? sanitize_key( wp_unslash( $_GET['subtab'] ) ) : 'general';
+    $raw_subtab = isset( $_GET['subtab'] ) ? sanitize_key( wp_unslash( $_GET['subtab'] ) ) : 'general';
     // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
     $active_subtab = in_array( $raw_subtab, $allowed_sub_tabs, true ) ? $raw_subtab : 'general';

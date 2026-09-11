@@ -185,7 +185,7 @@ function educore_accounting_single_view() {
             margin: 0;
             font-size: 24px;
             font-weight: 900;
-            text-transform: uppercase;
+            text-transform: capitalize;
             letter-spacing: -0.3px;
             color: #0f172a;
         }
@@ -203,7 +203,7 @@ function educore_accounting_single_view() {
             font-size: 11px;
             font-weight: 800;
             color: #64748b;
-            text-transform: uppercase;
+            text-transform: capitalize;
             display: block;
             margin-bottom: 2px;
         }
@@ -305,11 +305,11 @@ function educore_accounting_single_view() {
                     <h2 class="ifs-acct-school-title"><?php echo esc_html( $school_name ); ?></h2>
                 </div>
                 <?php if ( ! empty( $school_tagline ) ) : ?>
-                    <div style="font-size: 11.5px; color: #475569; font-weight: 700; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px;">
+                    <div style="font-size: 11.5px; color: #475569; font-weight: 700; margin-top: 2px; text-transform: capitalize; letter-spacing: 0.5px;">
                         <?php echo esc_html( $school_tagline ); ?>
                     </div>
                 <?php endif; ?>
-                <div style="font-size: 14px; font-weight: 800; color: #00523c; margin-top: 6px; text-transform: uppercase; letter-spacing: 1px;">
+                <div style="font-size: 14px; font-weight: 800; color: #00523c; margin-top: 6px; text-transform: capitalize; letter-spacing: 1px;">
                     <?php esc_html_e( 'Official General Ledger Voucher Slip', 'ifsedu-school-management' ); ?>
                 </div>
             </div>
@@ -330,7 +330,7 @@ function educore_accounting_single_view() {
                 </div>
                 <div class="ifs-acct-meta-item">
                     <label><?php esc_html_e( 'Flow Classification', 'ifsedu-school-management' ); ?></label>
-                    <span style="color:<?php echo $is_income ? '#047857' : '#dc2626'; ?>; text-transform:uppercase;">
+                    <span style="color:<?php echo $is_income ? '#047857' : '#dc2626'; ?>; text-transform:capitalize;">
                         <?php echo esc_html( $entry->entry_type ); ?>
                     </span>
                 </div>
@@ -338,7 +338,7 @@ function educore_accounting_single_view() {
 
             <!-- Particulars & Purpose -->
             <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:10px; padding:18px 20px; margin-bottom:20px;">
-                <span style="font-size:11px; font-weight:800; color:#64748b; text-transform:uppercase; display:block; margin-bottom:4px;"><?php esc_html_e( 'Particulars / Transaction Purpose', 'ifsedu-school-management' ); ?></span>
+                <span style="font-size:11px; font-weight:800; color:#64748b; text-transform:capitalize; display:block; margin-bottom:4px;"><?php esc_html_e( 'Particulars / Transaction Purpose', 'ifsedu-school-management' ); ?></span>
                 <h3 style="margin:0; font-size:17px; font-weight:900; color:#0f172a;"><?php echo esc_html( $entry->title ); ?></h3>
                 <div style="margin-top:6px; font-size:13px; font-weight:700; color:#00523c;">
                     <?php esc_html_e( 'Category:', 'ifsedu-school-management' ); ?> <?php echo esc_html( $entry->category_name ); ?>
@@ -348,7 +348,7 @@ function educore_accounting_single_view() {
             <!-- Financial Metrics Bento Matrix -->
             <div class="ifs-acct-bento-grid">
                 <div class="ifs-acct-bento-card <?php echo $is_income ? 'highlight' : 'highlight-exp'; ?>" style="grid-column: span 2;">
-                    <span style="font-size:11.5px; font-weight:800; color:<?php echo $is_income ? '#047857' : '#b91c1c'; ?>; text-transform:uppercase; display:block; margin-bottom:4px;">
+                    <span style="font-size:11.5px; font-weight:800; color:<?php echo $is_income ? '#047857' : '#b91c1c'; ?>; text-transform:capitalize; display:block; margin-bottom:4px;">
                         <?php echo $is_income ? esc_html__( 'Total Net Revenue Received', 'ifsedu-school-management' ) : esc_html__( 'Total Net Expense Disbursed', 'ifsedu-school-management' ); ?>
                     </span>
                     <strong style="font-size:26px; font-weight:900; color:<?php echo $is_income ? '#059669' : '#dc2626'; ?>;">
@@ -362,13 +362,13 @@ function educore_accounting_single_view() {
                 </div>
 
                 <div class="ifs-acct-bento-card">
-                    <span style="font-size:11px; font-weight:800; color:#64748b; text-transform:uppercase; display:block; margin-bottom:4px;"><?php esc_html_e( 'Payment Method', 'ifsedu-school-management' ); ?></span>
+                    <span style="font-size:11px; font-weight:800; color:#64748b; text-transform:capitalize; display:block; margin-bottom:4px;"><?php esc_html_e( 'Payment Method', 'ifsedu-school-management' ); ?></span>
                     <strong style="font-size:14px; font-weight:800; color:#0f172a; display:block;"><?php echo esc_html( $entry->payment_method ); ?></strong>
                     <span style="font-size:12px; color:#475569; font-weight:600;"><?php echo esc_html( $entry->bank_account ); ?></span>
                 </div>
 
                 <div class="ifs-acct-bento-card">
-                    <span style="font-size:11px; font-weight:800; color:#64748b; text-transform:uppercase; display:block; margin-bottom:4px;"><?php esc_html_e( 'Payer / Payee Entity', 'ifsedu-school-management' ); ?></span>
+                    <span style="font-size:11px; font-weight:800; color:#64748b; text-transform:capitalize; display:block; margin-bottom:4px;"><?php esc_html_e( 'Payer / Payee Entity', 'ifsedu-school-management' ); ?></span>
                     <strong style="font-size:14px; font-weight:800; color:#0f172a; display:block;"><?php echo esc_html( ! empty( $entry->party_name ) ? $entry->party_name : '—' ); ?></strong>
                     <span style="font-size:12px; color:#475569; font-weight:600;"><?php echo esc_html( $entry->department ); ?></span>
                 </div>
@@ -384,7 +384,7 @@ function educore_accounting_single_view() {
 
             <?php if ( ! empty( $entry->note ) ) : ?>
                 <div style="margin-bottom:20px;">
-                    <span style="font-size:11.5px; font-weight:800; color:#64748b; text-transform:uppercase; display:block; margin-bottom:4px;"><?php esc_html_e( 'Internal Auditor Memo / Note', 'ifsedu-school-management' ); ?></span>
+                    <span style="font-size:11.5px; font-weight:800; color:#64748b; text-transform:capitalize; display:block; margin-bottom:4px;"><?php esc_html_e( 'Internal Auditor Memo / Note', 'ifsedu-school-management' ); ?></span>
                     <div style="background:#fff; border:1px solid #e2e8f0; padding:12px 16px; border-radius:8px; font-size:13px; color:#334155; line-height:1.5;">
                         <?php echo nl2br( esc_html( $entry->note ) ); ?>
                     </div>

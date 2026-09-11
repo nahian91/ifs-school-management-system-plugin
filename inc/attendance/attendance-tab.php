@@ -203,7 +203,7 @@ function educore_attendance_tab() {
 
             <?php if ( ! $is_admin && ! empty( $classes ) ) : ?>
                 <div class="ifs-educore-assigned-pill">
-                    <span class="dashicons dashicons-id-alt" style="font-size:14px; width:14px; height:14px;"></span>
+                    <span class="dashicons dashicons-id-alt"></span>
                     <?php 
                         $sec_label = ! empty( $sections ) ? ' (' . implode( ', ', $sections ) . ')' : '';
                         printf(

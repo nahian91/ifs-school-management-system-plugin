@@ -53,7 +53,6 @@ function educore_academics_tab() {
 
         default:
             ?>
-            
             <div class="dpt-bento-card afdp-bento-error-card">
                 <span class="dashicons dashicons-warning afdp-error-icon"></span>
                 <h4 class="afdp-error-title"><?php esc_html_e( 'Academic Module Not Found', 'ifsedu-school-management' ); ?></h4>
@@ -62,7 +61,4 @@ function educore_academics_tab() {
             <?php
             break;
     }
-
-    // 5. Close Root Wrapper Opened in academic-header.php
-    echo '</div>'; 
 }

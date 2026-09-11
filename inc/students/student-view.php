@@ -124,6 +124,374 @@ function educore_student_profile_view() {
     $first_letter    = function_exists( 'mb_substr' ) ? mb_substr( $name_for_letter, 0, 1, 'utf-8' ) : substr( $name_for_letter, 0, 1 );
     ?>
 
+    <style id="ifs-educore-student-profile-view-styles">
+        .ifs-educore-profile-wrapper {
+            font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #0f172a;
+        }
+
+        .ifs-educore-action-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .ifs-educore-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            height: 38px;
+            padding: 0 16px;
+            font-size: 13px;
+            font-weight: 700;
+            border-radius: 8px;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+        }
+
+        .ifs-educore-btn-secondary {
+            background: #ffffff;
+            color: #475569;
+            border: 1px solid #cbd5e1;
+        }
+
+        .ifs-educore-btn-secondary:hover {
+            background: #f1f5f9;
+            color: #0f172a;
+        }
+
+        .ifs-educore-btn-primary {
+            background: #00523c;
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(0, 82, 60, 0.25);
+        }
+
+        .ifs-educore-btn-primary:hover {
+            background: #003e2d;
+            color: #ffffff;
+        }
+
+        .ifs-educore-profile-header-card {
+            background: linear-gradient(135deg, #00523c 0%, #047857 100%);
+            border-radius: 16px;
+            padding: 32px;
+            color: #ffffff;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 25px -5px rgba(0, 82, 60, 0.2);
+            margin-bottom: 24px;
+        }
+
+        .ifs-educore-hero-flex {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+
+        .ifs-educore-avatar-img {
+            width: 96px;
+            height: 96px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .ifs-educore-avatar-placeholder {
+            width: 96px;
+            height: 96px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            border: 3px solid rgba(255, 255, 255, 0.4);
+            font-size: 36px;
+            font-weight: 800;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ifs-educore-glass-id-badge {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .ifs-educore-bento-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 992px) {
+            .ifs-educore-bento-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 576px) {
+            .ifs-educore-bento-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .ifs-educore-bento-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.03);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .ifs-educore-bento-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 20px;
+        }
+
+        .ifs-educore-profile-tabs {
+            display: flex;
+            gap: 8px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            padding: 8px;
+            border-radius: 14px;
+            margin-bottom: 24px;
+            overflow-x: auto;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+        }
+
+        .ifs-educore-profile-tabs .nav-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #64748b;
+            background: transparent;
+            border: 1px solid transparent;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }
+
+        .ifs-educore-profile-tabs .nav-link:hover {
+            color: #00523c;
+            background: #f8fafc;
+        }
+
+        .ifs-educore-profile-tabs .nav-link.active {
+            background: #00523c;
+            color: #ffffff;
+            box-shadow: 0 2px 6px rgba(0, 82, 60, 0.2);
+        }
+
+        .ifs-educore-profile-tabs .nav-link.active .dashicons {
+            color: #a7f3d0 !important;
+        }
+
+        .ifs-educore-tab-workspace {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
+        }
+
+        .ifs-educore-grid-2col {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 768px) {
+            .ifs-educore-grid-2col {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .ifs-educore-section-title {
+            font-size: 15px;
+            font-weight: 800;
+            color: #00523c;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 10px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ifs-educore-profile-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13.5px;
+        }
+
+        .ifs-educore-profile-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: middle;
+        }
+
+        .ifs-educore-label-bg {
+            font-weight: 700;
+            color: #64748b;
+            width: 45%;
+        }
+
+        .ifs-educore-exam-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            background: #ffffff;
+        }
+
+        .ifs-educore-exam-header {
+            padding: 16px 20px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .ifs-educore-exam-title {
+            font-size: 15px;
+            font-weight: 800;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ifs-educore-data-responsive-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 13px;
+        }
+
+        .ifs-educore-data-responsive-table th {
+            padding: 12px 16px;
+            color: #475569;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 11.5px;
+            text-transform: capitalize;
+            font-weight: 800;
+        }
+
+        .ifs-educore-data-responsive-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: middle;
+        }
+
+        .ifs-educore-exam-summary {
+            padding: 16px 20px;
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: flex-end;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+
+        .ifs-educore-summary-item {
+            display: flex;
+            flex-direction: column;
+            text-align: right;
+        }
+
+        .ifs-educore-summary-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: capitalize;
+        }
+
+        .ifs-educore-summary-value {
+            font-size: 15px;
+            font-weight: 800;
+            color: #00523c;
+        }
+
+        .ifs-educore-badge-status {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11.5px;
+            font-weight: 700;
+        }
+
+        .ifs-educore-status-paid {
+            background: #ecfdf5;
+            color: #059669;
+            border: 1px solid #bbf7d0;
+        }
+
+        .ifs-educore-status-partial {
+            background: #fff7ed;
+            color: #d97706;
+            border: 1px solid #fed7aa;
+        }
+
+        .ifs-educore-status-unpaid {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            .ifs-educore-profile-wrapper, .ifs-educore-profile-wrapper * {
+                visibility: visible;
+            }
+            .ifs-educore-profile-wrapper {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .ifs-educore-tab-content-block {
+                display: block !important;
+                margin-bottom: 30px;
+                page-break-after: always;
+            }
+        }
+    </style>
+
     <div class="ifs-educore-profile-wrapper">
         <!-- Action Bar -->
         <div class="ifs-educore-action-bar no-print">
@@ -184,7 +552,7 @@ function educore_student_profile_view() {
             <div class="ifs-educore-bento-card">
                 <div class="ifs-educore-bento-icon" style="background:#eff6ff; color:#2563eb;"><span class="dashicons dashicons-clipboard"></span></div>
                 <div>
-                    <div style="font-size:11.5px; color:#64748b; font-weight:800; text-transform:uppercase;"><?php esc_html_e( 'Exams Evaluated', 'ifsedu-school-management' ); ?></div>
+                    <div style="font-size:11.5px; color:#64748b; font-weight:800; text-transform:capitalize;"><?php esc_html_e( 'Exams Evaluated', 'ifsedu-school-management' ); ?></div>
                     <div style="font-size:22px; font-weight:800; color:#0f172a;"><?php 
                         $unique_exams = ! empty( $exam_results ) ? array_unique( array_column( $exam_results, 'exam_id' ) ) : array();
                         echo esc_html( count( $unique_exams ) ); 
@@ -195,7 +563,7 @@ function educore_student_profile_view() {
             <div class="ifs-educore-bento-card">
                 <div class="ifs-educore-bento-icon" style="background:#ecfdf5; color:#059669;"><span class="dashicons dashicons-yes-alt"></span></div>
                 <div>
-                    <div style="font-size:11.5px; color:#64748b; font-weight:800; text-transform:uppercase;"><?php esc_html_e( 'Attendance Ratio', 'ifsedu-school-management' ); ?></div>
+                    <div style="font-size:11.5px; color:#64748b; font-weight:800; text-transform:capitalize;"><?php esc_html_e( 'Attendance Ratio', 'ifsedu-school-management' ); ?></div>
                     <div style="font-size:22px; font-weight:800; color:#059669;"><?php echo esc_html( $attendance_ratio ); ?>%</div>
                 </div>
             </div>
@@ -203,7 +571,7 @@ function educore_student_profile_view() {
             <div class="ifs-educore-bento-card">
                 <div class="ifs-educore-bento-icon" style="background:#f0fdf4; color:#00523c;"><span class="dashicons dashicons-money-alt"></span></div>
                 <div>
-                    <div style="font-size:11.5px; color:#64748b; font-weight:800; text-transform:uppercase;"><?php esc_html_e( 'Total Fees Paid', 'ifsedu-school-management' ); ?></div>
+                    <div style="font-size:11.5px; color:#64748b; font-weight:800; text-transform:capitalize;"><?php esc_html_e( 'Total Fees Paid', 'ifsedu-school-management' ); ?></div>
                     <div style="font-size:22px; font-weight:800; color:#00523c;">৳<?php echo esc_html( number_format( $total_paid, 2 ) ); ?></div>
                 </div>
             </div>
@@ -211,7 +579,7 @@ function educore_student_profile_view() {
             <div class="ifs-educore-bento-card">
                 <div class="ifs-educore-bento-icon" style="background:#fef2f2; color:#dc2626;"><span class="dashicons dashicons-warning"></span></div>
                 <div>
-                    <div style="font-size:11.5px; color:#64748b; font-weight:800; text-transform:uppercase;"><?php esc_html_e( 'Total Due Balance', 'ifsedu-school-management' ); ?></div>
+                    <div style="font-size:11.5px; color:#64748b; font-weight:800; text-transform:capitalize;"><?php esc_html_e( 'Total Due Balance', 'ifsedu-school-management' ); ?></div>
                     <div style="font-size:22px; font-weight:800; color:#dc2626;">৳<?php echo esc_html( number_format( $total_due, 2 ) ); ?></div>
                 </div>
             </div>

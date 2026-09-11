@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 function educore_users_tab() {
-    if ( ! current_user_can( 'create_users' ) && ! current_user_can( 'manage_options' ) && ! current_user_can( 'edit_users' ) ) {
+    if ( ! current_user_can( 'create_users' ) && ! current_user_can( 'manage_options' ) && ! current_user_can( 'edit_users' ) && ! current_user_can( 'list_users' ) ) {
         wp_die( esc_html__( 'You do not have sufficient permissions to manage users.', 'ifsedu-school-management' ) );
     }
 
@@ -216,11 +216,138 @@ function educore_users_tab() {
     // phpcs:enable
     ?>
 
+    <style id="ifs-educore-users-tab-styles">
+        .ifs-educore-users-nav-root {
+            font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #0f172a;
+        }
+
+        .ifs-educore-top-nav-wrapper {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.03);
+        }
+
+        .ifs-educore-nav-button-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .ifs-educore-nav-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 18px;
+            border-radius: 10px;
+            font-size: 13.5px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.2s ease-in-out;
+            border: 1px solid transparent;
+        }
+
+        .ifs-educore-nav-link .dashicons {
+            font-size: 18px;
+            width: 18px;
+            height: 18px;
+        }
+
+        .ifs-educore-nav-link-inactive {
+            color: #64748b;
+            background: #f8fafc;
+            border-color: #e2e8f0;
+        }
+
+        .ifs-educore-nav-link-inactive:hover {
+            color: #00523c;
+            background: #f0fdf4;
+            border-color: #a7f3d0;
+        }
+
+        .ifs-educore-nav-link-active {
+            color: #ffffff !important;
+            background: #00523c !important;
+            border-color: #00523c !important;
+            box-shadow: 0 4px 12px rgba(0, 106, 78, 0.2);
+        }
+
+        .ifs-educore-nav-link-active .dashicons {
+            color: #a7f3d0 !important;
+        }
+
+        .ifs-educore-context-badge {
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            color: #475569;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 5px 12px;
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .ifs-educore-context-badge .dashicons {
+            font-size: 14px;
+            width: 14px;
+            height: 14px;
+            vertical-align: middle;
+        }
+
+        .ifs-educore-feedback-alert {
+            padding: 14px 18px;
+            border-radius: 10px;
+            font-size: 13.5px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .ifs-educore-feedback-alert.error {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #b91c1c;
+        }
+
+        .ifs-educore-feedback-alert.success {
+            background: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            color: #047857;
+        }
+
+        .ifs-educore-feedback-alert.info {
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            color: #0369a1;
+        }
+
+        .ifs-educore-module-viewport-container {
+            width: 100%;
+        }
+
+        @media print {
+            .no-print { display: none !important; }
+        }
+    </style>
+
     <div class="ifs-educore-users-nav-root">
         <div class="ifs-educore-top-nav-wrapper no-print">
             <div class="ifs-educore-nav-button-group">
                 <a href="<?php echo esc_url( $all_users_url ); ?>" 
-                   class="ifs-educore-nav-link <?php echo ( 'list' === $sub_mode || 'edit' === $sub_mode ) ? 'ifs-educore-nav-link-active' : 'ifs-educore-nav-link-inactive'; ?>">
+                   class="ifs-educore-nav-link <?php echo ( 'list' === $sub_mode || 'edit' === $sub_mode || 'view' === $sub_mode ) ? 'ifs-educore-nav-link-active' : 'ifs-educore-nav-link-inactive'; ?>">
                     <span class="dashicons dashicons-admin-users"></span> <?php esc_html_e( 'All Users', 'ifsedu-school-management' ); ?>
                 </a>
                 
@@ -233,8 +360,15 @@ function educore_users_tab() {
             <?php if ( 'edit' === $sub_mode ) : ?>
                 <div>
                     <span class="ifs-educore-context-badge">
-                        <span class="dashicons dashicons-edit" style="font-size:14px; width:14px; height:14px;"></span>
+                        <span class="dashicons dashicons-edit"></span>
                         <?php esc_html_e( 'Editing User Record', 'ifsedu-school-management' ); ?>
+                    </span>
+                </div>
+            <?php elseif ( 'view' === $sub_mode ) : ?>
+                <div>
+                    <span class="ifs-educore-context-badge">
+                        <span class="dashicons dashicons-visibility"></span>
+                        <?php esc_html_e( 'Viewing User Profile', 'ifsedu-school-management' ); ?>
                     </span>
                 </div>
             <?php endif; ?>
@@ -283,6 +417,12 @@ function educore_users_tab() {
             if ( 'add' === $sub_mode || 'edit' === $sub_mode ) {
                 if ( function_exists( 'educore_user_add_edit_view' ) ) {
                     educore_user_add_edit_view( $sub_mode, $all_staff_members, $table_staff );
+                }
+            } elseif ( 'view' === $sub_mode ) {
+                if ( function_exists( 'ifs_educore_render_user_view' ) ) {
+                    ifs_educore_render_user_view( 
+                        add_query_arg( array( 'page' => 'school_management_system', 'tab' => 'users' ), $base_admin_url ) 
+                    );
                 }
             } else {
                 if ( function_exists( 'educore_users_list_view' ) ) {

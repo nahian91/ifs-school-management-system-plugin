@@ -14,14 +14,14 @@ function educore_arms_finance_tab() {
     // Fetch live entries from database logs
     $expenses_log = array();
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-    if ( $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $table_expenses ) ) === $table_expenses ) {
+    if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_expenses ) ) === $table_expenses ) {
         $expenses_log = $wpdb->get_results( "SELECT * FROM `{$table_expenses}` ORDER BY id DESC", ARRAY_A );
     }
     // phpcs:enable
 
-    $fixed_lease_total       = 0;
-    $utility_matrix_total    = 0;
-    $pending_outflow_total   = 0;
+    $fixed_lease_total     = 0;
+    $utility_matrix_total  = 0;
+    $pending_outflow_total = 0;
 
     if ( ! empty( $expenses_log ) ) {
         foreach ( $expenses_log as $row ) {
@@ -36,6 +36,35 @@ function educore_arms_finance_tab() {
         }
     }
     ?>
+
+    <style id="arms-finance-layout-styles">
+        .arms-action-col {
+            text-align: center;
+            width: 140px;
+        }
+        .arms-no-records-cell {
+            text-align: center;
+            color: #94a3b8;
+        }
+        .arms-mb-16 {
+            margin-bottom: 16px;
+        }
+        .arms-category-label {
+            display: block;
+            margin-bottom: 6px;
+        }
+        .arms-category-select {
+            width: 100%;
+            max-width: 320px;
+        }
+        .arms-btn-row-group {
+            flex-direction: row;
+            gap: 8px;
+        }
+        .arms-hide-initially {
+            display: none;
+        }
+    </style>
 
     <div class="arms-fin-wrapper">
 
@@ -85,7 +114,7 @@ function educore_arms_finance_tab() {
                                 <th>Category</th>
                                 <th>Total Amount</th>
                                 <th>Date</th>
-                                <th style="text-align: center; width: 140px;">Actions</th>
+                                <th class="arms-action-col">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -93,12 +122,12 @@ function educore_arms_finance_tab() {
                                 <?php foreach ( $expenses_log as $row ) : ?>
                                     <tr data-id="<?php echo intval( $row['id'] ); ?>" 
                                         data-category="<?php echo esc_attr( $row['expense_category'] ); ?>" 
-                                        data-type="<?php echo esc_attr( $row['expense_type'] ); ?>"
-                                        data-month="<?php echo esc_attr( $row['target_month'] ); ?>"
-                                        data-year="<?php echo esc_attr( $row['target_year'] ); ?>"
-                                        data-base="<?php echo esc_attr( $row['base_amount'] ); ?>"
-                                        data-adjustment="<?php echo esc_attr( $row['adjustment_amount'] ); ?>"
-                                        data-auth="<?php echo esc_attr( $row['authorized_by'] ); ?>"
+                                        data-type="<?php echo esc_attr( $row['expense_type'] ); ?>" 
+                                        data-month="<?php echo esc_attr( $row['target_month'] ); ?>" 
+                                        data-year="<?php echo esc_attr( $row['target_year'] ); ?>" 
+                                        data-base="<?php echo esc_attr( $row['base_amount'] ); ?>" 
+                                        data-adjustment="<?php echo esc_attr( $row['adjustment_amount'] ); ?>" 
+                                        data-auth="<?php echo esc_attr( $row['authorized_by'] ); ?>" 
                                         data-date="<?php echo esc_attr( $row['transaction_date'] ); ?>">
                                         <td><b><?php echo esc_html( ucfirst( $row['expense_type'] ) ); ?></b></td>
                                         <td><code>EXP-<?php echo esc_html( strtoupper( substr( $row['expense_category'], 0, 3 ) ) ); ?></code></td>
@@ -114,7 +143,7 @@ function educore_arms_finance_tab() {
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else : ?>
-                                <tr class="no-records-row"><td colspan="6" style="text-align:center; color:#94a3b8;">No records saved yet. Add fields through the form array matrix.</td></tr>
+                                <tr class="no-records-row"><td colspan="6" class="arms-no-records-cell">No records saved yet. Add fields through the form array matrix.</td></tr>
                             <?php endif; ?>
                         </tbody>
                     </table>
@@ -122,9 +151,9 @@ function educore_arms_finance_tab() {
             </div>
 
             <div id="sub-exp-add" class="arms-form-matrix-block">
-                <div style="margin-bottom: 16px;">
-                    <label class="arms-label-inline" style="display:block; margin-bottom:6px;">Select Core Expense Matrix Category</label>
-                    <select class="arms-select-field" id="arms-main-expense-category" style="width:100%; max-width:320px;" onchange="armsRenderExpenseFormFields(this.value)">
+                <div class="arms-mb-16">
+                    <label class="arms-label-inline arms-category-label">Select Core Expense Matrix Category</label>
+                    <select class="arms-select-field arms-category-select" id="arms-main-expense-category" onchange="armsRenderExpenseFormFields(this.value)">
                         <option value="salary">Salary Matrix</option>
                         <option value="utility">Utility Matrix</option>
                         <option value="operational">Operational Overhead Matrix</option>
@@ -175,14 +204,14 @@ function educore_arms_finance_tab() {
                                 <label>Bonus Adjustments (৳)</label>
                                 <input type="number" step="0.01" placeholder="0.00" class="arms-data-adjustment arms-input-field" />
                             </div>
-                            <div class="arms-form-element-group" style="flex-direction:row; gap:8px;">
+                            <div class="arms-form-element-group arms-btn-row-group">
                                 <button type="submit" class="arms-submit-btn" id="arms-salary-submit-text">Post Salary Ledger</button>
-                                <button type="button" class="arms-cancel-btn" id="arms-salary-cancel-btn" style="display:none;" onclick="armsResetExpenseForm()">Cancel</button>
+                                <button type="button" class="arms-cancel-btn arms-hide-initially" id="arms-salary-cancel-btn" onclick="armsResetExpenseForm()">Cancel</button>
                             </div>
                         </div>
                     </div>
 
-                    <div id="ctx-fields-utility" class="arms-form-fields-context" style="display:none;">
+                    <div id="ctx-fields-utility" class="arms-form-fields-context arms-hide-initially">
                         <div class="arms-form-grid-layout">
                             <div class="arms-form-element-group">
                                 <label>Infrastructure Utility Type</label>
@@ -209,14 +238,14 @@ function educore_arms_finance_tab() {
                                 <label>Posting Transaction Date</label>
                                 <input type="date" value="<?php echo esc_attr( current_time( 'Y-m-d' ) ); ?>" class="arms-data-date arms-input-field" />
                             </div>
-                            <div class="arms-form-element-group" style="flex-direction:row; gap:8px;">
+                            <div class="arms-form-element-group arms-btn-row-group">
                                 <button type="submit" class="arms-submit-btn" id="arms-utility-submit-text">Post Utility Ledger</button>
-                                <button type="button" class="arms-cancel-btn" id="arms-utility-cancel-btn" style="display:none;" onclick="armsResetExpenseForm()">Cancel</button>
+                                <button type="button" class="arms-cancel-btn arms-hide-initially" id="arms-utility-cancel-btn" onclick="armsResetExpenseForm()">Cancel</button>
                             </div>
                         </div>
                     </div>
 
-                    <div id="ctx-fields-operational" class="arms-form-fields-context" style="display:none;">
+                    <div id="ctx-fields-operational" class="arms-form-fields-context arms-hide-initially">
                         <div class="arms-form-grid-layout">
                             <div class="arms-form-element-group">
                                 <label>Operational Cost Allocation Line</label>
@@ -239,9 +268,9 @@ function educore_arms_finance_tab() {
                                 <label>Invoice Transaction Date</label>
                                 <input type="date" value="<?php echo esc_attr( current_time( 'Y-m-d' ) ); ?>" class="arms-data-date arms-input-field" />
                             </div>
-                            <div class="arms-form-element-group" style="flex-direction:row; gap:8px;">
+                            <div class="arms-form-element-group arms-btn-row-group">
                                 <button type="submit" class="arms-submit-btn" id="arms-operational-submit-text">Post Operational Ledger</button>
-                                <button type="button" class="arms-cancel-btn" id="arms-operational-cancel-btn" style="display:none;" onclick="armsResetExpenseForm()">Cancel</button>
+                                <button type="button" class="arms-cancel-btn arms-hide-initially" id="arms-operational-cancel-btn" onclick="armsResetExpenseForm()">Cancel</button>
                             </div>
                         </div>
                     </div>
@@ -308,13 +337,13 @@ function educore_arms_finance_tab() {
 
         window.armsRenderExpenseFormFields = function(targetCategory) {
             document.querySelectorAll('.arms-form-fields-context').forEach(function(ctxBlock) {
-                ctxBlock.style.display = 'none';
+                ctxBlock.classList.add('arms-hide-initially');
                 jQuery(ctxBlock).find('.arms-input-field, .arms-select-field').removeAttr('required');
             });
             
             var targetedContextBlock = document.getElementById('ctx-fields-' + targetCategory);
             if (targetedContextBlock) {
-                targetedContextBlock.style.display = 'block';
+                targetedContextBlock.classList.remove('arms-hide-initially');
                 jQuery(targetedContextBlock).find('.arms-data-base').attr('required', 'required');
                 
                 if (targetCategory === 'salary' && jQuery('#arms-expense-row-id').val() == '0') {
@@ -384,7 +413,7 @@ function educore_arms_finance_tab() {
             $ctx.find('.arms-data-date').val($row.attr('data-date'));
             
             jQuery('#arms-' + category + '-submit-text').text('Update Ledger Record');
-            jQuery('#arms-' + category + '-cancel-btn').show();
+            jQuery('#arms-' + category + '-cancel-btn').removeClass('arms-hide-initially');
             
             jQuery('#btn-sub-exp-add').text('📝 Edit Expense Record');
             armsSwitchSubExpenseTab('sub-exp-add');
@@ -402,9 +431,9 @@ function educore_arms_finance_tab() {
             
             jQuery('.arms-submit-btn').each(function() {
                 var cat = jQuery(this).attr('id').split('-')[1];
-                jQuery(this).text('Post ' + cat.charAt(0).toUpperCase() + cat.slice(1) + ' Ledger');
+                jQuery(this).text('Post ' + cat.charAt(0).tocapitalize() + cat.slice(1) + ' Ledger');
             });
-            jQuery('.arms-cancel-btn').hide();
+            jQuery('.arms-cancel-btn').addClass('arms-hide-initially');
             jQuery('#btn-sub-exp-add').text('➕ Add Expense Allocation');
             
             armsRenderExpenseFormFields(jQuery('#arms-main-expense-category').val());
@@ -432,7 +461,7 @@ function educore_arms_finance_tab() {
                     $row.fadeOut('slow', function() {
                         jQuery(this).remove();
                         if (jQuery('#arms-expenses-log-table tbody tr').length === 0) {
-                            jQuery('#arms-expenses-log-table tbody').append('<tr class="no-records-row"><td colspan="6" style="text-align:center; color:#94a3b8;">No records saved yet. Add fields through the form array matrix.</td></tr>');
+                            jQuery('#arms-expenses-log-table tbody').append('<tr class="no-records-row"><td colspan="6" class="arms-no-records-cell">No records saved yet. Add fields through the form array matrix.</td></tr>');
                         }
                     });
                 }
@@ -532,7 +561,7 @@ function educore_arms_load_staff_by_role_handler() {
     $table_staff   = $wpdb->prefix . 'arms_staff';
 
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-    if ( $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $table_staff ) ) !== $table_staff ) {
+    if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_staff ) ) !== $table_staff ) {
         wp_send_json_error( 'Staff registry database table does not exist.' );
     }
 
