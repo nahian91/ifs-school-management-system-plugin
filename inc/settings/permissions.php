@@ -6,10 +6,19 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+    exit; // Exit if accessed directly.
 }
 
+/**
+ * Render Role Permissions Matrix View & Handle Form Submission
+ *
+ * @param string $base_url Base URL for settings subtabs.
+ */
 function educore_render_settings_permissions_view( $base_url ) {
+    if ( ! current_user_can( 'manage_options' ) ) {
+        wp_die( esc_html__( 'You do not have sufficient administrative permissions to manage role access permissions.', 'ifsedu-school-management' ) );
+    }
+
     $settings_updated = false;
 
     $system_modules = array(
@@ -69,6 +78,154 @@ function educore_render_settings_permissions_view( $base_url ) {
     $saved_permissions = is_array( $saved_permissions ) ? $saved_permissions : array();
     ?>
 
+    <style id="ifs-educore-permissions-styles">
+        .ifs-educore-permissions-root {
+            font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #0f172a;
+        }
+
+        .ifs-educore-alert {
+            background: #ecfdf5;
+            border-left: 4px solid #10b981;
+            color: #065f46;
+            padding: 12px 18px;
+            border-radius: 8px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ifs-educore-settings-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
+            margin-bottom: 30px;
+        }
+
+        .ifs-educore-perm-table-responsive {
+            overflow-x: auto;
+        }
+
+        .ifs-educore-perm-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 13.5px;
+        }
+
+        .ifs-educore-perm-table th,
+        .ifs-educore-perm-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: middle;
+        }
+
+        .ifs-educore-perm-table th {
+            background: #f8fafc;
+            color: #475569;
+            font-size: 11.5px;
+            font-weight: 800;
+            text-transform: capitalize;
+            border-bottom: 1px solid #e2e8f0;
+            text-align: center;
+        }
+
+        .ifs-educore-perm-table th.ifs-educore-module-col,
+        .ifs-educore-perm-table td.ifs-educore-module-col {
+            text-align: left;
+            width: 35%;
+        }
+
+        .ifs-educore-perm-table td:not(.ifs-educore-module-col) {
+            text-align: center;
+        }
+
+        .ifs-educore-perm-module-icon {
+            color: #00523c;
+            font-size: 16px;
+            width: 16px;
+            height: 16px;
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+
+        /* Custom Toggle Switch styling */
+        .ifs-educore-switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+
+        .ifs-educore-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .ifs-educore-switch-slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background-color: #cbd5e1;
+            transition: .2s;
+            border-radius: 24px;
+        }
+
+        .ifs-educore-switch-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .2s;
+            border-radius: 50%;
+        }
+
+        .ifs-educore-switch input:checked + .ifs-educore-switch-slider {
+            background-color: #00523c;
+        }
+
+        .ifs-educore-switch input:checked + .ifs-educore-switch-slider:before {
+            transform: translateX(20px);
+        }
+
+        .ifs-educore-form-actions {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .ifs-educore-btn-submit {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            height: 42px;
+            padding: 0 24px;
+            background: #00523c;
+            color: #ffffff;
+            font-size: 13.5px;
+            font-weight: 800;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 82, 60, 0.25);
+            transition: all 0.2s ease;
+        }
+
+        .ifs-educore-btn-submit:hover {
+            background: #003e2d;
+        }
+    </style>
+
     <div class="ifs-educore-permissions-root">
         <?php if ( $settings_updated ) : ?>
             <div class="ifs-educore-alert">
@@ -85,7 +242,7 @@ function educore_render_settings_permissions_view( $base_url ) {
                     <table class="ifs-educore-perm-table">
                         <thead>
                             <tr>
-                                <th class="module-col"><?php esc_html_e( 'System Module / Feature', 'ifsedu-school-management' ); ?></th>
+                                <th class="ifs-educore-module-col"><?php esc_html_e( 'System Module / Feature', 'ifsedu-school-management' ); ?></th>
                                 <?php foreach ( $configurable_roles as $role_key => $role_name ) : ?>
                                     <th><?php echo esc_html( $role_name ); ?></th>
                                 <?php endforeach; ?>
@@ -94,7 +251,7 @@ function educore_render_settings_permissions_view( $base_url ) {
                         <tbody>
                             <?php foreach ( $system_modules as $mod_key => $mod_name ) : ?>
                                 <tr>
-                                    <td class="module-col">
+                                    <td class="ifs-educore-module-col">
                                         <span class="dashicons dashicons-arrow-right-alt2 ifs-educore-perm-module-icon"></span>
                                         <?php echo esc_html( $mod_name ); ?>
                                     </td>
@@ -114,7 +271,7 @@ function educore_render_settings_permissions_view( $base_url ) {
                     </table>
                 </div>
 
-                <div class="ifs-educore-form-actions ifs-educore-form-actions-wrap">
+                <div class="ifs-educore-form-actions">
                     <button type="submit" name="educore_save_permissions" class="ifs-educore-btn-submit">
                         <span class="dashicons dashicons-saved"></span>
                         <?php esc_html_e( 'Save Access Matrix', 'ifsedu-school-management' ); ?>

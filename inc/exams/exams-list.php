@@ -6,20 +6,23 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Exit if accessed directly
+    exit; // Exit if accessed directly.
 }
 
+/**
+ * Render Academic Examinations Directory List View & Handle Deletions
+ */
 function educore_exam_list_view() {
     global $wpdb;
     
     $table_exams = $wpdb->prefix . 'sms_exams';
 
-    // Strict Capability Check
+    // Strict Capability Check.
     if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'You do not have sufficient permissions to manage examination schemes.', 'ifsedu-school-management' ) );
     }
 
-    // Dynamic Base URL
+    // Dynamic Base URL.
     $base_url = add_query_arg(
         array(
             'page' => 'school_management_system',
@@ -37,15 +40,16 @@ function educore_exam_list_view() {
         admin_url( 'admin.php' )
     );
 
-    // Handle Delete Exam Action
+    // Handle Delete Exam Action.
     // phpcs:disable WordPress.Security.NonceVerification.Recommended
     $get_action = isset( $_GET['action'] ) ? sanitize_key( wp_unslash( $_GET['action'] ) ) : '';
     $get_id     = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
 
     if ( 'delete' === $get_action && $get_id > 0 ) {
         if ( isset( $_GET['_wpnonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'delete_exam_' . $get_id ) ) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $wpdb->delete( $table_exams, array( 'id' => $get_id ), array( '%d' ) );
+            // phpcs:enable
 
             if ( function_exists( 'educore_log_activity' ) ) {
                 /* translators: %d: Exam ID */
@@ -64,8 +68,9 @@ function educore_exam_list_view() {
         }
     }
 
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
     $exams = $wpdb->get_results( "SELECT * FROM `{$table_exams}` ORDER BY id DESC" );
+    // phpcs:enable
     $status_msg = isset( $_GET['status'] ) ? sanitize_text_field( wp_unslash( $_GET['status'] ) ) : '';
     // phpcs:enable WordPress.Security.NonceVerification.Recommended
     ?>

@@ -8,9 +8,12 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Direct access safety buffer
+    exit; // Direct access safety buffer.
 }
 
+/**
+ * Render Core Student Comprehensive Profile Single View & Dashboard
+ */
 function educore_student_profile_view() {
     if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'You do not have sufficient administrative permissions to access this page.', 'ifsedu-school-management' ) );
@@ -41,16 +44,16 @@ function educore_student_profile_view() {
         return;
     }
 
-    // Query Referred Staff Member for Financial Waiver if assigned
+    // Query Referred Staff Member for Financial Waiver if assigned.
     $referred_staff_name = '—';
-    if ( ! empty( $student->waiver_staff_id ) && $student->waiver_staff_id > 0 ) {
+    if ( ! empty( $student->waiver_staff_id ) && 0 < $student->waiver_staff_id ) {
         $staff_row = $wpdb->get_row( $wpdb->prepare( "SELECT full_name, designation, staff_type FROM `{$staff_table}` WHERE id = %d LIMIT 1", $student->waiver_staff_id ) );
         if ( $staff_row ) {
             $referred_staff_name = $staff_row->full_name . ' (' . $staff_row->designation . ' - ' . $staff_row->staff_type . ')';
         }
     }
 
-    // Query exam results, fee ledgers, and attendance records with optimized column selection
+    // Query exam results, fee ledgers, and attendance records with optimized column selection.
     $exam_results = $wpdb->get_results( $wpdb->prepare(
         "SELECT r.id, r.exam_id, r.subject_name, r.total_marks, r.obtained_marks, r.grade, r.gpa, e.exam_name 
          FROM `{$results_table}` r 
@@ -78,7 +81,7 @@ function educore_student_profile_view() {
     ) );
     // phpcs:enable
 
-    // Financial Summary
+    // Financial Summary.
     $total_paid = 0.00;
     $total_due  = 0.00;
     if ( ! empty( $fee_ledgers ) ) {
@@ -88,7 +91,7 @@ function educore_student_profile_view() {
         }
     }
 
-    // Attendance Calculations
+    // Attendance Calculations.
     $total_present = 0;
     $total_absent  = 0;
     $total_late    = 0;
@@ -107,7 +110,7 @@ function educore_student_profile_view() {
     }
 
     $total_days       = $total_present + $total_absent + $total_late;
-    $attendance_ratio = $total_days > 0 ? round( ( $total_present / $total_days ) * 100, 1 ) : 0;
+    $attendance_ratio = 0 < $total_days ? round( ( $total_present / $total_days ) * 100, 1 ) : 0;
 
     $back_url = admin_url( 'admin.php?page=school_management_system&tab=students&sub=list' );
     $edit_url = add_query_arg(
@@ -830,7 +833,7 @@ function educore_student_profile_view() {
                         }
                         
                         $sub_count    = count( $results );
-                        $avg_gpa      = $sub_count > 0 ? ( $sum_gpa / $sub_count ) : 0;
+                        $avg_gpa      = 0 < $sub_count ? ( $sum_gpa / $sub_count ) : 0;
                         $final_gpa    = $has_failed ? '0.00' : number_format( $avg_gpa, 2 );
                         $pass_status  = $has_failed ? esc_html__( 'Failed', 'ifsedu-school-management' ) : esc_html__( 'Passed', 'ifsedu-school-management' );
                         $status_color = $has_failed ? '#dc2626' : '#059669';

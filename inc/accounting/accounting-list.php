@@ -6,9 +6,12 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Direct access safety buffer
+    exit; // Direct access safety buffer.
 }
 
+/**
+ * Render Master Financial Ledger Table View & Analytics Dashboard
+ */
 function educore_accounting_list_view() {
     global $wpdb;
     $current_user = wp_get_current_user();
@@ -36,7 +39,7 @@ function educore_accounting_list_view() {
         // phpcs:enable
         if ( $staff_row ) {
             $desig = strtolower( (string) ( $staff_row->designation . ' ' . $staff_row->staff_type ) );
-            if ( strpos( $desig, 'account' ) !== false || strpos( $desig, 'finance' ) !== false || strpos( $desig, 'cash' ) !== false ) {
+            if ( false !== strpos( $desig, 'account' ) || false !== strpos( $desig, 'finance' ) || false !== strpos( $desig, 'cash' ) ) {
                 $is_accountant = true;
             }
         }
@@ -99,7 +102,7 @@ function educore_accounting_list_view() {
 
     $where_sql = ! empty( $where_clauses ) ? ' WHERE ' . implode( ' AND ', $where_clauses ) : '';
 
-    // Fetch Filtered Ledger Records with Staff Name Mapping
+    // Fetch Filtered Ledger Records with Staff Name Mapping.
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, PluginCheck.Security.DirectDB.UnescapedDBParameter
     $query = "SELECT ac.*, st.full_name as staff_full_name, u.display_name as wp_user_name 
               FROM `{$table_accounting}` ac 
@@ -113,7 +116,7 @@ function educore_accounting_list_view() {
         $ledger_records = $wpdb->get_results( $query );
     }
 
-    // Dynamic Categories for Dropdown
+    // Dynamic Categories for Dropdown.
     $available_categories = $wpdb->get_col( "SELECT DISTINCT category_name FROM `{$table_accounting}` WHERE category_name != '' ORDER BY category_name ASC" );
 
     // --------------------------------------------------------------------------
@@ -147,7 +150,7 @@ function educore_accounting_list_view() {
 
     $month_net = $month_income - $month_expense;
 
-    // Navigation URLs
+    // Navigation URLs.
     $base_tab_url = add_query_arg( array( 'page' => 'school_management_system', 'tab' => 'accounting', 'sub' => 'list' ), admin_url( 'admin.php' ) );
     $add_new_url  = add_query_arg( array( 'page' => 'school_management_system', 'tab' => 'accounting', 'sub' => 'add' ), admin_url( 'admin.php' ) );
     ?>
@@ -326,13 +329,13 @@ function educore_accounting_list_view() {
                 </h4>
 
                 <div class="ifs-educore-filter-pills">
-                    <a href="<?php echo esc_url( add_query_arg( 'entry_type', 'all', $base_tab_url ) ); ?>" class="ifs-educore-filter-pill-btn <?php echo $filter_type === 'all' ? 'active' : ''; ?>">
+                    <a href="<?php echo esc_url( add_query_arg( 'entry_type', 'all', $base_tab_url ) ); ?>" class="ifs-educore-filter-pill-btn <?php echo 'all' === $filter_type ? 'active' : ''; ?>">
                         <?php esc_html_e( 'All Entries', 'ifsedu-school-management' ); ?>
                     </a>
-                    <a href="<?php echo esc_url( add_query_arg( 'entry_type', 'Income', $base_tab_url ) ); ?>" class="ifs-educore-filter-pill-btn <?php echo $filter_type === 'Income' ? 'active' : ''; ?>">
+                    <a href="<?php echo esc_url( add_query_arg( 'entry_type', 'Income', $base_tab_url ) ); ?>" class="ifs-educore-filter-pill-btn <?php echo 'Income' === $filter_type ? 'active' : ''; ?>">
                         <?php esc_html_e( 'Incomes', 'ifsedu-school-management' ); ?>
                     </a>
-                    <a href="<?php echo esc_url( add_query_arg( 'entry_type', 'Expense', $base_tab_url ) ); ?>" class="ifs-educore-filter-pill-btn <?php echo $filter_type === 'Expense' ? 'active' : ''; ?>">
+                    <a href="<?php echo esc_url( add_query_arg( 'entry_type', 'Expense', $base_tab_url ) ); ?>" class="ifs-educore-filter-pill-btn <?php echo 'Expense' === $filter_type ? 'active' : ''; ?>">
                         <?php esc_html_e( 'Expenses', 'ifsedu-school-management' ); ?>
                     </a>
                 </div>

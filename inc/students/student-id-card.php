@@ -6,13 +6,16 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Immediate access layer lockdown
+    exit; // Immediate access layer lockdown.
 }
 
 // --------------------------------------------------------------------------
 // 0. AJAX HANDLER FOR DYNAMIC STUDENT SELECTOR
 // --------------------------------------------------------------------------
 add_action( 'wp_ajax_ifs_educore_get_students_for_id_card', 'ifs_educore_get_students_for_id_card_handler' );
+/**
+ * AJAX Handler: Get students for ID card generator based on class and section.
+ */
 function ifs_educore_get_students_for_id_card_handler() {
     check_ajax_referer( 'ifs_educore_id_card_nonce', 'security' );
 
@@ -25,12 +28,12 @@ function ifs_educore_get_students_for_id_card_handler() {
     $class_name     = isset( $_POST['class_name'] ) ? sanitize_text_field( wp_unslash( $_POST['class_name'] ) ) : '';
     $section_name   = isset( $_POST['section_name'] ) ? sanitize_text_field( wp_unslash( $_POST['section_name'] ) ) : '';
 
-    if ( empty( $class_name ) ) {
+    if ( '' === $class_name ) {
         wp_send_json_success( array() );
     }
 
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-    if ( ! empty( $section_name ) ) {
+    if ( '' !== $section_name ) {
         $students = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT id, full_name, student_id, roll_no FROM `{$table_students}` WHERE status = 'Active' AND class_name = %s AND section_name = %s ORDER BY CAST(roll_no AS UNSIGNED) ASC, roll_no ASC",
@@ -54,6 +57,9 @@ function ifs_educore_get_students_for_id_card_handler() {
 // --------------------------------------------------------------------------
 // 1. MAIN ID CARD COMPILER VIEW
 // --------------------------------------------------------------------------
+/**
+ * Render Academic Student PVC ID Card Generator View
+ */
 function educore_student_id_card_view() {
     if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'You do not have sufficient administrative permissions to access this page.', 'ifsedu-school-management' ) );
@@ -63,12 +69,12 @@ function educore_student_id_card_view() {
     $table_students = $wpdb->prefix . 'sms_students';
     $table_units    = $wpdb->prefix . 'sms_academic_units';
 
-    // Fetch all academic units ordered by sort_order
+    // Fetch all academic units ordered by sort_order.
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
     $raw_academic_units = $wpdb->get_results( "SELECT class_name, section_name, sort_order FROM `{$table_units}` WHERE class_name IS NOT NULL AND class_name != '' ORDER BY sort_order ASC, CAST(class_name AS UNSIGNED) ASC, class_name ASC, section_name ASC" );
     // phpcs:enable
 
-    // Group sections under their respective classes and preserve sort_order
+    // Group sections under their respective classes and preserve sort_order.
     $class_sections_map = array();
     $class_order_map    = array();
 
@@ -86,13 +92,13 @@ function educore_student_id_card_view() {
                 $class_sections_map[ $c_name ] = array();
             }
 
-            if ( ! empty( $s_name ) && ! in_array( $s_name, $class_sections_map[ $c_name ], true ) ) {
+            if ( '' !== $s_name && ! in_array( $s_name, $class_sections_map[ $c_name ], true ) ) {
                 $class_sections_map[ $c_name ][] = $s_name;
             }
         }
     }
 
-    // Sort classes by sort_order first, then natural comparison
+    // Sort classes by sort_order first, then natural comparison.
     uksort( $class_sections_map, function( $a, $b ) use ( $class_order_map ) {
         $order_a = isset( $class_order_map[ $a ] ) ? $class_order_map[ $a ] : 0;
         $order_b = isset( $class_order_map[ $b ] ) ? $class_order_map[ $b ] : 0;
@@ -102,7 +108,7 @@ function educore_student_id_card_view() {
         return strnatcasecmp( $a, $b );
     } );
 
-    // Read parameters from GET request
+    // Read parameters from GET request.
     // phpcs:disable WordPress.Security.NonceVerification.Recommended
     $selected_class   = isset( $_GET['class_name'] ) ? sanitize_text_field( wp_unslash( $_GET['class_name'] ) ) : '';
     $selected_section = isset( $_GET['section_name'] ) ? sanitize_text_field( wp_unslash( $_GET['section_name'] ) ) : '';
@@ -113,10 +119,10 @@ function educore_student_id_card_view() {
     $students           = array();
     $available_students = array();
 
-    if ( ! empty( $selected_class ) ) {
-        // Fetch Students for Dropdown
+    if ( '' !== $selected_class ) {
+        // Fetch Students for Dropdown.
         // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        if ( ! empty( $selected_section ) ) {
+        if ( '' !== $selected_section ) {
             $available_students = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT id, full_name, student_id, roll_no, section_name FROM `{$table_students}` WHERE status = 'Active' AND class_name = %s AND section_name = %s ORDER BY CAST(roll_no AS UNSIGNED) ASC, roll_no ASC",
@@ -133,10 +139,10 @@ function educore_student_id_card_view() {
             );
         }
 
-        // Fetch Main Cards Query with targeted fields
-        $fields = "id, student_id, full_name, class_name, section_name, roll_no, photo_url, blood_group, guardian_phone, student_phone";
+        // Fetch Main Cards Query with targeted fields.
+        $fields = 'id, student_id, full_name, class_name, section_name, roll_no, photo_url, blood_group, guardian_phone, student_phone';
 
-        if ( ! empty( $selected_section ) && $selected_student > 0 ) {
+        if ( '' !== $selected_section && 0 < $selected_student ) {
             $students = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT {$fields} FROM `{$table_students}` WHERE status = 'Active' AND class_name = %s AND section_name = %s AND id = %d ORDER BY CAST(roll_no AS UNSIGNED) ASC, roll_no ASC",
@@ -145,7 +151,7 @@ function educore_student_id_card_view() {
                     $selected_student
                 )
             );
-        } elseif ( ! empty( $selected_section ) ) {
+        } elseif ( '' !== $selected_section ) {
             $students = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT {$fields} FROM `{$table_students}` WHERE status = 'Active' AND class_name = %s AND section_name = %s ORDER BY CAST(roll_no AS UNSIGNED) ASC, roll_no ASC",
@@ -153,7 +159,7 @@ function educore_student_id_card_view() {
                     $selected_section
                 )
             );
-        } elseif ( $selected_student > 0 ) {
+        } elseif ( 0 < $selected_student ) {
             $students = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT {$fields} FROM `{$table_students}` WHERE status = 'Active' AND class_name = %s AND id = %d ORDER BY CAST(roll_no AS UNSIGNED) ASC, roll_no ASC",
@@ -172,7 +178,7 @@ function educore_student_id_card_view() {
         // phpcs:enable
     }
 
-    // Pull Dynamic Institutional Settings
+    // Pull Dynamic Institutional Settings.
     $school_name    = get_option( 'educore_school_name', get_bloginfo( 'name' ) );
     $school_tagline = get_option( 'educore_school_tagline', '' );
     $school_logo    = get_option( 'educore_school_logo', '' );
@@ -244,7 +250,7 @@ function educore_student_id_card_view() {
             background: #065f46;
         }
 
-        /* Strict Strict PVC Proportions: 54mm width x 85.6mm height with strict containment */
+        /* Strict PVC Proportions: 54mm width x 85.6mm height with strict containment */
         .ifs-educore-id-card-box {
             width: 54mm;
             height: 85.6mm;
@@ -669,7 +675,7 @@ function educore_student_id_card_view() {
         </div>
 
         <!-- Output Cards Grid -->
-        <?php if ( ! empty( $selected_class ) ) : ?>
+        <?php if ( '' !== $selected_class ) : ?>
             <div id="ifs-educore-printable-id-area">
                 <?php if ( ! empty( $students ) ) : ?>
                     <div class="ifs-educore-id-cards-container">
@@ -788,7 +794,7 @@ function educore_student_id_card_view() {
         }
     }
 
-    // Native Code128 Barcode Renderer (Pure JS)
+    // Native Code128 Barcode Renderer (Pure JS).
     function educoreRenderBarcode(svg, text) {
         var code128Patterns = [
             "212222","222122","222221","121223","121322","131222","122213","122312","132212","221213",
@@ -831,7 +837,7 @@ function educore_student_id_card_view() {
         svg.innerHTML = svgContent;
     }
 
-    // Standards-Compliant Native QR Code Matrix Generator (Byte Mode, ISO/IEC 18004)
+    // Standards-Compliant Native QR Code Matrix Generator (Byte Mode, ISO/IEC 18004).
     function educoreRenderQRCode(container, text) {
         var modules = generateQRMatrix(text);
         var size = modules.length;
@@ -999,7 +1005,7 @@ function educore_student_id_card_view() {
             });
         }
 
-        // Render Native Code128 Barcodes
+        // Render Native Code128 Barcodes.
         document.querySelectorAll('.ifs-educore-barcode-svg').forEach(function(el) {
             var val = el.getAttribute('data-barcode');
             if (val) {
@@ -1007,7 +1013,7 @@ function educore_student_id_card_view() {
             }
         });
 
-        // Render Native QR Codes
+        // Render Native QR Codes.
         document.querySelectorAll('.ifs-educore-qrcode-box').forEach(function(el) {
             var url = el.getAttribute('data-qrcode');
             if (url) {

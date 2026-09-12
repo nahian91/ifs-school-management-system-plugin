@@ -6,11 +6,14 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Fee Collection Module Engine
+    exit; // Exit if accessed directly.
 }
 
-// 1. AJAX Handler to dynamically load Sections based on Class
+// 1. AJAX Handler to dynamically load Sections based on Class.
 add_action( 'wp_ajax_ifs_educore_get_sections_by_class_fee', 'ifs_educore_get_sections_by_class_fee_handler' );
+/**
+ * AJAX Handler: Load Sections based on Class
+ */
 function ifs_educore_get_sections_by_class_fee_handler() {
     check_ajax_referer( 'ifs_educore_fee_nonce', 'security' );
 
@@ -50,8 +53,11 @@ function ifs_educore_get_sections_by_class_fee_handler() {
     wp_send_json_success( is_array( $sections ) ? $sections : array() );
 }
 
-// 2. AJAX Handler to fetch configured Fee Categories & Amounts strictly from Fees Settings
+// 2. AJAX Handler to fetch configured Fee Categories & Amounts strictly from Fees Settings.
 add_action( 'wp_ajax_ifs_educore_get_fee_types_by_class', 'ifs_educore_get_fee_types_by_class_handler' );
+/**
+ * AJAX Handler: Fetch fee categories and calculate automated late fines.
+ */
 function ifs_educore_get_fee_types_by_class_handler() {
     check_ajax_referer( 'ifs_educore_fee_nonce', 'security' );
 
@@ -68,10 +74,10 @@ function ifs_educore_get_fee_types_by_class_handler() {
     $table_fee_types = $wpdb->prefix . 'sms_fee_types';
     $table_late_cfg  = $wpdb->prefix . 'sms_late_fee_config';
 
-    $class_name      = isset( $_POST['class_name'] ) ? sanitize_text_field( wp_unslash( $_POST['class_name'] ) ) : '';
-    $billing_month   = isset( $_POST['billing_month'] ) ? sanitize_text_field( wp_unslash( $_POST['billing_month'] ) ) : gmdate( 'F' );
-    $billing_year    = isset( $_POST['billing_year'] ) ? absint( wp_unslash( $_POST['billing_year'] ) ) : (int) gmdate( 'Y' );
-    $clean_class     = trim( str_ireplace( 'Class ', '', $class_name ) );
+    $class_name    = isset( $_POST['class_name'] ) ? sanitize_text_field( wp_unslash( $_POST['class_name'] ) ) : '';
+    $billing_month = isset( $_POST['billing_month'] ) ? sanitize_text_field( wp_unslash( $_POST['billing_month'] ) ) : gmdate( 'F' );
+    $billing_year  = isset( $_POST['billing_year'] ) ? absint( wp_unslash( $_POST['billing_year'] ) ) : (int) gmdate( 'Y' );
+    $clean_class   = trim( str_ireplace( 'Class ', '', $class_name ) );
 
     $fee_types = array();
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
@@ -85,7 +91,7 @@ function ifs_educore_get_fee_types_by_class_handler() {
         );
     }
 
-    // Calculate Late Fine based on Settings Table Rules
+    // Calculate Late Fine based on Settings Table Rules.
     $calculated_fine = 0.00;
     $late_cfg = $wpdb->get_row( "SELECT * FROM `{$table_late_cfg}` LIMIT 1" );
     // phpcs:enable
@@ -131,8 +137,11 @@ function ifs_educore_get_fee_types_by_class_handler() {
     ) );
 }
 
-// 3. AJAX Handler to dynamically filter student list by Class & Section
+// 3. AJAX Handler to dynamically filter student list by Class & Section.
 add_action( 'wp_ajax_ifs_educore_get_students_for_fee_collect', 'ifs_educore_get_students_for_fee_collect_handler' );
+/**
+ * AJAX Handler: Filter active student list by Class and Section.
+ */
 function ifs_educore_get_students_for_fee_collect_handler() {
     check_ajax_referer( 'ifs_educore_fee_nonce', 'security' );
 
@@ -208,8 +217,11 @@ function ifs_educore_get_students_for_fee_collect_handler() {
     wp_send_json_success( $data );
 }
 
-// 4. AJAX Handler to fetch details of a single student, missing unbilled months & recorded past dues
+// 4. AJAX Handler to fetch details of a single student, missing unbilled months & recorded past dues.
 add_action( 'wp_ajax_ifs_educore_get_single_student_waiver_info', 'ifs_educore_get_single_student_waiver_info_handler' );
+/**
+ * AJAX Handler: Fetch student waiver details, unbilled months, and past dues.
+ */
 function ifs_educore_get_single_student_waiver_info_handler() {
     check_ajax_referer( 'ifs_educore_fee_nonce', 'security' );
 
@@ -259,7 +271,7 @@ function ifs_educore_get_single_student_waiver_info_handler() {
 
     $effective_fee_start = ! empty( $student->fee_start_date ) ? $student->fee_start_date : ( ! empty( $student->admission_date ) ? $student->admission_date : '' );
 
-    // 4.1 Check Existing Recorded Invoices for this Student
+    // 4.1 Check Existing Recorded Invoices for this Student.
     $recorded_invoices = $wpdb->get_results(
         $wpdb->prepare(
             "SELECT invoice_id, fee_type, fee_month, fee_year, amount, discount, net_payable, paid_amount, due_amount, payment_status 
@@ -269,9 +281,9 @@ function ifs_educore_get_single_student_waiver_info_handler() {
         )
     );
 
-    $recorded_due_total = 0.00;
-    $due_breakdown_items = array();
-    $recorded_paid_months = array();
+    $recorded_due_total     = 0.00;
+    $due_breakdown_items    = array();
+    $recorded_paid_months   = array();
 
     if ( ! empty( $recorded_invoices ) ) {
         foreach ( $recorded_invoices as $inv ) {
@@ -292,11 +304,11 @@ function ifs_educore_get_single_student_waiver_info_handler() {
         }
     }
 
-    // 4.2 Detect Unbilled Past Monthly Fees between fee_start_date and current_target_month/year
+    // 4.2 Detect Unbilled Past Monthly Fees between fee_start_date and current_target_month/year.
     $unbilled_due_total = 0.00;
     $clean_class = trim( str_ireplace( 'Class ', '', $student->class_name ) );
 
-    // Fetch monthly tuition base amount configured for this class
+    // Fetch monthly tuition base amount configured for this class.
     $monthly_fee_row = $wpdb->get_row(
         $wpdb->prepare(
             "SELECT amount, fee_title FROM `{$table_fee_types}` WHERE (class_name = %s OR class_name = %s) AND period_type = 'Monthly' ORDER BY id ASC LIMIT 1",
@@ -320,7 +332,7 @@ function ifs_educore_get_single_student_waiver_info_handler() {
             $m_year = gmdate( 'Y', $cursor_ts );
             $m_key  = strtolower( $m_name ) . '_' . $m_year;
 
-            // Check if student already paid this month
+            // Check if student already paid this month.
             if ( ! in_array( $m_key, $recorded_paid_months, true ) ) {
                 $month_cost = $standard_monthly_amt;
                 if ( $waiver_pct > 0 && $month_cost > 0 ) {
@@ -339,7 +351,7 @@ function ifs_educore_get_single_student_waiver_info_handler() {
                 }
             }
 
-            // Move to next month
+            // Move to next month.
             $cursor_ts = strtotime( '+1 month', $cursor_ts );
         }
     }
@@ -364,6 +376,9 @@ function ifs_educore_get_single_student_waiver_info_handler() {
     ) );
 }
 
+/**
+ * Render Fee Collection Module Engine View
+ */
 function educore_fees_collect_view() {
     global $wpdb;
     $current_user = wp_get_current_user();
@@ -376,10 +391,10 @@ function educore_fees_collect_view() {
         wp_die( esc_html__( 'You do not have sufficient permissions to collect fees.', 'ifsedu-school-management' ) );
     }
 
-    $table_students  = $wpdb->prefix . 'sms_students';
-    $table_fees      = $wpdb->prefix . 'sms_fees';
-    $table_units     = $wpdb->prefix . 'sms_academic_units';
-    $table_late_cfg  = $wpdb->prefix . 'sms_late_fee_config';
+    $table_students = $wpdb->prefix . 'sms_students';
+    $table_fees     = $wpdb->prefix . 'sms_fees';
+    $table_units    = $wpdb->prefix . 'sms_academic_units';
+    $table_late_cfg = $wpdb->prefix . 'sms_late_fee_config';
 
     $db_error = '';
     $back_url = add_query_arg(
@@ -391,7 +406,7 @@ function educore_fees_collect_view() {
         admin_url( 'admin.php' )
     );
 
-    // Handle Form Submission
+    // Handle Form Submission.
     $req_method = isset( $_SERVER['REQUEST_METHOD'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : '';
     if ( 'POST' === $req_method && isset( $_POST['educore_collect_fee'] ) ) {
         $fee_nonce = isset( $_POST['ifs_educore_fee_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['ifs_educore_fee_nonce'] ) ) : '';
@@ -404,12 +419,12 @@ function educore_fees_collect_view() {
             $discount     = isset( $_POST['discount'] ) ? max( 0, floatval( wp_unslash( $_POST['discount'] ) ) ) : 0;
             $paid_amount  = isset( $_POST['paid_amount'] ) ? max( 0, floatval( wp_unslash( $_POST['paid_amount'] ) ) ) : 0;
             
-            // Mathematical Ledger Rules (Includes Previous Due)
+            // Mathematical Ledger Rules (Includes Previous Due).
             $gross_total = $amount + $late_fine + $previous_due;
             $net_payable = max( 0, $gross_total - $discount );
             $due_amount  = max( 0, $net_payable - $paid_amount );
             
-            // Payment Status Logic
+            // Payment Status Logic.
             $payment_status = 'Unpaid';
             if ( $paid_amount >= $net_payable && $net_payable > 0 ) {
                 $payment_status = 'Paid';
@@ -452,7 +467,7 @@ function educore_fees_collect_view() {
             );
 
             $format = array(
-                '%s', '%d', '%s', '%d', '%s', '%f', '%f', '%f', '%f', '%f', '%f', '%s', '%s', '%s', '%s', '%s', '%d'
+                '%s', '%d', '%s', '%d', '%s', '%f', '%f', '%f', '%f', '%f', '%f', '%s', '%s', '%s', '%s', '%s', '%d',
             );
 
             // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, PluginCheck.Security.DirectDB.UnescapedDBParameter
@@ -490,7 +505,7 @@ function educore_fees_collect_view() {
         }
     }
 
-    // Fetch Unique Classes ordered primarily by sort_order
+    // Fetch Unique Classes ordered primarily by sort_order.
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
     $raw_classes_data = $wpdb->get_results( 
         "SELECT class_name, MIN(sort_order) as min_sort 
@@ -508,7 +523,7 @@ function educore_fees_collect_view() {
         }
     }
 
-    // Fetch Initial Active Students List
+    // Fetch Initial Active Students List.
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
     $students = $wpdb->get_results(
         "SELECT id, full_name, student_id, roll_no, class_name, section_name, shift, admission_date, fee_start_date, waiver_percentage, waiver_staff_id 
@@ -737,7 +752,7 @@ function educore_fees_collect_view() {
     jQuery(document).ready(function($) {
         var nonce = '<?php echo esc_js( wp_create_nonce( "ifs_educore_fee_nonce" ) ); ?>';
         var activeStudentWaiverPct = 0;
-        var activeStudentFeeStartDate = ''; // Format: YYYY-MM-DD
+        var activeStudentFeeStartDate = ''; // Format: YYYY-MM-DD.
         var searchDebounceTimer;
 
         var monthMap = {
@@ -745,7 +760,7 @@ function educore_fees_collect_view() {
             "July": 7, "August": 8, "September": 9, "October": 10, "November": 11, "December": 12
         };
 
-        // Restrict / Disable previous months in Billing Month dropdown that precede student's fee start date
+        // Restrict / Disable previous months in Billing Month dropdown that precede student's fee start date.
         function enforceBillingMonthRestrictions() {
             var $monthSelect = $('#ifs_educore_fee_month_select');
             var selectedYear = parseInt($('#ifs_educore_fee_year_input').val(), 10) || 0;
@@ -774,7 +789,7 @@ function educore_fees_collect_view() {
                     $(this).prop('disabled', shouldDisable);
                 });
 
-                // If currently selected month is disabled, auto-shift to first valid month
+                // If currently selected month is disabled, auto-shift to first valid month.
                 var currentSelectedOpt = $monthSelect.find('option:selected');
                 if (currentSelectedOpt.prop('disabled')) {
                     var firstEnabled = $monthSelect.find('option:not(:disabled)').first();
@@ -785,7 +800,7 @@ function educore_fees_collect_view() {
             }
         }
 
-        // Trigger dynamic single student info reload including previous due detection
+        // Trigger dynamic single student info reload including previous due detection.
         function reloadCurrentStudentInfo() {
             var stId = $('#ifs_educore_fee_student_select').val();
             var targetMonth = $('#ifs_educore_fee_month_select').val();
@@ -811,7 +826,7 @@ function educore_fees_collect_view() {
             });
         }
 
-        // 1. Live Instant Student ID Search with Auto-Fill
+        // 1. Live Instant Student ID Search with Auto-Fill.
         $('#ifs_educore_live_id_search').on('input', function() {
             var searchUid = $(this).val().trim();
             clearTimeout(searchDebounceTimer);
@@ -847,14 +862,14 @@ function educore_fees_collect_view() {
             }, 300);
         });
 
-        // 2. Fetch Sections & Fee Types when Class Filter Changes
+        // 2. Fetch Sections & Fee Types when Class Filter Changes.
         $('#ifs_educore_fee_class_filter').on('change', function() {
             var selectedClass = $(this).val();
             loadSectionsAndSelect(selectedClass, '', 0);
             loadFeeTypesAndFine(selectedClass);
         });
 
-        // Re-calculate fine & previous due when billing month or year changes
+        // Re-calculate fine & previous due when billing month or year changes.
         $('#ifs_educore_fee_month_select, #ifs_educore_fee_year_input').on('change', function() {
             var selectedClass = $('#ifs_educore_fee_class_filter').val();
             enforceBillingMonthRestrictions();
@@ -864,7 +879,7 @@ function educore_fees_collect_view() {
             reloadCurrentStudentInfo();
         });
 
-        // 3. Dynamic Fee Types & Automated Fine Loader
+        // 3. Dynamic Fee Types & Automated Fine Loader.
         function loadFeeTypesAndFine(className, callback) {
             var $feeTypeSelect = $('#ifs_educore_fee_type_select');
             var billingMonth   = $('#ifs_educore_fee_month_select').val();
@@ -895,7 +910,7 @@ function educore_fees_collect_view() {
                     if (response.success && response.data) {
                         var resData = response.data;
                         
-                        // Populate Fee Categories
+                        // Populate Fee Categories.
                         if (resData.fee_types && resData.fee_types.length > 0) {
                             var options = '<option value=""><?php echo esc_js( __( '-- Select Fee Category --', 'ifsedu-school-management' ) ); ?></option>';
                             $.each(resData.fee_types, function(i, item) {
@@ -929,7 +944,7 @@ function educore_fees_collect_view() {
             });
         }
 
-        // When Fee Type Changes, auto-set Base Amount
+        // When Fee Type Changes, auto-set Base Amount.
         $('#ifs_educore_fee_type_select').on('change', function() {
             var selectedOpt = $(this).find(':selected');
             var selectedAmount = selectedOpt.data('amount');
@@ -942,7 +957,7 @@ function educore_fees_collect_view() {
             applyWaiverDiscount();
         });
 
-        // 4. Reload Students when Section Filter Changes
+        // 4. Reload Students when Section Filter Changes.
         $('#ifs_educore_fee_section_filter').on('change', function() {
             var selectedClass   = $('#ifs_educore_fee_class_filter').val();
             var selectedSection = $(this).val();
@@ -1017,7 +1032,7 @@ function educore_fees_collect_view() {
             });
         }
 
-        // 5. Auto-Fetch Student Details, Start Date, Prior Unpaid Dues & Apply Financial Waiver
+        // 5. Auto-Fetch Student Details, Start Date, Prior Unpaid Dues & Apply Financial Waiver.
         $('#ifs_educore_fee_student_select').on('change', function() {
             var stId = $(this).val();
             var $strip = $('#ifs_educore_student_info_strip');
@@ -1067,7 +1082,7 @@ function educore_fees_collect_view() {
             }
             $('#ifs_educore_strip_student_class').text(displayClassName + ' [' + d.shift + '] | Roll: #' + d.roll_no);
             
-            // Set Fee Start Date Display & Enforce Lock on Previous Months
+            // Set Fee Start Date Display & Enforce Lock on Previous Months.
             activeStudentFeeStartDate = d.fee_start_date || '';
             if (activeStudentFeeStartDate) {
                 $('#ifs_educore_strip_fee_start_badge').text('<?php echo esc_js( __( 'Fee Starts From: ', 'ifsedu-school-management' ) ); ?>' + d.fee_start_display).show();
@@ -1077,7 +1092,7 @@ function educore_fees_collect_view() {
 
             enforceBillingMonthRestrictions();
 
-            // Set Previous Due Status & Render Clean Breakdown Table
+            // Set Previous Due Status & Render Clean Breakdown Table.
             var prevDue = parseFloat(d.previous_due) || 0;
             $('#ifs_educore_fee_previous_due').val(prevDue.toFixed(2));
             
@@ -1148,14 +1163,14 @@ function educore_fees_collect_view() {
             applyWaiverDiscount();
         }
 
-        // Clear previous due button helper
+        // Clear previous due button helper.
         $('#btn_clear_past_due').on('click', function(e) {
             e.preventDefault();
             $('#ifs_educore_fee_previous_due').val('0.00');
             calculateLedgerMetrics(true);
         });
 
-        // 6. Live Ledger Math Calculations Engine with Start Date & Previous Due
+        // 6. Live Ledger Math Calculations Engine with Start Date & Previous Due.
         var amtInput     = document.getElementById('ifs_educore_fee_amount');
         var fineInput    = document.getElementById('ifs_educore_fee_fine');
         var prevDueInput = document.getElementById('ifs_educore_fee_previous_due');

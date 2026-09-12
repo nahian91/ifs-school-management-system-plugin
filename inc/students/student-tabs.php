@@ -7,9 +7,12 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Exit if accessed directly
+    exit; // Exit if accessed directly.
 }
 
+/**
+ * Render Students Sub-Navigation Engine and Route Viewports
+ */
 function educore_students_tab() {
     if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'ifsedu-school-management' ) );
@@ -23,7 +26,7 @@ function educore_students_tab() {
 
     $sub_tab = in_array( $raw_sub_tab, $allowed_sub_tabs, true ) ? $raw_sub_tab : 'list';
     
-    // Construct URLs for top submenu links using add_query_arg()
+    // Construct URLs for top submenu links using add_query_arg().
     $base_admin_url   = admin_url( 'admin.php' );
     $all_students_url = add_query_arg( array( 'page' => 'school_management_system', 'tab' => 'students', 'sub' => 'list' ), $base_admin_url );
     $add_student_url  = add_query_arg( array( 'page' => 'school_management_system', 'tab' => 'students', 'sub' => 'add' ), $base_admin_url );

@@ -6,11 +6,14 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Exit if accessed directly
+    exit; // Exit if accessed directly.
 }
 
-// Handle Fee Invoice AJAX Update Action
+// Handle Fee Invoice AJAX Update Action.
 add_action( 'wp_ajax_ifs_educore_update_fee_invoice', 'ifs_educore_handle_update_fee_invoice_ajax' );
+/**
+ * AJAX Handler: Handle Fee Invoice Update Action
+ */
 function ifs_educore_handle_update_fee_invoice_ajax() {
     check_ajax_referer( 'ifs_educore_edit_fee_nonce', 'security' );
 
@@ -74,12 +77,15 @@ function ifs_educore_handle_update_fee_invoice_ajax() {
     }
 }
 
+/**
+ * Render Fees Directory & Financial Ledger View Engine
+ */
 function educore_fees_list_view() {
     global $wpdb;
     $current_user = wp_get_current_user();
     $roles         = (array) $current_user->roles;
 
-    // 1. Multi-Role Capability Security Matrix (Admins & Accountants)
+    // 1. Multi-Role Capability Security Matrix (Admins & Accountants).
     $is_admin      = current_user_can( 'manage_options' );
     $is_accountant = in_array( 'accountant', $roles, true ) || current_user_can( 'edit_posts' );
 
@@ -92,7 +98,7 @@ function educore_fees_list_view() {
     $table_units    = $wpdb->prefix . 'sms_academic_units';
     $table_staff    = $wpdb->prefix . 'sms_staff';
 
-    // 2. Sanitize and Extract Filter Request Inputs
+    // 2. Sanitize and Extract Filter Request Inputs.
     // phpcs:disable WordPress.Security.NonceVerification.Recommended
     $filter_class      = isset( $_GET['filter_class'] ) ? sanitize_text_field( wp_unslash( $_GET['filter_class'] ) ) : '';
     $filter_section    = isset( $_GET['filter_section'] ) ? sanitize_text_field( wp_unslash( $_GET['filter_section'] ) ) : '';
@@ -104,7 +110,7 @@ function educore_fees_list_view() {
     $filter_status     = isset( $_GET['filter_status'] ) ? sanitize_text_field( wp_unslash( $_GET['filter_status'] ) ) : '';
     // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
-    // 3. Fetch Dropdown Options Dynamically ordered by sort_order
+    // 3. Fetch Dropdown Options Dynamically ordered by sort_order.
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
     $raw_classes_data = $wpdb->get_results( 
         "SELECT class_name, MIN(sort_order) as min_sort 
@@ -128,13 +134,13 @@ function educore_fees_list_view() {
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
     $all_units = $wpdb->get_results( "SELECT id, class_name, section_name, sort_order FROM `{$table_units}` WHERE section_name != '' ORDER BY sort_order ASC, section_name ASC" );
     
-    // Fetch Distinct Collectors / Accountants for the Filter Dropdown
+    // Fetch Distinct Collectors / Accountants for the Filter Dropdown.
     $collectors_staff = $wpdb->get_results(
         "SELECT id, full_name, designation FROM `{$table_staff}` WHERE status = 'Active' ORDER BY full_name ASC"
     );
     // phpcs:enable
 
-    // 4. Construct SQL Query WHERE Conditions
+    // 4. Construct SQL Query WHERE Conditions.
     $where_clauses = array( '1=1' );
     $query_args     = array();
 
@@ -183,7 +189,7 @@ function educore_fees_list_view() {
 
     $where_sql = ' WHERE ' . implode( ' AND ', $where_clauses );
 
-    // 5. Aggregate Ledger Totals with Active Filters Applied
+    // 5. Aggregate Ledger Totals with Active Filters Applied.
     $totals_sql = "SELECT 
         SUM(f.net_payable) as total_invoiced, 
         SUM(f.paid_amount) as total_collected, 
@@ -198,9 +204,9 @@ function educore_fees_list_view() {
         $totals = $wpdb->get_row( $totals_sql );
     }
 
-    // 6. Fetch Filtered Ledger Records with Student, Waiver & Entry Collector Details
+    // 6. Fetch Filtered Ledger Records with Student, Waiver & Entry Collector Details.
     $query = "SELECT f.*, s.full_name, s.student_id as s_id, s.class_name, s.section_name, s.shift, s.waiver_percentage, 
-                     st.full_name as ref_staff_name, u.display_name as collector_name, col_staff.full_name as col_staff_name
+                    st.full_name as ref_staff_name, u.display_name as collector_name, col_staff.full_name as col_staff_name
               FROM `{$table_fees}` f 
               LEFT JOIN `{$table_students}` s ON f.student_id = s.id
               LEFT JOIN `{$table_staff}` st ON s.waiver_staff_id = st.id
@@ -352,12 +358,12 @@ function educore_fees_list_view() {
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended
             $msg_type = sanitize_text_field( wp_unslash( $_GET['msg'] ) );
         ?>
-            <?php if ( $msg_type === 'collected' || $msg_type === 'success' ) : ?>
+            <?php if ( 'collected' === $msg_type || 'success' === $msg_type ) : ?>
                 <div class="ifs-educore-notice-banner">
                     <span class="dashicons dashicons-yes-alt" style="font-size:20px; width:20px; height:20px;"></span>
                     <span><?php esc_html_e( 'Fee payment received and recorded successfully.', 'ifsedu-school-management' ); ?></span>
                 </div>
-            <?php elseif ( $msg_type === 'updated' ) : ?>
+            <?php elseif ( 'updated' === $msg_type ) : ?>
                 <div class="ifs-educore-notice-banner updated">
                     <span class="dashicons dashicons-saved" style="font-size:20px; width:20px; height:20px;"></span>
                     <span><?php esc_html_e( 'Fee invoice record updated successfully.', 'ifsedu-school-management' ); ?></span>
@@ -521,11 +527,11 @@ function educore_fees_list_view() {
                             admin_url( 'admin.php' )
                         );
                         
-                        // Status Badge Mapping
+                        // Status Badge Mapping.
                         $status_class = 'unpaid';
-                        if ( $fee->payment_status === 'Paid' ) { 
+                        if ( 'Paid' === $fee->payment_status ) { 
                             $status_class = 'paid'; 
-                        } elseif ( $fee->payment_status === 'Partial' ) { 
+                        } elseif ( 'Partial' === $fee->payment_status ) { 
                             $status_class = 'partial'; 
                         }
 
@@ -534,7 +540,7 @@ function educore_fees_list_view() {
                         $section_str    = ! empty( $fee->section_name ) ? $fee->section_name : 'N/A';
                         $shift_str      = ( ! empty( $fee->shift ) && 'No Shift' !== $fee->shift ) ? ' | ' . $fee->shift : '';
 
-                        // Determine Entry Collector Name & Date
+                        // Determine Entry Collector Name & Date.
                         $collector_display = ! empty( $fee->col_staff_name ) ? $fee->col_staff_name : ( ! empty( $fee->collector_name ) ? $fee->collector_name : ( ! empty( $fee->recorded_by ) ? '#' . $fee->recorded_by : __( 'Admin / System', 'ifsedu-school-management' ) ) );
                         $entry_date_str    = ! empty( $fee->created_at ) ? date_i18n( 'M j, Y h:i A', strtotime( $fee->created_at ) ) : ( ! empty( $fee->payment_date ) ? date_i18n( 'M j, Y', strtotime( $fee->payment_date ) ) : '—' );
                     ?>
@@ -693,7 +699,7 @@ function educore_fees_list_view() {
         var classSelect    = document.getElementById('filter_class');
         var sectionSelect  = document.getElementById('filter_section');
 
-        // Populate Sections based on selected Class
+        // Populate Sections based on selected Class.
         function populateSections(selectedClass, selectedSecName) {
             selectedSecName = selectedSecName || '';
             if (!sectionSelect) return;
@@ -734,7 +740,7 @@ function educore_fees_list_view() {
         // --------------------------------------------------------------------------
         // EDIT MODAL AJAX ENGINE FOR FEES LEDGER
         // --------------------------------------------------------------------------
-        var modal         = document.getElementById('ifs_educore_edit_fee_modal');
+        var modal        = document.getElementById('ifs_educore_edit_fee_modal');
         var closeModalBtn  = document.getElementById('ifs_educore_close_fee_modal');
         var cancelModalBtn = document.getElementById('ifs_educore_cancel_fee_edit');
         var editForm       = document.getElementById('ifs_educore_edit_fee_form');
@@ -772,17 +778,17 @@ function educore_fees_list_view() {
             paidInput.addEventListener('input', updateModalCalculations);
         }
 
-        // Trigger Modal Open & Load Class Specific Categories
+        // Trigger Modal Open & Load Class Specific Categories.
         document.addEventListener('click', function(e) {
             var editBtn = e.target.closest('.btn-trigger-edit-fee');
             if (editBtn) {
-                var id        = editBtn.getAttribute('data-id');
+                var id          = editBtn.getAttribute('data-id');
                 var className = editBtn.getAttribute('data-class');
-                var type      = editBtn.getAttribute('data-type');
+                var type        = editBtn.getAttribute('data-type');
                 var month     = editBtn.getAttribute('data-month');
-                var year      = editBtn.getAttribute('data-year');
+                var year        = editBtn.getAttribute('data-year');
                 var amount    = editBtn.getAttribute('data-amount');
-                var fine      = editBtn.getAttribute('data-fine');
+                var fine        = editBtn.getAttribute('data-fine');
                 var discount  = editBtn.getAttribute('data-discount');
                 var net       = editBtn.getAttribute('data-net');
                 var paid      = editBtn.getAttribute('data-paid');
@@ -801,7 +807,7 @@ function educore_fees_list_view() {
                 document.getElementById('edit_due_amount').value     = due;
                 document.getElementById('edit_payment_status').value = status;
 
-                // Load Class-specific Fee Types
+                // Load Class-specific Fee Types.
                 var $feeTypeSelect = jQuery('#edit_fee_type');
                 $feeTypeSelect.html('<option value=""><?php echo esc_js( __( "-- Loading Categories... --", "ifsedu-school-management" ) ); ?></option>');
 
@@ -839,7 +845,7 @@ function educore_fees_list_view() {
             }
         });
 
-        // When Fee Type changed in Edit Modal, update Net Payable accordingly
+        // When Fee Type changed in Edit Modal, update Net Payable accordingly.
         jQuery('#edit_fee_type').on('change', function() {
             var opt = jQuery(this).find(':selected');
             var newAmt = parseFloat(opt.data('amount'));
@@ -850,7 +856,7 @@ function educore_fees_list_view() {
             }
         });
 
-        // Submit AJAX Handler
+        // Submit AJAX Handler.
         if (editForm) {
             editForm.addEventListener('submit', function(e) {
                 e.preventDefault();

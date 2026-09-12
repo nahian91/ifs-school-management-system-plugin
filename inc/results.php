@@ -4,13 +4,14 @@
  * File: inc/results.php
  * Subtabs: Marks Entry Matrix, Progress & Tabulation Sheet, Merit List & Positions
  * Custom Prefixes Applied: dpt-, afdp-
+ * Text Domain: ifsedu-school-management
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Exit if accessed directly
+    exit; // Exit if accessed directly.
 }
 
-// Load Modular Dependency Sub-Files
+// Load Modular Dependency Sub-Files.
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
 $educore_results_dir = defined( 'EDUCORE_PATH' ) ? EDUCORE_PATH . 'inc/results/' : plugin_dir_path( __FILE__ ) . 'results/';
 
@@ -24,13 +25,16 @@ if ( file_exists( $educore_results_dir . 'exams-merit.php' ) ) {
     require_once $educore_results_dir . 'exams-merit.php';
 }
 
+/**
+ * Main Results Tab View Router
+ */
 function educore_results_tab() {
     global $wpdb;
 
     $current_user = wp_get_current_user();
     $table_staff  = $wpdb->prefix . 'sms_staff';
 
-    // 1. Procedural Role Capability Validations
+    // 1. Procedural Role Capability Validations.
     $is_admin = current_user_can( 'manage_options' ) || in_array( 'administrator', (array) $current_user->roles, true );
 
     $is_staff = false;
@@ -40,11 +44,13 @@ function educore_results_tab() {
 
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
     if ( ! $is_staff && ! $is_admin ) {
-        $staff_exists = $wpdb->get_var( $wpdb->prepare(
-            "SELECT id FROM {$table_staff} WHERE wp_user_id = %d OR email = %s LIMIT 1",
-            $current_user->ID,
-            $current_user->user_email
-        ) );
+        $staff_exists = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT id FROM {$table_staff} WHERE wp_user_id = %d OR email = %s LIMIT 1",
+                $current_user->ID,
+                $current_user->user_email
+            )
+        );
         if ( $staff_exists ) {
             $is_staff = true;
         }
@@ -59,13 +65,13 @@ function educore_results_tab() {
     $sub_tab = isset( $_GET['sub'] ) ? sanitize_key( $_GET['sub'] ) : 'marks';
     // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
-    // 2. Role Boundary: Allow Teachers/Staff access to 'marks' and 'report' (Tabulation & Marksheet)
+    // 2. Role Boundary: Allow Teachers/Staff access to 'marks' and 'report' (Tabulation & Marksheet).
     $allowed_teacher_tabs = array( 'marks', 'report' );
     if ( ! $is_admin && ! in_array( $sub_tab, $allowed_teacher_tabs, true ) ) {
         $sub_tab = 'marks';
     }
 
-    // 3. Query Assigned Classes & Subjects for Logged-In Teacher
+    // 3. Query Assigned Classes & Subjects for Logged-In Teacher.
     $assigned_teacher_info = array();
     if ( ! $is_admin ) {
         $table_teacher_subjects = $wpdb->prefix . 'sms_teacher_subjects';
@@ -73,28 +79,32 @@ function educore_results_tab() {
         $table_units            = $wpdb->prefix . 'sms_academic_units';
 
         // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $teacher_id = $wpdb->get_var( $wpdb->prepare(
-            "SELECT id FROM {$table_staff} WHERE wp_user_id = %d OR email = %s OR full_name = %s LIMIT 1",
-            $current_user->ID,
-            $current_user->user_email,
-            $current_user->display_name
-        ) );
+        $teacher_id = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT id FROM {$table_staff} WHERE wp_user_id = %d OR email = %s OR full_name = %s LIMIT 1",
+                $current_user->ID,
+                $current_user->user_email,
+                $current_user->display_name
+            )
+        );
 
         if ( $teacher_id ) {
-            $assigned_teacher_info = $wpdb->get_results( $wpdb->prepare(
-                "SELECT DISTINCT u.class_name, u.section_name, s.subject_name, s.subject_code 
-                 FROM {$table_teacher_subjects} ts
-                 INNER JOIN {$table_units} u ON ts.class_id = u.id
-                 INNER JOIN {$table_subjects} s ON ts.subject_id = s.id
-                 WHERE ts.teacher_id = %d AND u.class_name != ''
-                 ORDER BY CAST(u.class_name AS UNSIGNED) ASC, u.class_name ASC, s.subject_name ASC",
-                $teacher_id
-            ) );
+            $assigned_teacher_info = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT DISTINCT u.class_name, u.section_name, s.subject_name, s.subject_code 
+                     FROM {$table_teacher_subjects} ts
+                     INNER JOIN {$table_units} u ON ts.class_id = u.id
+                     INNER JOIN {$table_subjects} s ON ts.subject_id = s.id
+                     WHERE ts.teacher_id = %d AND u.class_name != ''
+                     ORDER BY CAST(u.class_name AS UNSIGNED) ASC, u.class_name ASC, s.subject_name ASC",
+                    $teacher_id
+                )
+            );
         }
         // phpcs:enable
     }
 
-    // Construct URLs for Submenu Tabs
+    // Construct URLs for Submenu Tabs.
     $marks_url  = admin_url( 'admin.php?page=school_management_system&tab=results&sub=marks' );
     $report_url = admin_url( 'admin.php?page=school_management_system&tab=results&sub=report' );
     $merit_url  = admin_url( 'admin.php?page=school_management_system&tab=results&sub=merit' );

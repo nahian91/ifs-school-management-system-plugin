@@ -7,15 +7,15 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+    exit; // Exit if accessed directly.
 }
 
 /**
  * Helper to conditionally append section name only for classes 9, 10, 11, and 12.
  *
- * @param string $class_name
- * @param string $section_name
- * @return string
+ * @param string $class_name   Class name.
+ * @param string $section_name Section name.
+ * @return string Formatted class label.
  */
 function educore_format_exam_class_label( $class_name, $section_name = '' ) {
     $class_name   = trim( (string) $class_name );
@@ -24,7 +24,7 @@ function educore_format_exam_class_label( $class_name, $section_name = '' ) {
     preg_match( '/\d+/', $class_name, $matches );
     $class_num = ! empty( $matches ) ? intval( $matches[0] ) : 0;
 
-    // Show section ONLY for classes 9, 10, 11, 12
+    // Show section ONLY for classes 9, 10, 11, 12.
     if ( in_array( $class_num, array( 9, 10, 11, 12 ), true ) && ! empty( $section_name ) ) {
         return $class_name . ' (' . $section_name . ')';
     }
@@ -32,6 +32,9 @@ function educore_format_exam_class_label( $class_name, $section_name = '' ) {
     return $class_name;
 }
 
+/**
+ * Render Examination Timetable & Routine Scheduler View
+ */
 function educore_exam_routine_view() {
     global $wpdb;
 
@@ -47,7 +50,7 @@ function educore_exam_routine_view() {
     $base_url   = add_query_arg( array( 'page' => 'school_management_system', 'tab' => 'exams', 'sub' => 'routine' ), admin_url( 'admin.php' ) );
     $notice_msg = '';
 
-    // 1. Handle Add Slot
+    // 1. Handle Add Slot.
     $req_method = isset( $_SERVER['REQUEST_METHOD'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : '';
     if ( 'POST' === $req_method && isset( $_POST['save_exam_slot'] ) && check_admin_referer( 'exam_routine_action', 'ifs_educore_er_nonce' ) ) {
         $exam_id    = isset( $_POST['exam_id'] ) ? absint( wp_unslash( $_POST['exam_id'] ) ) : 0;
@@ -81,7 +84,7 @@ function educore_exam_routine_view() {
 
             if ( false !== $inserted ) {
                 if ( function_exists( 'educore_log_activity' ) ) {
-                    /* translators: 1: Date, 2: Room */
+                    /* translators: 1: Exam Date, 2: Room Number */
                     educore_log_activity( sprintf( __( 'Added exam routine slot on %1$s in Room %2$s', 'ifsedu-school-management' ), $exam_date, $room_no ) );
                 }
                 $notice_msg = esc_html__( 'Exam routine slot added successfully.', 'ifsedu-school-management' );
@@ -89,7 +92,7 @@ function educore_exam_routine_view() {
         }
     }
 
-    // 2. Handle Delete Slot
+    // 2. Handle Delete Slot.
     // phpcs:disable WordPress.Security.NonceVerification.Recommended
     if ( isset( $_GET['action'] ) && 'delete_slot' === $_GET['action'] && isset( $_GET['slot_id'] ) ) {
         $slot_id = absint( $_GET['slot_id'] );
@@ -100,7 +103,7 @@ function educore_exam_routine_view() {
         $notice_msg = esc_html__( 'Exam routine slot removed.', 'ifsedu-school-management' );
     }
 
-    // Filters
+    // Filters.
     $filter_exam_id  = isset( $_GET['filter_exam'] ) ? absint( $_GET['filter_exam'] ) : 0;
     $filter_class_id = isset( $_GET['filter_class'] ) ? absint( $_GET['filter_class'] ) : 0;
     $filter_shift    = isset( $_GET['filter_shift'] ) ? sanitize_text_field( wp_unslash( $_GET['filter_shift'] ) ) : '';
@@ -112,7 +115,7 @@ function educore_exam_routine_view() {
     $subjects = $wpdb->get_results( "SELECT id, subject_name, subject_code, class_id, subject_order FROM `{$table_subjects}` ORDER BY subject_order ASC, subject_name ASC" );
     // phpcs:enable
 
-    // Fetch Filtered Schedules via Unified Dynamic Query Builder (Ordered by Date, Class sort_order, and Start Time)
+    // Fetch Filtered Schedules via Unified Dynamic Query Builder (Ordered by Date, Class sort_order, and Start Time).
     $where_clauses = array( '1=1' );
     $query_params  = array();
 
@@ -149,7 +152,7 @@ function educore_exam_routine_view() {
     }
     // phpcs:enable
 
-    // Group Schedules by Date for Bottom Preview
+    // Group Schedules by Date for Bottom Preview.
     $preview_by_date = array();
     if ( ! empty( $schedules ) ) {
         foreach ( $schedules as $slot ) {

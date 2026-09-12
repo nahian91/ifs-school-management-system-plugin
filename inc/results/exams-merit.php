@@ -6,15 +6,17 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Exit if accessed directly
+    exit; // Exit if accessed directly.
 }
 
 // --------------------------------------------------------------------------
 // 1. AJAX HANDLERS
 // --------------------------------------------------------------------------
 
-// Handler A: Dynamic Class Loading based on Exam Configuration
 add_action( 'wp_ajax_ifs_educore_get_classes_by_exam_merit', 'ifs_educore_get_classes_by_exam_merit_handler' );
+/**
+ * AJAX Handler: Dynamic Class Loading based on Exam Configuration
+ */
 function ifs_educore_get_classes_by_exam_merit_handler() {
     check_ajax_referer( 'ifs_educore_merit_nonce', 'security' );
 
@@ -25,7 +27,7 @@ function ifs_educore_get_classes_by_exam_merit_handler() {
     global $wpdb;
     $table_exams = $wpdb->prefix . 'sms_exams';
     $table_units = $wpdb->prefix . 'sms_academic_units';
-    $exam_id     = isset( $_POST['exam_id'] ) ? absint( $_POST['exam_id'] ) : 0;
+    $exam_id     = isset( $_POST['exam_id'] ) ? absint( wp_unslash( $_POST['exam_id'] ) ) : 0;
 
     if ( $exam_id <= 0 ) {
         wp_send_json_success( array() );
@@ -61,8 +63,10 @@ function ifs_educore_get_classes_by_exam_merit_handler() {
     wp_send_json_success( array_values( $classes ) );
 }
 
-// Handler B: Dynamic Section Loading based on Class
 add_action( 'wp_ajax_ifs_educore_get_sections_by_class_merit', 'ifs_educore_get_sections_by_class_merit_handler' );
+/**
+ * AJAX Handler: Dynamic Section Loading based on Class
+ */
 function ifs_educore_get_sections_by_class_merit_handler() {
     check_ajax_referer( 'ifs_educore_merit_nonce', 'security' );
 
@@ -93,6 +97,10 @@ function ifs_educore_get_sections_by_class_merit_handler() {
 // --------------------------------------------------------------------------
 // 2. MAIN VIEW ENGINE
 // --------------------------------------------------------------------------
+
+/**
+ * Render Merit List & Position Ranking Roster View
+ */
 function educore_merit_list_view() {
     global $wpdb;
     $table_students = $wpdb->prefix . 'sms_students';
@@ -100,12 +108,12 @@ function educore_merit_list_view() {
     $table_results  = $wpdb->prefix . 'sms_results';
     $table_units    = $wpdb->prefix . 'sms_academic_units';
 
-    // Strict Security Capability Check
+    // Strict Security Capability Check.
     if ( ! current_user_can( 'manage_options' ) && ! current_user_can( 'edit_posts' ) ) {
         wp_die( esc_html__( 'You do not have sufficient permissions to view academic merit rankings.', 'ifsedu-school-management' ) );
     }
 
-    // GET Filter Parameters Sanitization
+    // GET Filter Parameters Sanitization.
     // phpcs:disable WordPress.Security.NonceVerification.Recommended
     $filter_exam    = isset( $_GET['exam_id'] ) ? absint( $_GET['exam_id'] ) : 0;
     $filter_class   = isset( $_GET['class_name'] ) ? sanitize_text_field( wp_unslash( $_GET['class_name'] ) ) : '';
@@ -115,7 +123,7 @@ function educore_merit_list_view() {
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     $exams = $wpdb->get_results( "SELECT id, exam_name, class_name FROM `{$table_exams}` ORDER BY id DESC" );
 
-    // Fetch classes for active selected exam
+    // Fetch classes for active selected exam.
     $academic_classes = array();
     if ( $filter_exam > 0 ) {
         $exam_row = $wpdb->get_row( $wpdb->prepare( "SELECT class_name FROM `{$table_exams}` WHERE id = %d LIMIT 1", $filter_exam ) );
@@ -133,7 +141,7 @@ function educore_merit_list_view() {
         usort( $academic_classes, 'strnatcasecmp' );
     }
 
-    // Available sections for chosen class
+    // Available sections for chosen class.
     $available_sections = array();
     if ( ! empty( $filter_class ) ) {
         $available_sections = $wpdb->get_col(
@@ -145,7 +153,7 @@ function educore_merit_list_view() {
     }
     // phpcs:enable
 
-    // Dynamic Institutional Identity Settings
+    // Dynamic Institutional Identity Settings.
     $school_name    = get_option( 'educore_school_name', get_bloginfo( 'name' ) );
     $school_tagline = get_option( 'educore_school_tagline', '' );
     $school_logo    = get_option( 'educore_school_logo', '' );
@@ -535,7 +543,7 @@ function educore_merit_list_view() {
 
                     <div class="ifs-educore-form-group">
                         <label class="ifs-educore-form-label"><?php esc_html_e( '2. Class Name', 'ifsedu-school-management' ); ?> <span style="color:#ef4444;">*</span></label>
-                        <select name="class_name" id="ifs_educore_merit_class_select" class="ifs-educore-select-field" required <?php disabled( empty( $academic_classes ) && empty( $filter_exam ) ); ?>>
+                        <select name="class_name" id="ifs_educore_merit_class_select" class="ifs-educore-select-field" required <?php disabled( empty( $academic_classes ) && 0 === $filter_exam ); ?>>
                             <option value=""><?php esc_html_e( '-- Choose Class --', 'ifsedu-school-management' ); ?></option>
                             <?php foreach ( $academic_classes as $cls_name ) : ?>
                                 <option value="<?php echo esc_attr( $cls_name ); ?>" <?php selected( $filter_class, $cls_name ); ?>>
@@ -647,7 +655,7 @@ function educore_merit_list_view() {
             // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $exam = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table_exams}` WHERE id = %d LIMIT 1", $filter_exam ) );
 
-            // 1. Fetch ALL students of the class to determine Global Class Rank
+            // 1. Fetch ALL students of the class to determine Global Class Rank.
             $all_class_students = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT id, full_name, student_id, roll_no, class_name, section_name 
@@ -687,7 +695,7 @@ function educore_merit_list_view() {
                     foreach ( $results as $res ) {
                         $total_obt += floatval( $res->obtained_marks );
                         $sum_gpa   += floatval( $res->gpa );
-                        if ( strtoupper( trim( (string) $res->grade ) ) === 'F' || floatval( $res->gpa ) <= 0 ) {
+                        if ( 'F' === strtoupper( trim( (string) $res->grade ) ) || floatval( $res->gpa ) <= 0 ) {
                             $has_fail = true;
                         }
                     }
@@ -704,7 +712,7 @@ function educore_merit_list_view() {
                     );
                 }
 
-                // Global Sort: Passed students first -> GPA (DESC) -> Total Score (DESC) -> Roll No (ASC)
+                // Global Sort: Passed students first -> GPA (DESC) -> Total Score (DESC) -> Roll No (ASC).
                 usort( $all_ranked_pool, function( $a, $b ) {
                     if ( $a['failed'] !== $b['failed'] ) {
                         return $a['failed'] ? 1 : -1;
@@ -718,7 +726,7 @@ function educore_merit_list_view() {
                     return ( (int) $a['student']->roll_no < (int) $b['student']->roll_no ) ? -1 : 1;
                 } );
 
-                // Assign Global Class Positions & Section Positions
+                // Assign Global Class Positions & Section Positions.
                 $class_pos_counter = 1;
                 $section_counters  = array();
                 $display_roster    = array();
@@ -860,7 +868,7 @@ function educore_merit_list_view() {
                                     $c_pos = $item['class_position'];
                                     $s_pos = $item['section_position'];
 
-                                    // Rank Badge Styling Logic
+                                    // Rank Badge Styling Logic.
                                     $rank_class = 'rank-norm';
                                     if ( 1 === $c_pos ) {
                                         $rank_class = 'rank-gold';

@@ -6,7 +6,7 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+    exit; // Exit if accessed directly.
 }
 
 if ( ! current_user_can( 'manage_options' ) && ! current_user_can( 'edit_posts' ) ) {
@@ -16,7 +16,7 @@ if ( ! current_user_can( 'manage_options' ) && ! current_user_can( 'edit_posts' 
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
 $educore_allowed_subtabs = array( 'units', 'subjects', 'teacher_subjects', 'routine', 'available_teachers' );
 
-// Process Status Messages
+// Process Status Messages.
 $educore_message_text = '';
 // phpcs:disable WordPress.Security.NonceVerification.Recommended
 if ( isset( $_GET['status'] ) ) {
@@ -28,7 +28,7 @@ if ( isset( $_GET['status'] ) ) {
     } elseif ( 'deleted' === $educore_status ) {
         $educore_message_text = esc_html__( 'Record deleted successfully.', 'ifsedu-school-management' );
     } elseif ( 'subjects_added' === $educore_status ) {
-        $educore_count        = isset( $_GET['count'] ) ? absint( wp_unslash( $_GET['count'] ) ) : 0;
+        $educore_count = isset( $_GET['count'] ) ? absint( wp_unslash( $_GET['count'] ) ) : 0;
         /* translators: %s: Number of subjects added */
         $educore_message_text = sprintf(
             esc_html(
@@ -53,23 +53,103 @@ $educore_base_admin_url = admin_url( 'admin.php' );
 $educore_base_url       = add_query_arg( array( 'page' => 'school_management_system', 'tab' => 'academics' ), $educore_base_admin_url );
 ?>
 
+<style id="ifs-educore-academics-router-styles">
+    .ifs-educore-academics-root {
+        font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        color: #0f172a;
+    }
+
+    .ifs-educore-tab-nav {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        padding: 16px 20px;
+        border-radius: 16px;
+        box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.03);
+        margin-bottom: 24px;
+    }
+
+    .ifs-educore-tab-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 18px;
+        border-radius: 10px;
+        font-size: 13.5px;
+        font-weight: 700;
+        text-decoration: none;
+        transition: all 0.2s ease-in-out;
+        border: 1px solid #e2e8f0;
+        color: #64748b;
+        background: #f8fafc;
+    }
+
+    .ifs-educore-tab-link:hover {
+        color: #00523c;
+        background: #f0fdf4;
+        border-color: #a7f3d0;
+    }
+
+    .ifs-educore-tab-link .dashicons {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+    }
+
+    .ifs-educore-tab-link-active {
+        color: #ffffff !important;
+        background: #00523c !important;
+        border-color: #00523c !important;
+        box-shadow: 0 4px 12px rgba(0, 106, 78, 0.2);
+    }
+
+    .ifs-educore-tab-link-active .dashicons {
+        color: #a7f3d0 !important;
+    }
+
+    .ifs-educore-alert-node {
+        padding: 14px 18px;
+        border-radius: 10px;
+        font-size: 13.5px;
+        font-weight: 600;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    }
+
+    .ifs-educore-alert-success {
+        background: #ecfdf5;
+        border: 1px solid #a7f3d0;
+        color: #047857;
+    }
+
+    .ifs-educore-subtab-viewport {
+        width: 100%;
+    }
+</style>
+
 <div class="ifs-educore-academics-root">
 
     <!-- Sub-Tab Navigation -->
     <div class="ifs-educore-tab-nav">
-        <a href="<?php echo esc_url( add_query_arg( 'subtab', 'units', $educore_base_url ) ); ?>" class="ifs-educore-tab-link <?php echo 'units' === $educore_current_subtab ? 'active' : ''; ?>">
+        <a href="<?php echo esc_url( add_query_arg( 'subtab', 'units', $educore_base_url ) ); ?>" class="ifs-educore-tab-link <?php echo 'units' === $educore_current_subtab ? 'ifs-educore-tab-link-active' : ''; ?>">
             <span class="dashicons dashicons-category"></span> <?php esc_html_e( 'Classes Setup', 'ifsedu-school-management' ); ?>
         </a>
-        <a href="<?php echo esc_url( add_query_arg( 'subtab', 'subjects', $educore_base_url ) ); ?>" class="ifs-educore-tab-link <?php echo 'subjects' === $educore_current_subtab ? 'active' : ''; ?>">
+        <a href="<?php echo esc_url( add_query_arg( 'subtab', 'subjects', $educore_base_url ) ); ?>" class="ifs-educore-tab-link <?php echo 'subjects' === $educore_current_subtab ? 'ifs-educore-tab-link-active' : ''; ?>">
             <span class="dashicons dashicons-book"></span> <?php esc_html_e( 'Class Wise Subjects', 'ifsedu-school-management' ); ?>
         </a>
-        <a href="<?php echo esc_url( add_query_arg( 'subtab', 'teacher_subjects', $educore_base_url ) ); ?>" class="ifs-educore-tab-link <?php echo 'teacher_subjects' === $educore_current_subtab ? 'active' : ''; ?>">
+        <a href="<?php echo esc_url( add_query_arg( 'subtab', 'teacher_subjects', $educore_base_url ) ); ?>" class="ifs-educore-tab-link <?php echo 'teacher_subjects' === $educore_current_subtab ? 'ifs-educore-tab-link-active' : ''; ?>">
             <span class="dashicons dashicons-businessman"></span> <?php esc_html_e( 'Teacher Wise Subjects', 'ifsedu-school-management' ); ?>
         </a>
-        <a href="<?php echo esc_url( add_query_arg( 'subtab', 'routine', $educore_base_url ) ); ?>" class="ifs-educore-tab-link <?php echo 'routine' === $educore_current_subtab ? 'active' : ''; ?>">
+        <a href="<?php echo esc_url( add_query_arg( 'subtab', 'routine', $educore_base_url ) ); ?>" class="ifs-educore-tab-link <?php echo 'routine' === $educore_current_subtab ? 'ifs-educore-tab-link-active' : ''; ?>">
             <span class="dashicons dashicons-calendar-alt"></span> <?php esc_html_e( 'Class Routine', 'ifsedu-school-management' ); ?>
         </a>
-        <a href="<?php echo esc_url( add_query_arg( 'subtab', 'available_teachers', $educore_base_url ) ); ?>" class="ifs-educore-tab-link <?php echo 'available_teachers' === $educore_current_subtab ? 'active' : ''; ?>">
+        <a href="<?php echo esc_url( add_query_arg( 'subtab', 'available_teachers', $educore_base_url ) ); ?>" class="ifs-educore-tab-link <?php echo 'available_teachers' === $educore_current_subtab ? 'ifs-educore-tab-link-active' : ''; ?>">
             <span class="dashicons dashicons-clock"></span> <?php esc_html_e( 'Available Teachers', 'ifsedu-school-management' ); ?>
         </a>
     </div>
@@ -77,6 +157,7 @@ $educore_base_url       = add_query_arg( array( 'page' => 'school_management_sys
     <!-- Feedback Notice -->
     <?php if ( ! empty( $educore_message_text ) ) : ?>
         <div class="ifs-educore-alert-node ifs-educore-alert-success">
+            <span class="dashicons dashicons-yes-alt"></span>
             <strong><?php esc_html_e( 'Success:', 'ifsedu-school-management' ); ?></strong> <?php echo esc_html( $educore_message_text ); ?>
         </div>
     <?php endif; ?>

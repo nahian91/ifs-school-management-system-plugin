@@ -6,18 +6,21 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Exit if accessed directly
+    exit; // Exit if accessed directly.
 }
 
+/**
+ * Handle Student Deletion, Cascade Records Cleanup, and Safe Redirection
+ */
 function educore_student_delete_action() {
     global $wpdb;
 
-    // 1. Capability Check
+    // 1. Capability Check.
     if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'ifsedu-school-management' ) );
     }
 
-    // 2. Get ID properly
+    // 2. Get ID properly.
     // phpcs:disable WordPress.Security.NonceVerification.Recommended
     $raw_id = isset( $_GET['id'] ) ? sanitize_text_field( wp_unslash( $_GET['id'] ) ) : '';
     // phpcs:enable WordPress.Security.NonceVerification.Recommended
@@ -36,7 +39,7 @@ function educore_student_delete_action() {
         exit;
     }
 
-    // 3. Security Nonce Check
+    // 3. Security Nonce Check.
     // phpcs:disable WordPress.Security.NonceVerification.Recommended
     $nonce = isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) : '';
     // phpcs:enable WordPress.Security.NonceVerification.Recommended
@@ -50,7 +53,7 @@ function educore_student_delete_action() {
     $table_fees       = $wpdb->prefix . 'sms_fees';
     $table_results    = $wpdb->prefix . 'sms_results';
 
-    // 4. Fetch Student Record
+    // 4. Fetch Student Record.
     if ( is_numeric( $raw_id ) ) {
         // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $student = $wpdb->get_row(
@@ -74,12 +77,12 @@ function educore_student_delete_action() {
     if ( $student ) {
         $student_db_id = absint( $student->id );
 
-        // 5. Transactional Cascade Deletion
+        // 5. Transactional Cascade Deletion.
         // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $wpdb->query( 'START TRANSACTION' );
 
         try {
-            // Delete dependent records across modules
+            // Delete dependent records across modules.
             // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $wpdb->delete( $table_attendance, array( 'student_id' => $student_db_id ), array( '%d' ) );
             // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -87,7 +90,7 @@ function educore_student_delete_action() {
             // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $wpdb->delete( $table_results, array( 'student_id' => $student_db_id ), array( '%d' ) );
 
-            // Delete primary student record
+            // Delete primary student record.
             // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $deleted = $wpdb->delete( $table_students, array( 'id' => $student_db_id ), array( '%d' ) );
 
@@ -111,13 +114,15 @@ function educore_student_delete_action() {
         }
     }
 
-    // 6. Safe Hybrid Redirection
+    // 6. Safe Hybrid Redirection.
     ifs_educore_safe_redirect_helper( $redirect_url );
     exit;
 }
 
 /**
- * Safe redirect invoker to prevent redeclaration & fatal errors
+ * Safe redirect invoker to prevent redeclaration & fatal errors.
+ *
+ * @param string $url Target redirect URL.
  */
 if ( ! function_exists( 'ifs_educore_safe_redirect_helper' ) ) {
     function ifs_educore_safe_redirect_helper( $url ) {

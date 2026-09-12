@@ -6,23 +6,26 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) { 
-    exit; 
+    exit; // Exit if accessed directly.
 }
 
+/**
+ * Render Class Routine & Timetable Scheduler View
+ */
 function educore_class_routine_view() {
     global $wpdb;
-    $table_routine          = $wpdb->prefix . 'sms_routine';
-    $table_units            = $wpdb->prefix . 'sms_academic_units';
-    $table_subjects         = $wpdb->prefix . 'sms_subjects';
-    $table_teacher_subjects = $wpdb->prefix . 'sms_teacher_subjects';
-    $table_staff            = $wpdb->prefix . 'sms_staff';
+    $table_routine            = $wpdb->prefix . 'sms_routine';
+    $table_units              = $wpdb->prefix . 'sms_academic_units';
+    $table_subjects           = $wpdb->prefix . 'sms_subjects';
+    $table_teacher_subjects   = $wpdb->prefix . 'sms_teacher_subjects';
+    $table_staff              = $wpdb->prefix . 'sms_staff';
 
-    // Strict Capability Check
+    // Strict Capability Check.
     if ( ! current_user_can( 'manage_options' ) && ! current_user_can( 'edit_posts' ) ) {
         wp_die( esc_html__( 'You do not have sufficient permissions to manage class routines.', 'ifsedu-school-management' ) );
     }
 
-    // Dynamic Base URL preservation
+    // Dynamic Base URL preservation.
     $base_url = add_query_arg(
         array(
             'page'   => 'school_management_system',
@@ -32,13 +35,13 @@ function educore_class_routine_view() {
         admin_url( 'admin.php' )
     );
 
-    // Handle Routine Deletion
+    // Handle Routine Deletion.
     // phpcs:disable WordPress.Security.NonceVerification.Recommended
     if ( isset( $_GET['action'] ) && 'delete_routine' === $_GET['action'] && isset( $_GET['id'] ) ) {
         $delete_id = absint( $_GET['id'] );
         $del_nonce = isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) : '';
 
-        if ( $delete_id > 0 && wp_verify_nonce( $del_nonce, 'delete_routine_' . $delete_id ) ) {
+        if ( 0 < $delete_id && wp_verify_nonce( $del_nonce, 'delete_routine_' . $delete_id ) ) {
             // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             $wpdb->delete( $table_routine, array( 'id' => $delete_id ), array( '%d' ) );
             // phpcs:enable
@@ -61,7 +64,7 @@ function educore_class_routine_view() {
     }
     // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
-    // Handle Routine Submission
+    // Handle Routine Submission.
     $req_method = isset( $_SERVER['REQUEST_METHOD'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : '';
     if ( 'POST' === $req_method && isset( $_POST['save_routine'] ) ) {
         check_admin_referer( 'routine_action', 'routine_nonce' );
@@ -72,7 +75,7 @@ function educore_class_routine_view() {
         $day_name       = isset( $_POST['day_name'] ) ? sanitize_text_field( wp_unslash( $_POST['day_name'] ) ) : '';
         $shift          = isset( $_POST['shift'] ) ? sanitize_text_field( wp_unslash( $_POST['shift'] ) ) : 'No Shift';
         
-        // Time formatting for MySQL
+        // Time formatting for MySQL.
         $raw_start  = isset( $_POST['start_time'] ) ? sanitize_text_field( wp_unslash( $_POST['start_time'] ) ) : '';
         $raw_end    = isset( $_POST['end_time'] ) ? sanitize_text_field( wp_unslash( $_POST['end_time'] ) ) : '';
         $start_time = ! empty( $raw_start ) ? gmdate( 'H:i:s', strtotime( $raw_start ) ) : '00:00:00';
@@ -80,9 +83,9 @@ function educore_class_routine_view() {
 
         $room_no = isset( $_POST['room_no'] ) ? sanitize_text_field( wp_unslash( $_POST['room_no'] ) ) : '';
 
-        $final_class_id = $class_unit_id > 0 ? $class_unit_id : 0;
+        $final_class_id = 0 < $class_unit_id ? $class_unit_id : 0;
 
-        // Fallback if no specific section unit was chosen
+        // Fallback if no specific section unit was chosen.
         if ( 0 === $final_class_id && ! empty( $class_name_val ) ) {
             // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             $unit_match = $wpdb->get_row( $wpdb->prepare( "SELECT id FROM `{$table_units}` WHERE class_name = %s ORDER BY sort_order ASC, id ASC LIMIT 1", $class_name_val ) );
@@ -92,7 +95,7 @@ function educore_class_routine_view() {
             }
         }
 
-        if ( $final_class_id > 0 && $subject_id > 0 && ! empty( $day_name ) ) {
+        if ( 0 < $final_class_id && 0 < $subject_id && ! empty( $day_name ) ) {
             $data = array(
                 'class_id'   => $final_class_id,
                 'subject_id' => $subject_id,
@@ -147,7 +150,7 @@ function educore_class_routine_view() {
         }
     }
 
-    // 1. Fetch Distinct Classes ordered by sort_order
+    // 1. Fetch Distinct Classes ordered by sort_order.
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
     $raw_classes_data = $wpdb->get_results( 
         "SELECT class_name, MIN(sort_order) as min_sort_order 
@@ -165,7 +168,7 @@ function educore_class_routine_view() {
         }
     }
 
-    // 2. Fetch All Academic Units (Classes & Sections) ordered by sort_order
+    // 2. Fetch All Academic Units (Classes & Sections) ordered by sort_order.
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
     $all_units = $wpdb->get_results( 
         "SELECT id, class_name, section_name, dept_name, sort_order 
@@ -174,7 +177,7 @@ function educore_class_routine_view() {
          ORDER BY sort_order ASC, CAST(class_name AS UNSIGNED) ASC, class_name ASC, section_name ASC"
     );
 
-    // 3. Fetch Subjects mapped with Class/Unit Setup ordered by sort_order and subject_order
+    // 3. Fetch Subjects mapped with Class/Unit Setup ordered by sort_order and subject_order.
     $subjects = $wpdb->get_results(
         "SELECT s.id, s.subject_name, s.subject_code, s.class_id, s.subject_order, u.class_name, u.section_name, u.sort_order as class_sort_order 
          FROM `{$table_subjects}` s 
@@ -185,14 +188,14 @@ function educore_class_routine_view() {
 
     $days = array( 'Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday' );
 
-    // Preview Filter Params
+    // Preview Filter Params.
     // phpcs:disable WordPress.Security.NonceVerification.Recommended
     $filter_class = isset( $_GET['filter_class'] ) ? sanitize_text_field( wp_unslash( $_GET['filter_class'] ) ) : '';
     $filter_sec   = isset( $_GET['filter_section'] ) ? absint( wp_unslash( $_GET['filter_section'] ) ) : 0;
     $filter_shift = isset( $_GET['filter_shift'] ) ? sanitize_text_field( wp_unslash( $_GET['filter_shift'] ) ) : '';
     // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
-    // Fetch Routines with Assigned Teacher Resolution via Unified Dynamic Builder (Ordered by Class sort_order)
+    // Fetch Routines with Assigned Teacher Resolution via Unified Dynamic Builder (Ordered by Class sort_order).
     $where_clauses = array( '1=1' );
     $query_params  = array();
 
@@ -201,7 +204,7 @@ function educore_class_routine_view() {
         $query_params[]  = $filter_class;
     }
 
-    if ( $filter_sec > 0 ) {
+    if ( 0 < $filter_sec ) {
         $where_clauses[] = 'r.class_id = %d';
         $query_params[]  = $filter_sec;
     }
@@ -230,7 +233,7 @@ function educore_class_routine_view() {
     }
     // phpcs:enable
 
-    // Map routines by Day for weekly matrix preview
+    // Map routines by Day for weekly matrix preview.
     $matrix_routine = array();
     if ( ! empty( $routines ) ) {
         foreach ( $routines as $rt ) {
@@ -238,6 +241,344 @@ function educore_class_routine_view() {
         }
     }
     ?>
+
+    <style id="ifs-educore-class-routine-styles">
+        .ifs-educore-routine-container {
+            font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #0f172a;
+        }
+
+        .ifs-educore-alert-success {
+            background: #ecfdf5;
+            border-left: 4px solid #00523c;
+            color: #065f46;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ifs-educore-alert-error {
+            background: #fef2f2;
+            border-left: 4px solid #dc2626;
+            color: #991b1b;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .ifs-educore-error-code {
+            font-size: 12px;
+            opacity: 0.85;
+            font-family: monospace;
+        }
+
+        .ifs-educore-bento-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.03);
+            margin-bottom: 24px;
+        }
+
+        .ifs-educore-routine-form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) auto;
+            gap: 16px;
+            align-items: flex-end;
+        }
+
+        .ifs-educore-input-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .ifs-educore-form-label {
+            font-size: 12.5px;
+            font-weight: 700;
+            color: #334155;
+            letter-spacing: -0.1px;
+        }
+
+        .ifs-educore-required {
+            color: #ef4444;
+        }
+
+        .ifs-educore-field-select,
+        .ifs-educore-field-input {
+            width: 100%;
+            height: 40px;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 0 12px;
+            font-size: 13.5px;
+            color: #0f172a;
+            background: #ffffff;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .ifs-educore-field-select:focus,
+        .ifs-educore-field-input:focus {
+            border-color: #00523c;
+            box-shadow: 0 0 0 3px rgba(0, 82, 60, 0.12);
+        }
+
+        .ifs-educore-btn-save {
+            height: 40px;
+            padding: 0 20px;
+            background: #00523c;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 13.5px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 82, 60, 0.18);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: background 0.2s;
+            width: 100%;
+        }
+
+        .ifs-educore-btn-save:hover {
+            background: #047857;
+        }
+
+        .ifs-educore-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+        }
+
+        .ifs-educore-card-title {
+            font-size: 16px;
+            font-weight: 800;
+            color: #00523c;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ifs-educore-filter-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .ifs-educore-filter-label {
+            font-weight: 700;
+            font-size: 13px;
+            color: #475569;
+        }
+
+        .ifs-educore-filter-select {
+            width: auto;
+            height: 36px;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 0 12px;
+            font-size: 13px;
+            color: #0f172a;
+            background: #ffffff;
+            outline: none;
+        }
+
+        .ifs-educore-filter-submit-btn {
+            height: 36px;
+            padding: 0 14px;
+            background: #ffffff;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 8px;
+            color: #334155;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .ifs-educore-filter-submit-btn:hover {
+            background: #f1f5f9;
+            color: #0f172a;
+        }
+
+        .ifs-educore-filter-reset-btn {
+            width: auto;
+            padding: 0 12px;
+            height: 36px;
+            border-radius: 8px;
+            text-decoration: none;
+            background: #f1f5f9;
+            color: #475569;
+            border: 1.5px solid #cbd5e1;
+            font-weight: 700;
+            font-size: 13px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ifs-educore-filter-reset-btn:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+
+        .ifs-educore-weekly-matrix {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+        }
+
+        .ifs-educore-day-column {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .ifs-educore-day-header {
+            background: #00523c;
+            color: #ffffff;
+            padding: 12px;
+            text-align: center;
+            font-size: 13.5px;
+            font-weight: 800;
+            letter-spacing: 0.03em;
+        }
+
+        .ifs-educore-day-slots {
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .ifs-educore-slot-card {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            padding: 12px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .ifs-educore-slot-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.06);
+            border-color: #00523c;
+        }
+
+        .ifs-educore-slot-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .ifs-educore-slot-time {
+            font-size: 11.5px;
+            font-weight: 700;
+            color: #64748b;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .ifs-educore-slot-delete-btn {
+            width: 22px;
+            height: 22px;
+            border-radius: 6px;
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .ifs-educore-slot-delete-btn:hover {
+            background: #dc2626;
+            color: #ffffff;
+        }
+
+        .ifs-educore-slot-subject {
+            font-size: 14px;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 6px;
+        }
+
+        .ifs-educore-slot-meta {
+            font-size: 11.5px;
+            color: #475569;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid #f1f5f9;
+            padding-top: 6px;
+            margin-top: 6px;
+        }
+
+        .ifs-educore-shift-badge {
+            font-size: 10px;
+            font-weight: 800;
+            padding: 1px 6px;
+            border-radius: 4px;
+            margin-left: 4px;
+        }
+
+        .ifs-educore-shift-none { background: #f1f5f9; color: #475569; }
+        .ifs-educore-shift-morning { background: #f0fdf4; color: #047857; }
+        .ifs-educore-shift-day { background: #eff6ff; color: #2563eb; }
+
+        .ifs-educore-slot-teacher {
+            font-size: 12px;
+            font-weight: 600;
+            color: #334155;
+            margin-top: 6px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .ifs-educore-empty-slot {
+            text-align: center;
+            color: #cbd5e1;
+            font-size: 12px;
+            padding: 20px 0;
+            font-weight: 600;
+        }
+    </style>
 
     <div class="ifs-educore-routine-container">
 
@@ -261,7 +602,7 @@ function educore_class_routine_view() {
                     <strong><?php esc_html_e( 'Database Error:', 'ifsedu-school-management' ); ?></strong>
                     <?php esc_html_e( 'Could not save the routine slot.', 'ifsedu-school-management' ); ?>
                     <?php if ( ! empty( $_GET['msg'] ) ) : ?>
-                        <br><span style="font-size: 12px; opacity: 0.8; font-family: monospace;"><?php echo esc_html( sanitize_text_field( wp_unslash( $_GET['msg'] ) ) ); ?></span>
+                        <br><span class="ifs-educore-error-code"><?php echo esc_html( sanitize_text_field( wp_unslash( $_GET['msg'] ) ) ); ?></span>
                     <?php endif; ?>
                 </div>
             </div>
@@ -283,7 +624,7 @@ function educore_class_routine_view() {
                 <div class="ifs-educore-routine-form-grid">
                     <!-- Target Class -->
                     <div class="ifs-educore-input-wrapper">
-                        <label class="ifs-educore-form-label"><?php esc_html_e( 'Target Class', 'ifsedu-school-management' ); ?> <span style="color:#ef4444;">*</span></label>
+                        <label class="ifs-educore-form-label"><?php esc_html_e( 'Target Class', 'ifsedu-school-management' ); ?> <span class="ifs-educore-required">*</span></label>
                         <select name="class_id" id="ifs_educore_class_select" class="ifs-educore-field-select" required>
                             <option value=""><?php esc_html_e( '-- Choose Class --', 'ifsedu-school-management' ); ?></option>
                             <?php foreach ( $classes as $cls_name ) : ?>
@@ -312,7 +653,7 @@ function educore_class_routine_view() {
 
                     <!-- Subject Selection -->
                     <div class="ifs-educore-input-wrapper">
-                        <label class="ifs-educore-form-label"><?php esc_html_e( 'Academic Subject', 'ifsedu-school-management' ); ?> <span style="color:#ef4444;">*</span></label>
+                        <label class="ifs-educore-form-label"><?php esc_html_e( 'Academic Subject', 'ifsedu-school-management' ); ?> <span class="ifs-educore-required">*</span></label>
                         <select name="subject_id" id="ifs_educore_subject_select" class="ifs-educore-field-select" required>
                             <option value=""><?php esc_html_e( '-- Choose Subject --', 'ifsedu-school-management' ); ?></option>
                         </select>
@@ -320,7 +661,7 @@ function educore_class_routine_view() {
 
                     <!-- Day Selection -->
                     <div class="ifs-educore-input-wrapper">
-                        <label class="ifs-educore-form-label"><?php esc_html_e( 'Day', 'ifsedu-school-management' ); ?> <span style="color:#ef4444;">*</span></label>
+                        <label class="ifs-educore-form-label"><?php esc_html_e( 'Day', 'ifsedu-school-management' ); ?> <span class="ifs-educore-required">*</span></label>
                         <select name="day_name" class="ifs-educore-field-select" required>
                             <?php foreach ( $days as $d ) : ?>
                                 <option value="<?php echo esc_attr( $d ); ?>"><?php echo esc_html( $d ); ?></option>
@@ -330,13 +671,13 @@ function educore_class_routine_view() {
 
                     <!-- Start Time -->
                     <div class="ifs-educore-input-wrapper">
-                        <label class="ifs-educore-form-label"><?php esc_html_e( 'Start Time', 'ifsedu-school-management' ); ?> <span style="color:#ef4444;">*</span></label>
+                        <label class="ifs-educore-form-label"><?php esc_html_e( 'Start Time', 'ifsedu-school-management' ); ?> <span class="ifs-educore-required">*</span></label>
                         <input type="time" name="start_time" class="ifs-educore-field-input" required>
                     </div>
 
                     <!-- End Time -->
                     <div class="ifs-educore-input-wrapper">
-                        <label class="ifs-educore-form-label"><?php esc_html_e( 'End Time', 'ifsedu-school-management' ); ?> <span style="color:#ef4444;">*</span></label>
+                        <label class="ifs-educore-form-label"><?php esc_html_e( 'End Time', 'ifsedu-school-management' ); ?> <span class="ifs-educore-required">*</span></label>
                         <input type="time" name="end_time" class="ifs-educore-field-input" required>
                     </div>
 
@@ -377,10 +718,10 @@ function educore_class_routine_view() {
                 }
                 // phpcs:enable WordPress.Security.NonceVerification.Recommended
                 ?>
-                <div style="font-weight: 700; font-size: 13px; color: #475569;"><?php esc_html_e( 'Filter Schedule:', 'ifsedu-school-management' ); ?></div>
+                <div class="ifs-educore-filter-label"><?php esc_html_e( 'Filter Schedule:', 'ifsedu-school-management' ); ?></div>
                 
                 <!-- Filter Class -->
-                <select name="filter_class" id="ifs_educore_filter_class" class="ifs-educore-field-select" style="width: auto; height: 36px;">
+                <select name="filter_class" id="ifs_educore_filter_class" class="ifs-educore-filter-select">
                     <option value=""><?php esc_html_e( '-- All Classes --', 'ifsedu-school-management' ); ?></option>
                     <?php foreach ( $classes as $cls_name ) : ?>
                         <option value="<?php echo esc_attr( $cls_name ); ?>" <?php selected( $filter_class, $cls_name ); ?>>
@@ -390,25 +731,25 @@ function educore_class_routine_view() {
                 </select>
 
                 <!-- Filter Section -->
-                <select name="filter_section" id="ifs_educore_filter_section" class="ifs-educore-field-select" style="width: auto; height: 36px;">
+                <select name="filter_section" id="ifs_educore_filter_section" class="ifs-educore-filter-select">
                     <option value=""><?php esc_html_e( '-- All Sections --', 'ifsedu-school-management' ); ?></option>
                 </select>
 
                 <!-- Filter Shift -->
-                <select name="filter_shift" class="ifs-educore-field-select" style="width: auto; height: 36px;">
+                <select name="filter_shift" class="ifs-educore-filter-select">
                     <option value=""><?php esc_html_e( '-- All Shifts --', 'ifsedu-school-management' ); ?></option>
                     <option value="No Shift" <?php selected( $filter_shift, 'No Shift' ); ?>><?php esc_html_e( 'No Shift', 'ifsedu-school-management' ); ?></option>
                     <option value="Morning Shift" <?php selected( $filter_shift, 'Morning Shift' ); ?>><?php esc_html_e( 'Morning Shift', 'ifsedu-school-management' ); ?></option>
                     <option value="Day Shift" <?php selected( $filter_shift, 'Day Shift' ); ?>><?php esc_html_e( 'Day Shift', 'ifsedu-school-management' ); ?></option>
                 </select>
 
-                <button type="submit" class="ifs-educore-btn-secondary" style="height: 36px; padding: 0 14px;">
+                <button type="submit" class="ifs-educore-filter-submit-btn">
                     <span class="dashicons dashicons-filter" style="font-size:14px; width:14px; height:14px;"></span>
                     <?php esc_html_e( 'Apply Filter', 'ifsedu-school-management' ); ?>
                 </button>
 
-                <?php if ( ! empty( $filter_class ) || $filter_sec > 0 || ! empty( $filter_shift ) ) : ?>
-                    <a href="<?php echo esc_url( $base_url ); ?>" class="ifs-educore-square-btn" style="width: auto; padding: 0 10px; height: 34px; border-radius: 8px; text-decoration: none;" title="<?php esc_attr_e( 'Clear Filters', 'ifsedu-school-management' ); ?>">
+                <?php if ( ! empty( $filter_class ) || 0 < $filter_sec || ! empty( $filter_shift ) ) : ?>
+                    <a href="<?php echo esc_url( $base_url ); ?>" class="ifs-educore-filter-reset-btn" title="<?php esc_attr_e( 'Clear Filters', 'ifsedu-school-management' ); ?>">
                         <?php esc_html_e( 'Reset Filter', 'ifsedu-school-management' ); ?>
                     </a>
                 <?php endif; ?>
@@ -422,8 +763,8 @@ function educore_class_routine_view() {
                         <div class="ifs-educore-day-slots">
                             <?php if ( ! empty( $matrix_routine[ $day ] ) ) : ?>
                                 <?php foreach ( $matrix_routine[ $day ] as $slot ) : 
-                                    $slot_id           = absint( $slot->id );
-                                    $shift_val         = ! empty( $slot->shift ) ? $slot->shift : 'No Shift';
+                                    $slot_id          = absint( $slot->id );
+                                    $shift_val        = ! empty( $slot->shift ) ? $slot->shift : 'No Shift';
                                     $shift_badge_class = 'ifs-educore-shift-none';
                                     if ( 'Morning Shift' === $shift_val ) {
                                         $shift_badge_class = 'ifs-educore-shift-morning';
@@ -449,7 +790,7 @@ function educore_class_routine_view() {
                                     $end_ts   = ! empty( $slot->end_time ) ? strtotime( $slot->end_time ) : false;
                                 ?>
                                     <div class="ifs-educore-slot-card">
-                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <div class="ifs-educore-slot-top-row">
                                             <div class="ifs-educore-slot-time">
                                                 <span class="dashicons dashicons-clock" style="font-size:11px; width:11px; height:11px;"></span>
                                                 <span>
@@ -460,7 +801,7 @@ function educore_class_routine_view() {
                                                     ?>
                                                 </span>
                                             </div>
-                                            <a href="<?php echo esc_url( $delete_slot_url ); ?>" class="ifs-educore-square-btn no-print" style="width: 20px; height: 20px;" onclick="return confirm('<?php echo esc_js( __( 'Are you sure you want to delete this routine slot?', 'ifsedu-school-management' ) ); ?>');" title="<?php esc_attr_e( 'Delete Slot', 'ifsedu-school-management' ); ?>">
+                                            <a href="<?php echo esc_url( $delete_slot_url ); ?>" class="ifs-educore-slot-delete-btn no-print" onclick="return confirm('<?php echo esc_js( __( 'Are you sure you want to delete this routine slot?', 'ifsedu-school-management' ) ); ?>');" title="<?php esc_attr_e( 'Delete Slot', 'ifsedu-school-management' ); ?>">
                                                 <span class="dashicons dashicons-trash" style="font-size: 11px; width: 11px; height: 11px;"></span>
                                             </a>
                                         </div>
@@ -483,7 +824,7 @@ function educore_class_routine_view() {
                                     </div>
                                 <?php endforeach; ?>
                             <?php else : ?>
-                                <div style="text-align: center; color: #cbd5e1; font-size: 12px; padding: 20px 0; font-weight: 600;">
+                                <div class="ifs-educore-empty-slot">
                                     <?php esc_html_e( 'No Classes', 'ifsedu-school-management' ); ?>
                                 </div>
                             <?php endif; ?>
@@ -502,7 +843,7 @@ function educore_class_routine_view() {
         var subjectsMap = <?php echo wp_json_encode( ! empty( $subjects ) ? $subjects : array() ); ?>;
         var currentFilterSection = <?php echo wp_json_encode( $filter_sec ); ?>;
 
-        // Populate dynamic sections strictly from Class Setup (sms_academic_units)
+        // Populate dynamic sections strictly from Class Setup (sms_academic_units).
         function populateSections(classSelectElem, sectionSelectElem, selectedSecId) {
             selectedSecId = selectedSecId || '';
             var selectedClass = classSelectElem.value;
@@ -525,7 +866,7 @@ function educore_class_routine_view() {
             });
         }
 
-        // Populate dynamic subjects based on Class and Section Setup
+        // Populate dynamic subjects based on Class and Section Setup.
         function populateSubjects(classSelectElem, sectionSelectElem, subjectSelectElem) {
             var selectedClass = classSelectElem.value;
             var selectedUnitId = sectionSelectElem ? sectionSelectElem.value : '';
@@ -557,7 +898,7 @@ function educore_class_routine_view() {
             });
         }
 
-        // 1. Creation Form Setup
+        // 1. Creation Form Setup.
         var formClassSelect = document.getElementById('ifs_educore_class_select');
         var formSecSelect   = document.getElementById('ifs_educore_section_select');
         var formSubjectSelect = document.getElementById('ifs_educore_subject_select');
@@ -573,7 +914,7 @@ function educore_class_routine_view() {
             });
         }
 
-        // 2. Filter Bar Setup
+        // 2. Filter Bar Setup.
         var filterClassSelect = document.getElementById('ifs_educore_filter_class');
         var filterSecSelect   = document.getElementById('ifs_educore_filter_section');
         if (filterClassSelect && filterSecSelect) {

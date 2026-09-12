@@ -7,15 +7,17 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+    exit; // Exit if accessed directly.
 }
 
 // --------------------------------------------------------------------------
 // 1. AJAX HANDLERS
 // --------------------------------------------------------------------------
 
-// Handler A: Dynamic Section Loading
 add_action( 'wp_ajax_ifs_educore_get_sections_by_class', 'ifs_educore_get_sections_by_class_report_handler' );
+/**
+ * AJAX Handler: Dynamic Section Loading based on Class
+ */
 function ifs_educore_get_sections_by_class_report_handler() {
     check_ajax_referer( 'ifs_educore_report_nonce', 'security' );
 
@@ -56,6 +58,7 @@ function ifs_educore_get_sections_by_class_report_handler() {
 
     $clean_class = trim( str_ireplace( 'Class ', '', $class_name ) );
 
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     $sections = $wpdb->get_col(
         $wpdb->prepare(
             "SELECT DISTINCT section_name FROM `{$table_units}` WHERE (class_name = %s OR class_name = %s) AND section_name != '' ORDER BY sort_order ASC, section_name ASC",
@@ -63,12 +66,15 @@ function ifs_educore_get_sections_by_class_report_handler() {
             $clean_class
         )
     );
+    // phpcs:enable
 
     wp_send_json_success( is_array( $sections ) ? $sections : array() );
 }
 
-// Handler B: Dynamic Student Loading
 add_action( 'wp_ajax_ifs_educore_get_students_by_class', 'ifs_educore_get_students_by_class_handler' );
+/**
+ * AJAX Handler: Dynamic Student Loading based on Class and Section
+ */
 function ifs_educore_get_students_by_class_handler() {
     check_ajax_referer( 'ifs_educore_report_nonce', 'security' );
 
@@ -110,6 +116,7 @@ function ifs_educore_get_students_by_class_handler() {
 
     $clean_class = trim( str_ireplace( 'Class ', '', $class_name ) );
 
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     if ( ! empty( $section_name ) ) {
         $students = $wpdb->get_results(
             $wpdb->prepare(
@@ -128,6 +135,7 @@ function ifs_educore_get_students_by_class_handler() {
             )
         );
     }
+    // phpcs:enable
 
     $data = array();
     if ( ! empty( $students ) ) {
@@ -147,6 +155,10 @@ function ifs_educore_get_students_by_class_handler() {
 // --------------------------------------------------------------------------
 // 2. MAIN REPORT ENGINE VIEW
 // --------------------------------------------------------------------------
+
+/**
+ * Render Academic Progress Marksheet & Tabulation Sheet Engine View
+ */
 function educore_exams_report_view() {
     global $wpdb;
     $current_user = wp_get_current_user();
@@ -165,6 +177,7 @@ function educore_exams_report_view() {
         $is_staff = educore_has_access( array( 'teacher', 'staff', 'operator', 'instructor', 'editor', 'author' ) );
     }
 
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     if ( ! $is_staff && ! $is_admin ) {
         $staff_exists = (int) $wpdb->get_var(
             $wpdb->prepare(
@@ -177,6 +190,7 @@ function educore_exams_report_view() {
             $is_staff = true;
         }
     }
+    // phpcs:enable
 
     if ( ! $is_admin && ! $is_staff ) {
         wp_die( esc_html__( 'You do not have sufficient permissions to generate academic reports.', 'ifsedu-school-management' ) );
@@ -185,7 +199,9 @@ function educore_exams_report_view() {
     $active_tab_slug = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'results';
     $active_sub_slug = isset( $_GET['sub'] ) ? sanitize_key( wp_unslash( $_GET['sub'] ) ) : 'reports';
 
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
     $exams = $wpdb->get_results( "SELECT id, exam_name, class_name, subject_ids FROM `{$table_exams}` ORDER BY id DESC" );
+    // phpcs:enable
 
     $exam_class_map = array();
     foreach ( $exams as $ex_item ) {
@@ -196,23 +212,28 @@ function educore_exams_report_view() {
         }
     }
 
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
     $all_classes_raw = $wpdb->get_col( "SELECT DISTINCT class_name FROM `{$table_units}` WHERE class_name != '' ORDER BY sort_order ASC, CAST(class_name AS UNSIGNED) ASC, class_name ASC" );
+    // phpcs:enable
 
     if ( ! empty( $all_classes_raw ) && is_array( $all_classes_raw ) ) {
         $all_classes_raw = array_values( array_unique( $all_classes_raw ) );
         usort( $all_classes_raw, 'strnatcasecmp' );
     }
 
-    // Request Parameters
+    // Request Parameters.
+    // phpcs:disable WordPress.Security.NonceVerification.Recommended
     $filter_exam    = isset( $_GET['exam_id'] ) ? absint( wp_unslash( $_GET['exam_id'] ) ) : 0;
     $report_type    = isset( $_GET['report_type'] ) ? sanitize_key( wp_unslash( $_GET['report_type'] ) ) : 'tabulation';
     $filter_class   = isset( $_GET['class_name'] ) ? sanitize_text_field( wp_unslash( $_GET['class_name'] ) ) : '';
     $filter_section = isset( $_GET['section_name'] ) ? sanitize_text_field( wp_unslash( $_GET['section_name'] ) ) : '';
     $filter_student = isset( $_GET['student_id'] ) ? absint( wp_unslash( $_GET['student_id'] ) ) : 0;
+    // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
     $available_sections = array();
     if ( ! empty( $filter_class ) ) {
         $clean_class = trim( str_ireplace( 'Class ', '', $filter_class ) );
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $available_sections = $wpdb->get_col(
             $wpdb->prepare(
                 "SELECT DISTINCT section_name FROM `{$table_units}` WHERE (class_name = %s OR class_name = %s) AND section_name != '' ORDER BY sort_order ASC, section_name ASC",
@@ -220,6 +241,7 @@ function educore_exams_report_view() {
                 $clean_class
             )
         );
+        // phpcs:enable
     }
 
     $school_name    = get_option( 'educore_school_name', get_bloginfo( 'name' ) );
@@ -823,10 +845,10 @@ function educore_exams_report_view() {
         <!-- Dynamic Dropdown AJAX Controller Script -->
         <script type="text/javascript">
         jQuery(document).ready(function($) {
-            var nonce          = '<?php echo esc_js( wp_create_nonce( "ifs_educore_report_nonce" ) ); ?>';
-            var examClassMap   = <?php echo wp_json_encode( ! empty( $exam_class_map ) ? $exam_class_map : array() ); ?>;
-            var allClasses     = <?php echo wp_json_encode( ! empty( $all_classes_raw ) ? $all_classes_raw : array() ); ?>;
-            var currentClass   = "<?php echo esc_js( $filter_class ); ?>";
+            var nonce         = '<?php echo esc_js( wp_create_nonce( "ifs_educore_report_nonce" ) ); ?>';
+            var examClassMap  = <?php echo wp_json_encode( ! empty( $exam_class_map ) ? $exam_class_map : array() ); ?>;
+            var allClasses    = <?php echo wp_json_encode( ! empty( $all_classes_raw ) ? $all_classes_raw : array() ); ?>;
+            var currentClass  = "<?php echo esc_js( $filter_class ); ?>";
             var currentSection = "<?php echo esc_js( $filter_section ); ?>";
             var currentStudent = "<?php echo esc_js( $filter_student ); ?>";
 
@@ -842,7 +864,7 @@ function educore_exams_report_view() {
                 toggleStudentBox();
             });
 
-            // Column Visibility Handlers
+            // Column Visibility Handlers.
             $('#toggle_col_roll').on('change', function() {
                 $('body').toggleClass('hide-roll', !$(this).is(':checked'));
             });
@@ -1023,6 +1045,7 @@ function educore_exams_report_view() {
             if ( empty( $filter_student ) ) {
                 echo '<div class="ifs-educore-bento-card no-print" style="text-align:center; color:#64748b; padding:24px;"><strong>' . esc_html__( 'Please select a specific student from the Target Student dropdown to generate the marksheet.', 'ifsedu-school-management' ) . '</strong></div>';
             } else {
+                // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
                 $student = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table_students}` WHERE id = %d LIMIT 1", $filter_student ) );
                 $exam    = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table_exams}` WHERE id = %d LIMIT 1", $filter_exam ) );
                 
@@ -1039,6 +1062,7 @@ function educore_exams_report_view() {
                         $filter_student
                     )
                 );
+                // phpcs:enable
 
                 if ( ! $results ) {
                     echo '<div class="ifs-educore-bento-card no-print" style="text-align:center; color:#64748b; padding:30px;">' . esc_html__( 'No published marks found for this student in the selected examination.', 'ifsedu-school-management' ) . '</div>';
@@ -1053,7 +1077,7 @@ function educore_exams_report_view() {
                         $sum_gpa            += floatval( $r->gpa );
                         $total_marks_all    += floatval( $r->total_marks );
                         $obtained_marks_all += floatval( $r->obtained_marks );
-                        if ( strtoupper( trim( (string) $r->grade ) ) === 'F' || floatval( $r->gpa ) <= 0 ) {
+                        if ( 'F' === strtoupper( trim( (string) $r->grade ) ) || floatval( $r->gpa ) <= 0 ) {
                             $has_failed = true;
                         }
                     }
@@ -1250,6 +1274,7 @@ function educore_exams_report_view() {
                 }
             </style>
             <?php
+            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             $exam = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table_exams}` WHERE id = %d LIMIT 1", $filter_exam ) );
             
             $students = array();
@@ -1272,7 +1297,7 @@ function educore_exams_report_view() {
                 );
             }
 
-            // Primary: Fetch evaluated subjects
+            // Primary: Fetch evaluated subjects.
             $subjects_objects = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT r.subject_name, 
@@ -1293,7 +1318,7 @@ function educore_exams_report_view() {
                 )
             );
 
-            // Fallback to configured subjects
+            // Fallback to configured subjects.
             if ( empty( $subjects_objects ) ) {
                 $subjects_objects = $wpdb->get_results(
                     $wpdb->prepare(
@@ -1308,6 +1333,7 @@ function educore_exams_report_view() {
                     )
                 );
             }
+            // phpcs:enable
 
             if ( empty( $students ) || empty( $subjects_objects ) ) {
                 $sec_label = ! empty( $filter_section ) ? ' (' . esc_html( $filter_section ) . ')' : '';
@@ -1318,6 +1344,7 @@ function educore_exams_report_view() {
 
                 if ( ! empty( $all_student_ids ) ) {
                     $in_placeholders = implode( ',', array_map( 'absint', $all_student_ids ) );
+                    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
                     $raw_tab_results = $wpdb->get_results(
                         $wpdb->prepare(
                             "SELECT student_id, subject_name, cq_marks, mcq_marks, practical_marks, obtained_marks, grade, gpa 
@@ -1326,6 +1353,7 @@ function educore_exams_report_view() {
                             $filter_exam
                         )
                     );
+                    // phpcs:enable
 
                     if ( ! empty( $raw_tab_results ) ) {
                         foreach ( $raw_tab_results as $r_item ) {
@@ -1334,7 +1362,7 @@ function educore_exams_report_view() {
                     }
                 }
 
-                // Summary Statistics Calculation
+                // Summary Statistics Calculation.
                 $total_students_count = count( $students );
                 $passed_count         = 0;
                 $failed_count         = 0;

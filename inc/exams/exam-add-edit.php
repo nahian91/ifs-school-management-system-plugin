@@ -6,9 +6,12 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+    exit; // Exit if accessed directly.
 }
 
+/**
+ * Render Add/Edit Examination Scheme View & Handle Form Submission
+ */
 function educore_exam_add_edit_view() {
     global $wpdb;
 
@@ -21,7 +24,8 @@ function educore_exam_add_edit_view() {
     $table_subjects   = $wpdb->prefix . 'sms_subjects';
     $table_attendance = $wpdb->prefix . 'sms_attendance';
 
-    // Auto-migrate schema columns if missing
+    // Auto-migrate schema columns if missing.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     $col_check_sub = $wpdb->get_results( "SHOW COLUMNS FROM `{$table_exams}` LIKE 'subject_ids'" );
     if ( empty( $col_check_sub ) ) {
         $wpdb->query( "ALTER TABLE `{$table_exams}` ADD COLUMN `subject_ids` longtext DEFAULT '' NOT NULL AFTER `class_name`" );
@@ -41,6 +45,7 @@ function educore_exam_add_edit_view() {
     if ( empty( $col_check_inc ) ) {
         $wpdb->query( "ALTER TABLE `{$table_exams}` ADD COLUMN `include_attendance` varchar(10) DEFAULT 'yes' NOT NULL AFTER `total_working_days`" );
     }
+    // phpcs:enable
 
     $list_url = add_query_arg(
         array(
@@ -53,7 +58,7 @@ function educore_exam_add_edit_view() {
 
     // phpcs:disable WordPress.Security.NonceVerification.Recommended
     $get_action = isset( $_GET['action'] ) ? sanitize_key( wp_unslash( $_GET['action'] ) ) : '';
-    $get_id     = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
+    $get_id     = isset( $_GET['id'] ) ? absint( wp_unslash( $_GET['id'] ) ) : 0;
     // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
     $is_edit   = ( 'edit' === $get_action && $get_id > 0 );
@@ -70,7 +75,7 @@ function educore_exam_add_edit_view() {
     $include_att       = 'yes';
 
     if ( $is_edit ) {
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $edit_exam = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table_exams}` WHERE id = %d LIMIT 1", $get_id ) );
         // phpcs:enable
         if ( $edit_exam ) {
@@ -87,7 +92,7 @@ function educore_exam_add_edit_view() {
             }
 
             if ( ! empty( $edit_exam->subject_ids ) ) {
-                $decoded_sub = json_decode( $edit_exam->subject_ids, true );
+                $decoded_sub       = json_decode( $edit_exam->subject_ids, true );
                 $selected_subjects = is_array( $decoded_sub ) ? $decoded_sub : array();
             }
 
@@ -116,7 +121,7 @@ function educore_exam_add_edit_view() {
         $class_names_input = ( isset( $_POST['class_name'] ) && is_array( $_POST['class_name'] ) ) ? array_map( 'sanitize_text_field', wp_unslash( $_POST['class_name'] ) ) : array();
         $class_name        = ! empty( $class_names_input ) ? implode( ', ', $class_names_input ) : '';
 
-        // Capture Class-Wise Subjects JSON map
+        // Capture Class-Wise Subjects JSON map.
         $raw_subjects_input = ( isset( $_POST['exam_subjects'] ) && is_array( $_POST['exam_subjects'] ) ) ? wp_unslash( $_POST['exam_subjects'] ) : array();
         $sanitized_subjects = array();
         foreach ( $raw_subjects_input as $cls_key => $sub_ids ) {
@@ -129,18 +134,18 @@ function educore_exam_add_edit_view() {
         $start_date     = ! empty( $_POST['start_date'] ) ? sanitize_text_field( wp_unslash( $_POST['start_date'] ) ) : current_time( 'Y-m-d' );
         $end_date       = ! empty( $_POST['end_date'] ) ? sanitize_text_field( wp_unslash( $_POST['end_date'] ) ) : current_time( 'Y-m-d' );
         
-        // Normalize Dates from Picker Format safely
+        // Normalize Dates from Picker Format safely.
         $raw_att_start  = ! empty( $_POST['att_start_date'] ) ? sanitize_text_field( wp_unslash( $_POST['att_start_date'] ) ) : $start_date;
         $raw_att_end    = ! empty( $_POST['att_end_date'] ) ? sanitize_text_field( wp_unslash( $_POST['att_end_date'] ) ) : $end_date;
 
-        $att_start_date = ( strpos( $raw_att_start, '/' ) !== false ) ? gmdate( 'Y-m-d', strtotime( str_replace( '/', '-', $raw_att_start ) ) ) : $raw_att_start;
-        $att_end_date   = ( strpos( $raw_att_end, '/' ) !== false ) ? gmdate( 'Y-m-d', strtotime( str_replace( '/', '-', $raw_att_end ) ) ) : $raw_att_end;
+        $att_start_date = ( false !== strpos( $raw_att_start, '/' ) ) ? gmdate( 'Y-m-d', strtotime( str_replace( '/', '-', $raw_att_start ) ) ) : $raw_att_start;
+        $att_end_date   = ( false !== strpos( $raw_att_end, '/' ) ) ? gmdate( 'Y-m-d', strtotime( str_replace( '/', '-', $raw_att_end ) ) ) : $raw_att_end;
 
         $min_att_pct    = isset( $_POST['min_attendance_pct'] ) ? floatval( wp_unslash( $_POST['min_attendance_pct'] ) ) : 75.00;
         $include_att    = isset( $_POST['include_attendance'] ) ? 'yes' : 'no';
         $status         = isset( $_POST['status'] ) ? sanitize_text_field( wp_unslash( $_POST['status'] ) ) : 'Upcoming';
 
-        // Auto-Calculate Working Days server-side based on Date Range (excluding Fridays)
+        // Auto-Calculate Working Days server-side based on Date Range (excluding Fridays).
         $total_working_days = 0;
         if ( 'yes' === $include_att && ! empty( $att_start_date ) && ! empty( $att_end_date ) ) {
             $begin = new DateTime( $att_start_date );
@@ -152,7 +157,7 @@ function educore_exam_add_edit_view() {
             $calculated_days = 0;
             foreach ( $period as $dt ) {
                 $day_num = $dt->format( 'N' );
-                if ( '5' !== $day_num ) { // Exclude Friday
+                if ( '5' !== $day_num ) { // Exclude Friday.
                     $calculated_days++;
                 }
             }
@@ -204,7 +209,7 @@ function educore_exam_add_edit_view() {
     // =========================================================================
     // Query Classes and Associated Subjects
     // =========================================================================
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
     $raw_classes_data = $wpdb->get_results( 
         "SELECT class_name, MIN(sort_order) as min_sort 
          FROM `{$table_units}` 
@@ -231,7 +236,7 @@ function educore_exam_add_edit_view() {
         }
     }
 
-    // Map subjects by class name
+    // Map subjects by class name.
     $class_subjects_map = array();
     if ( ! empty( $all_subjects_raw ) ) {
         foreach ( $all_subjects_raw as $sub_item ) {
@@ -241,7 +246,7 @@ function educore_exam_add_edit_view() {
             }
             $exists_sub = false;
             foreach ( $class_subjects_map[ $cn ] as $es ) {
-                if ( $es['id'] === (int) $sub_item->id || strcasecmp( $es['name'], $sub_item->subject_name ) === 0 ) {
+                if ( $es['id'] === (int) $sub_item->id || 0 === strcasecmp( $es['name'], $sub_item->subject_name ) ) {
                     $exists_sub = true;
                     break;
                 }
@@ -415,7 +420,7 @@ function educore_exam_add_edit_view() {
             text-overflow: ellipsis !important;
         }
 
-        /* Class-wise Subject Selector Styles */
+        /* Class-wise Subject Choice Section */
         .ifs-subject-choice-wrapper {
             margin-top: 16px !important;
             display: flex !important;
@@ -573,9 +578,9 @@ function educore_exam_add_edit_view() {
 
                 <div class="ifs-subject-choice-wrapper" id="ifs_class_subjects_container">
                     <?php if ( ! empty( $class_list ) ) : foreach ( $class_list as $cls_name ) : 
-                        $cls_subs = isset( $class_subjects_map[ $cls_name ] ) ? $class_subjects_map[ $cls_name ] : array();
+                        $cls_subs           = isset( $class_subjects_map[ $cls_name ] ) ? $class_subjects_map[ $cls_name ] : array();
                         $saved_subs_for_cls = isset( $selected_subjects[ $cls_name ] ) ? $selected_subjects[ $cls_name ] : array();
-                        $is_cls_active = in_array( $cls_name, $selected_classes, true );
+                        $is_cls_active      = in_array( $cls_name, $selected_classes, true );
                     ?>
                         <div class="ifs-class-subject-box" data-class-box="<?php echo esc_attr( $cls_name ); ?>" style="display: <?php echo $is_cls_active ? 'block' : 'none'; ?>;">
                             <div class="ifs-class-subject-header">
@@ -713,7 +718,7 @@ function educore_exam_add_edit_view() {
         var minPctInput = document.getElementById('min_attendance_pct_input');
         var displayMinDaysSpan = document.getElementById('displayMinDaysRequired');
 
-        // Live calculation of working days and target minimum days required
+        // Live calculation of working days and target minimum days required.
         function calculateLiveWorkingDays() {
             if (!attStartInput || !attEndInput || !displayDaysSpan) return;
             var startVal = attStartInput.value;
@@ -737,7 +742,7 @@ function educore_exam_add_edit_view() {
             var cur = new Date(d1.getTime());
             while (cur <= d2) {
                 var dayOfWeek = cur.getDay(); 
-                if (dayOfWeek !== 5) { // exclude Friday
+                if (dayOfWeek !== 5) { // Exclude Friday.
                     count++;
                 }
                 cur.setDate(cur.getDate() + 1);
@@ -826,7 +831,7 @@ function educore_exam_add_edit_view() {
             syncClassSubjectBoxes();
         }
 
-        // Live Search Filter
+        // Live Search Filter.
         if (searchInput && grid) {
             searchInput.addEventListener('input', function() {
                 var q = this.value.toLowerCase().trim();
@@ -843,7 +848,7 @@ function educore_exam_add_edit_view() {
             });
         }
 
-        // Checkbox change listener
+        // Checkbox change listener.
         if (grid) {
             grid.addEventListener('change', function(e) {
                 if (e.target.classList.contains('cb-class')) {
@@ -852,7 +857,7 @@ function educore_exam_add_edit_view() {
             });
         }
 
-        // Toggle All visible classes
+        // Toggle All visible classes.
         if (toggleBtn && grid) {
             toggleBtn.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -867,7 +872,7 @@ function educore_exam_add_edit_view() {
             });
         }
 
-        // Subject Chip Visual Active Toggles
+        // Subject Chip Visual Active Toggles.
         document.querySelectorAll('.cb-sub-choice').forEach(function(cb) {
             cb.addEventListener('change', function() {
                 var chip = this.closest('.ifs-subject-chip');
@@ -881,7 +886,7 @@ function educore_exam_add_edit_view() {
             });
         });
 
-        // Toggle All Subjects for a specific class
+        // Toggle All Subjects for a specific class.
         document.querySelectorAll('.btn-toggle-class-subjects').forEach(function(btn) {
             btn.addEventListener('click', function() {
                 var cTarget = this.getAttribute('data-class-target');
@@ -905,7 +910,7 @@ function educore_exam_add_edit_view() {
             });
         });
 
-        // Form Validation
+        // Form Validation.
         if (form) {
             form.addEventListener('submit', function(e) {
                 var checkedClasses = form.querySelectorAll('input[name="class_name[]"]:checked');

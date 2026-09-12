@@ -6,11 +6,13 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+    exit; // Exit if accessed directly.
 }
 
 /**
  * Gallery Sub-Router
+ *
+ * @param string $sub_tab Current gallery sub-view action.
  */
 function educore_gallery_router( $sub_tab ) {
     switch ( $sub_tab ) {
@@ -62,6 +64,7 @@ function educore_gallery_list_view() {
             font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             color: #0f172a;
         }
+
         .ifs-educore-header-bar {
             display: flex;
             justify-content: space-between;
@@ -75,6 +78,7 @@ function educore_gallery_list_view() {
             flex-wrap: wrap;
             gap: 16px;
         }
+
         .ifs-educore-page-title {
             margin: 0;
             font-size: 18px;
@@ -84,12 +88,14 @@ function educore_gallery_list_view() {
             align-items: center;
             gap: 10px;
         }
+
         .ifs-educore-page-title .dashicons {
             color: #00523c;
             font-size: 22px;
             width: 22px;
             height: 22px;
         }
+
         .ifs-educore-btn-primary {
             background: #00523c;
             color: #ffffff;
@@ -105,16 +111,19 @@ function educore_gallery_list_view() {
             box-shadow: 0 4px 12px rgba(0, 82, 60, 0.2);
             transition: all 0.2s ease;
         }
+
         .ifs-educore-btn-primary:hover {
             background: #004030;
             color: #ffffff;
             transform: translateY(-1px);
         }
+
         .ifs-educore-bento-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 24px;
         }
+
         .ifs-educore-album-card {
             background: #ffffff;
             border: 1px solid #e2e8f0;
@@ -125,32 +134,38 @@ function educore_gallery_list_view() {
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
             box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
         }
+
         .ifs-educore-album-card:hover {
             transform: translateY(-4px);
             box-shadow: 0 12px 25px -5px rgba(0, 82, 60, 0.08);
             border-color: #cbd5e1;
         }
+
         .ifs-educore-cover-container {
             position: relative;
             height: 180px;
             background: #f1f5f9;
             overflow: hidden;
         }
+
         .ifs-educore-cover-img {
             width: 100%;
             height: 100%;
             object-fit: cover;
             transition: transform 0.4s ease;
         }
+
         .ifs-educore-album-card:hover .ifs-educore-cover-img {
             transform: scale(1.05);
         }
+
         .ifs-educore-category-badge {
             position: absolute;
             top: 12px;
             right: 12px;
             background: rgba(15, 23, 42, 0.75);
             backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
             color: #ffffff;
             font-size: 11px;
             font-weight: 700;
@@ -158,10 +173,12 @@ function educore_gallery_list_view() {
             border-radius: 20px;
             letter-spacing: 0.02em;
         }
+
         .ifs-educore-card-body {
             padding: 18px 20px 12px 20px;
             flex: 1;
         }
+
         .ifs-educore-album-title {
             margin: 0 0 6px 0;
             font-size: 15.5px;
@@ -171,6 +188,7 @@ function educore_gallery_list_view() {
             overflow: hidden;
             text-overflow: ellipsis;
         }
+
         .ifs-educore-photo-count {
             font-size: 12.5px;
             color: #64748b;
@@ -179,12 +197,14 @@ function educore_gallery_list_view() {
             align-items: center;
             gap: 5px;
         }
+
         .ifs-educore-photo-count-icon {
             font-size: 15px;
             width: 15px;
             height: 15px;
             color: #00523c;
         }
+
         .ifs-educore-card-footer {
             padding: 14px 20px;
             border-top: 1px solid #f1f5f9;
@@ -193,6 +213,7 @@ function educore_gallery_list_view() {
             justify-content: flex-end;
             gap: 8px;
         }
+
         .ifs-educore-square-btn {
             width: 34px;
             height: 34px;
@@ -204,38 +225,46 @@ function educore_gallery_list_view() {
             transition: all 0.2s ease;
             border: 1px solid transparent;
         }
+
         .ifs-educore-square-btn .dashicons {
             font-size: 16px;
             width: 16px;
             height: 16px;
         }
+
         .ifs-educore-btn-view {
             background: #f0fdf4;
             color: #059669;
             border-color: #bbf7d0;
         }
+
         .ifs-educore-btn-view:hover {
             background: #059669;
             color: #fff;
         }
+
         .ifs-educore-btn-edit {
             background: #f0f9ff;
             color: #0284c7;
             border-color: #bae6fd;
         }
+
         .ifs-educore-btn-edit:hover {
             background: #0284c7;
             color: #fff;
         }
+
         .ifs-educore-btn-delete {
             background: #fef2f2;
             color: #dc2626;
             border-color: #fecaca;
         }
+
         .ifs-educore-btn-delete:hover {
             background: #dc2626;
             color: #fff;
         }
+
         .ifs-educore-empty-state {
             background: #ffffff;
             border: 1px solid #e2e8f0;
@@ -244,6 +273,7 @@ function educore_gallery_list_view() {
             text-align: center;
             color: #64748b;
         }
+
         .ifs-educore-empty-state .dashicons {
             font-size: 48px;
             width: 48px;
@@ -251,6 +281,7 @@ function educore_gallery_list_view() {
             color: #cbd5e1;
             margin-bottom: 12px;
         }
+
         .ifs-educore-empty-state h5 {
             margin: 0;
             font-size: 15px;
@@ -289,7 +320,7 @@ function educore_gallery_list_view() {
                     <div class="ifs-educore-cover-container">
                         <img src="<?php echo esc_url( $cover_src ); ?>" class="ifs-educore-cover-img" alt="<?php echo esc_attr( $album->title ); ?>">
                         <span class="ifs-educore-category-badge">
-                            <?php echo esc_html( $album->category ?? 'General' ); ?>
+                            <?php echo esc_html( ! empty( $album->category ) ? $album->category : 'General' ); ?>
                         </span>
                     </div>
 
@@ -343,7 +374,21 @@ function educore_gallery_single_album_view() {
 
     if ( ! $album ) {
         ?>
-        <div style="background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; padding: 20px; border-radius: 12px; font-weight: 600; display: flex; align-items: center; gap: 10px;">
+        <style id="ifs-educore-single-gallery-error-styles">
+            .ifs-educore-error-box {
+                background: #fef2f2;
+                border: 1px solid #fecaca;
+                color: #dc2626;
+                padding: 20px;
+                border-radius: 12px;
+                font-weight: 600;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            }
+        </style>
+        <div class="ifs-educore-error-box">
             <span class="dashicons dashicons-dismiss"></span>
             <?php esc_html_e( 'Album not found or has been deleted.', 'ifsedu-school-management' ); ?>
         </div>
@@ -364,6 +409,7 @@ function educore_gallery_single_album_view() {
             font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             color: #0f172a;
         }
+
         .ifs-educore-top-action-bar {
             margin-bottom: 24px;
             display: flex;
@@ -372,7 +418,9 @@ function educore_gallery_single_album_view() {
             flex-wrap: wrap;
             gap: 12px;
         }
-        .ifs-educore-btn-back, .ifs-educore-btn-action {
+
+        .ifs-educore-btn-back, 
+        .ifs-educore-btn-action {
             display: inline-flex;
             align-items: center;
             gap: 6px;
@@ -387,11 +435,14 @@ function educore_gallery_single_album_view() {
             transition: all 0.2s ease;
             box-shadow: 0 2px 4px rgba(0,0,0,0.02);
         }
-        .ifs-educore-btn-back:hover, .ifs-educore-btn-action:hover {
+
+        .ifs-educore-btn-back:hover, 
+        .ifs-educore-btn-action:hover {
             background: #f8fafc;
             color: #00523c;
             border-color: #cbd5e1;
         }
+
         .ifs-educore-album-detail-card {
             background: #ffffff;
             border: 1px solid #e2e8f0;
@@ -400,12 +451,14 @@ function educore_gallery_single_album_view() {
             margin-bottom: 28px;
             box-shadow: 0 4px 15px -3px rgba(0,0,0,0.03);
         }
+
         .ifs-educore-album-header-title {
             margin: 0 0 8px 0;
             font-size: 20px;
             font-weight: 800;
             color: #0f172a;
         }
+
         .ifs-educore-album-meta-row {
             display: flex;
             align-items: center;
@@ -414,17 +467,20 @@ function educore_gallery_single_album_view() {
             color: #64748b;
             margin-bottom: 12px;
         }
+
         .ifs-educore-album-desc-text {
             margin: 0;
             font-size: 14px;
             color: #334155;
             line-height: 1.5;
         }
+
         .ifs-educore-photo-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
             gap: 20px;
         }
+
         .ifs-educore-photo-card {
             background: #ffffff;
             border: 1px solid #e2e8f0;
@@ -434,20 +490,24 @@ function educore_gallery_single_album_view() {
             box-shadow: 0 2px 6px rgba(0,0,0,0.02);
             transition: all 0.2s ease;
         }
+
         .ifs-educore-photo-card:hover {
             transform: translateY(-3px);
             box-shadow: 0 8px 15px rgba(0,0,0,0.06);
             border-color: #00523c;
         }
+
         .ifs-educore-photo-link img {
             width: 100%;
             height: 100%;
             object-fit: cover;
             transition: transform 0.3s ease;
         }
+
         .ifs-educore-photo-card:hover img {
             transform: scale(1.04);
         }
+
         .ifs-educore-empty-photos-box {
             background: #ffffff;
             border: 1px solid #e2e8f0;
@@ -510,7 +570,7 @@ function educore_gallery_add_edit_view() {
     $table_albums = $wpdb->prefix . 'sms_gallery_albums';
     $table_photos = $wpdb->prefix . 'sms_gallery_photos';
 
-    // Enqueue WordPress Media Library uploader
+    // Enqueue WordPress Media Library uploader.
     wp_enqueue_media();
 
     // phpcs:disable WordPress.Security.NonceVerification.Recommended
@@ -522,7 +582,7 @@ function educore_gallery_add_edit_view() {
     $photos        = array();
     $saved_message = false;
 
-    if ( $is_edit && $album_id > 0 ) {
+    if ( $is_edit && 0 < $album_id ) {
         // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $album  = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table_albums}` WHERE id = %d", $album_id ) );
         $photos = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM `{$table_photos}` WHERE album_id = %d ORDER BY id DESC", $album_id ) );
@@ -546,7 +606,7 @@ function educore_gallery_add_edit_view() {
             'status'      => $album_status,
         );
 
-        if ( $is_edit && $album_id > 0 ) {
+        if ( $is_edit && 0 < $album_id ) {
             // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $wpdb->update( $table_albums, $album_data, array( 'id' => $album_id ) );
             // phpcs:enable
@@ -558,9 +618,9 @@ function educore_gallery_add_edit_view() {
             $current_id = (int) $wpdb->insert_id;
         }
 
-        // Handle JSON array of selected photo URLs from WP Media Library
-        if ( ! empty( $_POST['gallery_photo_urls'] ) && $current_id > 0 ) {
-            $raw_urls = sanitize_text_field( wp_unslash( $_POST['gallery_photo_urls'] ) );
+        // Handle JSON array of selected photo URLs from WP Media Library.
+        if ( ! empty( $_POST['gallery_photo_urls'] ) && 0 < $current_id ) {
+            $raw_urls   = sanitize_text_field( wp_unslash( $_POST['gallery_photo_urls'] ) );
             $photo_urls = json_decode( stripslashes( $raw_urls ), true );
 
             if ( is_array( $photo_urls ) && ! empty( $photo_urls ) ) {
@@ -598,9 +658,11 @@ function educore_gallery_add_edit_view() {
             font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             color: #0f172a;
         }
+
         .ifs-educore-top-action-bar {
             margin-bottom: 24px;
         }
+
         .ifs-educore-btn-back {
             display: inline-flex;
             align-items: center;
@@ -616,11 +678,13 @@ function educore_gallery_add_edit_view() {
             transition: all 0.2s ease;
             box-shadow: 0 2px 4px rgba(0,0,0,0.02);
         }
+
         .ifs-educore-btn-back:hover {
             background: #f8fafc;
             color: #00523c;
             border-color: #cbd5e1;
         }
+
         .ifs-educore-alert-success-box {
             background: #ecfdf5;
             border: 1px solid #a7f3d0;
@@ -634,6 +698,7 @@ function educore_gallery_add_edit_view() {
             align-items: center;
             gap: 10px;
         }
+
         .ifs-educore-bento-form-card {
             background: #ffffff;
             border: 1px solid #e2e8f0;
@@ -641,6 +706,7 @@ function educore_gallery_add_edit_view() {
             padding: 32px;
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
         }
+
         .ifs-educore-form-title {
             margin: 0 0 24px 0;
             font-size: 17px;
@@ -649,23 +715,27 @@ function educore_gallery_add_edit_view() {
             border-bottom: 1px solid #f1f5f9;
             padding-bottom: 16px;
         }
+
         .ifs-educore-form-row {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 20px;
             margin-bottom: 20px;
         }
+
         .ifs-educore-form-group {
             display: flex;
             flex-direction: column;
             gap: 6px;
             margin-bottom: 20px;
         }
+
         .ifs-educore-form-group label {
             font-size: 13px;
             font-weight: 700;
             color: #334155;
         }
+
         .ifs-educore-field-input, 
         .ifs-educore-field-select,
         .ifs-educore-field-textarea {
@@ -677,16 +747,18 @@ function educore_gallery_add_edit_view() {
             font-size: 14px;
             color: #0f172a;
             box-sizing: border-box;
+            outline: none;
             transition: all 0.2s ease;
         }
+
         .ifs-educore-field-input:focus, 
         .ifs-educore-field-select:focus,
         .ifs-educore-field-textarea:focus {
-            outline: none;
             border-color: #00523c;
             background: #ffffff;
             box-shadow: 0 0 0 3px rgba(0, 82, 60, 0.12);
         }
+
         .ifs-educore-btn-submit {
             background: #00523c;
             color: #ffffff;
@@ -699,9 +771,131 @@ function educore_gallery_add_edit_view() {
             box-shadow: 0 4px 12px rgba(0, 82, 60, 0.25);
             transition: background 0.2s ease;
         }
+
         .ifs-educore-btn-submit:hover {
             background: #004030;
         }
+
+        .ifs-educore-cover-flex {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-top: 6px;
+        }
+
+        .ifs-educore-cover-preview-wrap {
+            margin-top: 10px;
+        }
+
+        .ifs-educore-cover-preview-img {
+            max-height: 100px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+        }
+
+        .ifs-educore-upload-bento-node {
+            background: #f8fafc;
+            border: 2px dashed #cbd5e1;
+            padding: 24px;
+            border-radius: 12px;
+            text-align: center;
+            margin-top: 24px;
+        }
+
+        .ifs-educore-upload-bento-label {
+            font-weight: 700;
+            color: #0f172a;
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .ifs-educore-upload-hint {
+            margin-top: 8px;
+            font-size: 12.5px;
+            color: #64748b;
+        }
+
+        .ifs-educore-selected-previews {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 16px;
+            justify-content: center;
+        }
+
+        .ifs-educore-preview-chip {
+            width: 70px;
+            height: 70px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid #00523c;
+            position: relative;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        }
+
+        .ifs-educore-preview-chip img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .ifs-educore-photos-manage-section {
+            margin-top: 28px;
+        }
+
+        .ifs-educore-manage-title {
+            font-size: 14.5px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 12px;
+        }
+
+        .ifs-educore-manage-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+            gap: 12px;
+        }
+
+        .ifs-educore-manage-photo-card {
+            position: relative;
+            height: 110px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #cbd5e1;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        .ifs-educore-manage-photo-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .ifs-educore-btn-photo-del {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            background: rgba(220,38,38,0.9);
+            color: #fff;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .ifs-educore-submit-row {
+            margin-top: 32px;
+            border-top: 1px solid #f1f5f9;
+            padding-top: 24px;
+        }
+
         @media screen and (max-width: 900px) {
             .ifs-educore-form-row {
                 grid-template-columns: 1fr;
@@ -764,46 +958,46 @@ function educore_gallery_add_edit_view() {
                 <!-- Cover Image Media Uploader -->
                 <div class="ifs-educore-form-group">
                     <label><?php esc_html_e( 'Cover Image (Thumbnail)', 'ifsedu-school-management' ); ?></label>
-                    <div style="display: flex; gap: 10px; align-items: center; margin-top: 6px;">
+                    <div class="ifs-educore-cover-flex">
                         <input type="text" name="cover_image" id="ifs_cover_image_input" class="ifs-educore-field-input" value="<?php echo $album ? esc_attr( $album->cover_image ) : ''; ?>" readonly style="flex: 1;">
                         <button type="button" class="ifs-educore-btn-primary" id="ifs_upload_cover_btn" style="padding: 10px 16px; font-size: 13px; box-shadow: none;"><?php esc_html_e( 'Choose Image', 'ifsedu-school-management' ); ?></button>
                     </div>
                     <?php if ( $album && ! empty( $album->cover_image ) ) : ?>
-                        <div class="ifs-educore-cover-preview-box" style="margin-top: 10px;">
-                            <img src="<?php echo esc_url( $album->cover_image ); ?>" class="ifs-educore-cover-preview-img" alt="Cover Preview" style="max-height: 100px; border-radius: 8px; border: 1px solid #cbd5e1;">
+                        <div class="ifs-educore-cover-preview-wrap">
+                            <img src="<?php echo esc_url( $album->cover_image ); ?>" class="ifs-educore-cover-preview-img" alt="Cover Preview">
                         </div>
                     <?php endif; ?>
                 </div>
 
                 <!-- Multi-Photo WP Media Uploader Node -->
-                <div class="ifs-educore-upload-bento-node" style="background: #f8fafc; border: 2px dashed #cbd5e1; padding: 24px; border-radius: 12px; text-align: center; margin-top: 24px;">
-                    <label style="font-weight: 700; color: #0f172a; display: block; margin-bottom: 8px; font-size: 14px;"><?php esc_html_e( 'Upload Multiple Photos to Album', 'ifsedu-school-management' ); ?></label>
+                <div class="ifs-educore-upload-bento-node">
+                    <label class="ifs-educore-upload-bento-label"><?php esc_html_e( 'Upload Multiple Photos to Album', 'ifsedu-school-management' ); ?></label>
                     <input type="hidden" name="gallery_photo_urls" id="ifs_gallery_photo_urls_input" value="">
                     <button type="button" class="ifs-educore-btn-primary" id="ifs_upload_multi_photos_btn" style="box-shadow: none;">
                         <span class="dashicons dashicons-images-alt2" style="vertical-align: middle; margin-top: 3px;"></span> 
                         <?php esc_html_e( 'Select Multiple Photos from Media Library', 'ifsedu-school-management' ); ?>
                     </button>
-                    <p class="ifs-educore-upload-hint" style="margin-top: 8px; font-size: 12.5px; color: #64748b;">
+                    <p class="ifs-educore-upload-hint">
                         <?php esc_html_e( 'Click to open WordPress Media Library. Hold Ctrl/Cmd to select multiple images simultaneously.', 'ifsedu-school-management' ); ?>
                     </p>
-                    <div id="ifs_selected_previews_container" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; justify-content: center;"></div>
+                    <div id="ifs_selected_previews_container" class="ifs-educore-selected-previews"></div>
                 </div>
 
                 <?php if ( $is_edit && ! empty( $photos ) ) : ?>
-                    <div class="ifs-educore-photos-manage-section" style="margin-top: 28px;">
-                        <h4 style="font-size: 14.5px; font-weight: 700; color: #0f172a; margin-bottom: 12px;">
+                    <div class="ifs-educore-photos-manage-section">
+                        <h4 class="ifs-educore-manage-title">
                             <?php esc_html_e( 'Manage Existing Album Photos', 'ifsedu-school-management' ); ?> (<?php echo esc_html( count( $photos ) ); ?>)
                         </h4>
-                        <div class="ifs-educore-manage-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 12px;">
+                        <div class="ifs-educore-manage-grid">
                             <?php foreach ( $photos as $photo ) : 
                                 $photo_del_url = wp_nonce_url( 
                                     admin_url( 'admin.php?page=school_management_system&tab=notices&type=gallery&sub=delete_photo&photo_id=' . $photo->id . '&album_id=' . $album_id ), 
                                     'delete_photo_' . $photo->id 
                                 );
                             ?>
-                                <div class="ifs-educore-manage-photo-card" style="position: relative; height: 110px; border-radius: 8px; overflow: hidden; border: 1px solid #cbd5e1; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
-                                    <img src="<?php echo esc_url( $photo->image_url ); ?>" alt="Gallery Image" style="width: 100%; height: 100%; object-fit: cover;">
-                                    <a href="<?php echo esc_url( $photo_del_url ); ?>" class="ifs-educore-btn-photo-del" title="<?php esc_attr_e( 'Delete Photo', 'ifsedu-school-management' ); ?>" onclick="return confirm('<?php echo esc_js( __( 'Remove this photo?', 'ifsedu-school-management' ) ); ?>');" style="position: absolute; top: 6px; right: 6px; background: rgba(220,38,38,0.9); color: #fff; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; text-decoration: none; font-weight: bold; font-size: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                                <div class="ifs-educore-manage-photo-card">
+                                    <img src="<?php echo esc_url( $photo->image_url ); ?>" alt="Gallery Image">
+                                    <a href="<?php echo esc_url( $photo_del_url ); ?>" class="ifs-educore-btn-photo-del" title="<?php esc_attr_e( 'Delete Photo', 'ifsedu-school-management' ); ?>" onclick="return confirm('<?php echo esc_js( __( 'Remove this photo?', 'ifsedu-school-management' ) ); ?>');">
                                         &times;
                                     </a>
                                 </div>
@@ -812,7 +1006,7 @@ function educore_gallery_add_edit_view() {
                     </div>
                 <?php endif; ?>
 
-                <div style="margin-top: 32px; border-top: 1px solid #f1f5f9; padding-top: 24px;">
+                <div class="ifs-educore-submit-row">
                     <button type="submit" name="educore_save_gallery" class="ifs-educore-btn-submit">
                         <span class="dashicons dashicons-saved" style="vertical-align: middle; margin-top: 3px;"></span>
                         <?php echo $is_edit ? esc_html__( 'Update Album', 'ifsedu-school-management' ) : esc_html__( 'Publish Album', 'ifsedu-school-management' ); ?>
@@ -825,7 +1019,7 @@ function educore_gallery_add_edit_view() {
     <!-- WordPress Media Library Integration Script -->
     <script type="text/javascript">
     jQuery(document).ready(function($) {
-        // Cover Image Uploader
+        // Cover Image Uploader.
         var coverFrame;
         $('#ifs_upload_cover_btn').on('click', function(e) {
             e.preventDefault();
@@ -845,7 +1039,7 @@ function educore_gallery_add_edit_view() {
             coverFrame.open();
         });
 
-        // Multi-Photo Selector Uploader
+        // Multi-Photo Selector Uploader.
         var multiFrame;
         var selectedUrls = [];
         $('#ifs_upload_multi_photos_btn').on('click', function(e) {
@@ -867,8 +1061,8 @@ function educore_gallery_add_edit_view() {
                     if (selectedUrls.indexOf(url) === -1) {
                         selectedUrls.push(url);
                         $('#ifs_selected_previews_container').append(
-                            '<div style="width: 70px; height: 70px; border-radius: 8px; overflow: hidden; border: 2px solid #00523c; position: relative; box-shadow: 0 2px 6px rgba(0,0,0,0.08);">' +
-                            '<img src="' + url + '" style="width: 100%; height: 100%; object-fit: cover;">' +
+                            '<div class="ifs-educore-preview-chip">' +
+                            '<img src="' + url + '">' +
                             '</div>'
                         );
                     }
@@ -899,7 +1093,7 @@ function educore_gallery_photo_delete_action() {
     $del_nonce = isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) : '';
     // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
-    if ( $photo_id > 0 && wp_verify_nonce( $del_nonce, 'delete_photo_' . $photo_id ) ) {
+    if ( 0 < $photo_id && wp_verify_nonce( $del_nonce, 'delete_photo_' . $photo_id ) ) {
         // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $wpdb->delete( $table_photos, array( 'id' => $photo_id ), array( '%d' ) );
         // phpcs:enable
@@ -926,7 +1120,7 @@ function educore_gallery_delete_action() {
     $del_nonce = isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) : '';
     // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
-    if ( $album_id > 0 && wp_verify_nonce( $del_nonce, 'delete_gallery_' . $album_id ) ) {
+    if ( 0 < $album_id && wp_verify_nonce( $del_nonce, 'delete_gallery_' . $album_id ) ) {
         // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $wpdb->delete( $table_photos, array( 'album_id' => $album_id ), array( '%d' ) );
         $wpdb->delete( $table_albums, array( 'id' => $album_id ), array( '%d' ) );

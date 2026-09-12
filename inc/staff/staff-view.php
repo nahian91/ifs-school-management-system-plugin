@@ -4,13 +4,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * High-End Staff Profile Bento Visualizer
- * Shows 100% full staff record details
+ * 100% Fully Dynamic Staff Profile Bento Visualizer with Multi-Tabs
+ * Fetches real Attendance logs, Salary details, and Duty Proxy records directly from the database.
  * File: inc/staff/staff-profile-view.php
  */
 function educore_staff_profile_view() {
     global $wpdb;
-    $table_staff = $wpdb->prefix . 'sms_staff';
+    $table_staff      = $wpdb->prefix . 'sms_staff';
+    $table_attendance = $wpdb->prefix . 'sms_staff_attendance';
+    $table_proxies    = $wpdb->prefix . 'sms_staff_proxies';
 
     // 1. Security & Permission Check
     if ( ! current_user_can( 'manage_options' ) ) {
@@ -18,9 +20,16 @@ function educore_staff_profile_view() {
     }
 
     // phpcs:disable WordPress.Security.NonceVerification.Recommended
-    $staff_id = isset( $_GET['id'] ) ? absint( wp_unslash( $_GET['id'] ) ) : 0;
+    $staff_id      = isset( $_GET['id'] ) ? absint( wp_unslash( $_GET['id'] ) ) : 0;
+    $active_subtab = isset( $_GET['subtab'] ) ? sanitize_key( wp_unslash( $_GET['subtab'] ) ) : 'general';
+    $cal_year      = isset( $_GET['cal_year'] ) ? absint( wp_unslash( $_GET['cal_year'] ) ) : absint( get_option( 'educore_academic_year', gmdate( 'Y' ) ) );
     // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
+    if ( $cal_year < 2000 || $cal_year > 2099 ) {
+        $cal_year = absint( gmdate( 'Y' ) );
+    }
+
+    // Fetch Staff Record
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
     $staff = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table_staff}` WHERE id = %d LIMIT 1", $staff_id ) );
     // phpcs:enable
@@ -34,10 +43,48 @@ function educore_staff_profile_view() {
         return;
     }
 
-    // Processing variables
-    $back_url = admin_url( 'admin.php?page=school_management_system&tab=staff&sub=list' );
-    $edit_url = admin_url( 'admin.php?page=school_management_system&tab=staff&sub=edit&id=' . absint( $staff->id ) );
+    // Retrieve Institutional Academic Off Days Map for the Selected Year
+    $institutional_holidays = get_option( 'educore_academic_off_dates_' . $cal_year, array() );
+    if ( ! is_array( $institutional_holidays ) ) {
+        $institutional_holidays = array();
+    }
+
+    // Fetch Dynamic Attendance Records for this Staff Member in the Selected Year
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    $raw_attendance = $wpdb->get_results(
+        $wpdb->prepare(
+            "SELECT attendance_date, status FROM `{$table_attendance}` WHERE staff_id = %d AND YEAR(attendance_date) = %d",
+            $staff_id,
+            $cal_year
+        )
+    );
+
+    $attendance_map = array();
+    if ( ! empty( $raw_attendance ) ) {
+        foreach ( $raw_attendance as $att ) {
+            $attendance_map[ $att->attendance_date ] = ucfirst( strtolower( $att->status ) );
+        }
+    }
+
+    // Fetch Dynamic Duty Proxies for this Staff Member
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    $proxy_records = $wpdb->get_results(
+        $wpdb->prepare(
+            "SELECT * FROM `{$table_proxies}` WHERE staff_id = %d ORDER BY proxy_date DESC",
+            $staff_id
+        )
+    );
+
+    // Processing variables & Tab Links
+    $base_profile_url = admin_url( 'admin.php?page=school_management_system&tab=staff&sub=view&id=' . absint( $staff->id ) );
+    $back_url         = admin_url( 'admin.php?page=school_management_system&tab=staff&sub=list' );
+    $edit_url         = admin_url( 'admin.php?page=school_management_system&tab=staff&sub=edit&id=' . absint( $staff->id ) );
     
+    $tab_general    = add_query_arg( array( 'subtab' => 'general', 'cal_year' => $cal_year ), $base_profile_url );
+    $tab_attendance = add_query_arg( array( 'subtab' => 'attendance', 'cal_year' => $cal_year ), $base_profile_url );
+    $tab_salary     = add_query_arg( array( 'subtab' => 'salary', 'cal_year' => $cal_year ), $base_profile_url );
+    $tab_proxy      = add_query_arg( array( 'subtab' => 'proxy', 'cal_year' => $cal_year ), $base_profile_url );
+
     $is_active = strtolower( trim( (string) ( $staff->status ?? '' ) ) ) === 'active';
 
     // Date Format Handling
@@ -70,71 +117,90 @@ function educore_staff_profile_view() {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 24px;
+            margin-bottom: 20px;
         }
 
-        .ifs-educore-profile-btn-outline {
+        .ifs-educore-profile-btn-outline,
+        .ifs-educore-profile-btn-light,
+        .ifs-educore-profile-btn-primary {
             display: inline-flex;
             align-items: center;
             gap: 6px;
             height: 38px;
             padding: 0 16px;
-            background: #ffffff;
-            color: #475569;
             font-size: 13px;
             font-weight: 700;
             border-radius: 8px;
-            border: 1px solid #cbd5e1;
             text-decoration: none;
             cursor: pointer;
             transition: all 0.2s ease;
         }
 
+        .ifs-educore-profile-btn-outline {
+            background: #ffffff;
+            color: #475569;
+            border: 1px solid #cbd5e1;
+        }
         .ifs-educore-profile-btn-outline:hover {
             background: #f1f5f9;
             color: #0f172a;
         }
 
         .ifs-educore-profile-btn-light {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            height: 38px;
-            padding: 0 16px;
             background: #f8fafc;
             color: #0f172a;
-            font-size: 13px;
-            font-weight: 700;
-            border-radius: 8px;
             border: 1px solid #e2e8f0;
-            cursor: pointer;
-            transition: all 0.2s ease;
         }
-
         .ifs-educore-profile-btn-light:hover {
             background: #f1f5f9;
         }
 
         .ifs-educore-profile-btn-primary {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            height: 38px;
-            padding: 0 20px;
             background: #00523c;
             color: #ffffff;
-            font-size: 13px;
-            font-weight: 800;
-            border-radius: 8px;
             border: none;
-            text-decoration: none;
-            cursor: pointer;
+            font-weight: 800;
             box-shadow: 0 4px 12px rgba(0, 106, 78, 0.25);
+        }
+        .ifs-educore-profile-btn-primary:hover {
+            background: #003e2d;
+            color: #ffffff;
+        }
+
+        /* Profile Internal Tabs Navigation */
+        .ifs-educore-profile-tabs {
+            display: flex;
+            gap: 8px;
+            border-bottom: 2px solid #e2e8f0;
+            margin-bottom: 24px;
+            padding-bottom: 0;
+            flex-wrap: wrap;
+        }
+
+        .ifs-educore-profile-tab-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            font-size: 13.5px;
+            font-weight: 700;
+            color: #64748b;
+            text-decoration: none;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
             transition: all 0.2s ease;
         }
 
-        .ifs-educore-profile-btn-primary:hover {
-            background: #003e2d;
+        .ifs-educore-profile-tab-item:hover {
+            color: #00523c;
+        }
+
+        .ifs-educore-profile-tab-item.active {
+            color: #00523c;
+            border-bottom-color: #00523c;
+            background: #f0fdf4;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
         }
 
         .ifs-educore-bento-header-card {
@@ -289,13 +355,11 @@ function educore_staff_profile_view() {
             text-decoration: none;
             transition: all 0.2s ease;
         }
-
         .ifs-educore-social-pill:hover {
             background: #00523c;
             color: #ffffff;
             border-color: #00523c;
         }
-
         .ifs-educore-social-pill svg {
             width: 14px;
             height: 14px;
@@ -306,29 +370,105 @@ function educore_staff_profile_view() {
             background: #fff8f8;
             border: 1px solid #fecaca;
         }
-
         .ifs-educore-emergency-title {
             color: #dc2626;
             border-bottom-color: #fee2e2;
         }
 
+        /* Attendance Report Matrix & Calendar Grid Styles */
+        .ifs-educore-cal-year-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 12px 18px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .ifs-educore-cal-legend {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            font-size: 12px;
+            font-weight: 600;
+            color: #475569;
+            flex-wrap: wrap;
+        }
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 4px;
+        }
+        .legend-dot-present { background: #ecfdf5; border: 1px solid #10b981; }
+        .legend-dot-absent { background: #fef2f2; border: 1px solid #ef4444; }
+        .legend-dot-leave { background: #fffbeb; border: 1px solid #f59e0b; }
+        .legend-dot-holiday { background: #f1f5f9; border: 1px solid #cbd5e1; }
+
+        .ifs-educore-cal-container-12 {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+        .ifs-educore-cal-month-box {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 14px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.01);
+        }
+        .ifs-educore-cal-m-title {
+            font-size: 13.5px;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 8px;
+            text-align: center;
+            border-bottom: 1px solid #f1f5f9;
+            padding-bottom: 6px;
+        }
+        .ifs-educore-cal-wk-row {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            text-align: center;
+            font-size: 10.5px;
+            font-weight: 700;
+            color: #94a3b8;
+            margin-bottom: 4px;
+        }
+        .ifs-educore-cal-days-row {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 3px;
+        }
+        .ifs-educore-cal-cell {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+            border-radius: 6px;
+            background: #f8fafc;
+            color: #334155;
+            cursor: default;
+        }
+        .ifs-educore-cal-cell.is-empty {
+            background: transparent;
+        }
+        .cal-status-present { background: #ecfdf5 !important; color: #065f46; border: 1px solid #a7f3d0; }
+        .cal-status-absent { background: #fef2f2 !important; color: #991b1b; border: 1px solid #fecaca; }
+        .cal-status-leave { background: #fffbeb !important; color: #92400e; border: 1px solid #fde68a; }
+        .cal-status-holiday { background: #f1f5f9 !important; color: #64748b; border: 1px solid #cbd5e1; }
+
         @media print {
-            .no-print {
-                display: none !important;
-            }
-            body * {
-                visibility: hidden;
-            }
-            .ifs-educore-profile-root,
-            .ifs-educore-profile-root * {
-                visibility: visible;
-            }
-            .ifs-educore-profile-root {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-            }
+            .no-print { display: none !important; }
+            body * { visibility: hidden; }
+            .ifs-educore-profile-root, .ifs-educore-profile-root * { visibility: visible; }
+            .ifs-educore-profile-root { position: absolute; left: 0; top: 0; width: 100%; }
         }
     </style>
 
@@ -392,266 +532,442 @@ function educore_staff_profile_view() {
                                 <span><?php echo esc_html( $staff->staff_type ); ?></span>
                             </div>
                         <?php endif; ?>
-                        <?php if ( ! empty( $staff->index_no ) ) : ?>
-                            <div class="ifs-educore-glass-id-badge">
-                                <span class="dashicons dashicons-awards text-white"></span>
-                                <span>Index: <strong><?php echo esc_html( $staff->index_no ); ?></strong></span>
-                            </div>
-                        <?php endif; ?>
-                        <?php if ( isset( $staff->order_number ) ) : ?>
-                            <div class="ifs-educore-glass-id-badge">
-                                <span class="dashicons dashicons-sort text-white"></span>
-                                <span>Serial: #<strong><?php echo absint( $staff->order_number ); ?></strong></span>
-                            </div>
-                        <?php endif; ?>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Bento Grid Main Content Area -->
-        <div class="row g-4">
-            
-            <!-- Left Column: Primary Details -->
-            <div class="col-lg-8">
-                <div class="row g-4">
-                    
-                    <!-- General Personal Information -->
-                    <div class="col-12">
-                        <div class="ifs-educore-bento-card">
-                            <div class="ifs-educore-bento-section-title">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                                <?php esc_html_e( 'Personal Details & Identity', 'ifsedu-school-management' ); ?>
-                            </div>
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <div class="ifs-educore-info-label"><?php esc_html_e( 'National ID (NID)', 'ifsedu-school-management' ); ?></div>
-                                    <div class="ifs-educore-info-value font-monospace"><?php echo esc_html( $staff->nid_no ?: '—' ); ?></div>
+        <!-- Sub-Tabs Navigation Header -->
+        <div class="ifs-educore-profile-tabs no-print">
+            <a href="<?php echo esc_url( $tab_general ); ?>" class="ifs-educore-profile-tab-item <?php echo ( 'general' === $active_subtab ) ? 'active' : ''; ?>">
+                <span class="dashicons dashicons-id-alt" style="vertical-align: middle;"></span>
+                <?php esc_html_e( 'General Information', 'ifsedu-school-management' ); ?>
+            </a>
+            <a href="<?php echo esc_url( $tab_attendance ); ?>" class="ifs-educore-profile-tab-item <?php echo ( 'attendance' === $active_subtab ) ? 'active' : ''; ?>">
+                <span class="dashicons dashicons-calendar-alt" style="vertical-align: middle;"></span>
+                <?php esc_html_e( 'Attendance Report', 'ifsedu-school-management' ); ?>
+            </a>
+            <a href="<?php echo esc_url( $tab_salary ); ?>" class="ifs-educore-profile-tab-item <?php echo ( 'salary' === $active_subtab ) ? 'active' : ''; ?>">
+                <span class="dashicons dashicons-money-alt" style="vertical-align: middle;"></span>
+                <?php esc_html_e( 'Salary & Payroll', 'ifsedu-school-management' ); ?>
+            </a>
+            <a href="<?php echo esc_url( $tab_proxy ); ?>" class="ifs-educore-profile-tab-item <?php echo ( 'proxy' === $active_subtab ) ? 'active' : ''; ?>">
+                <span class="dashicons dashicons-randomize" style="vertical-align: middle;"></span>
+                <?php esc_html_e( 'Duty Proxy', 'ifsedu-school-management' ); ?>
+            </a>
+        </div>
+
+        <!-- ======================================================== -->
+        <!-- TAB 1: GENERAL INFO (DEFAULT) -->
+        <!-- ======================================================== -->
+        <?php if ( 'general' === $active_subtab ) : ?>
+            <div class="row g-4">
+                <!-- Left Column: Primary Details -->
+                <div class="col-lg-8">
+                    <div class="row g-4">
+                        <div class="col-12">
+                            <div class="ifs-educore-bento-card">
+                                <div class="ifs-educore-bento-section-title">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                                    <?php esc_html_e( 'Personal Details & Identity', 'ifsedu-school-management' ); ?>
                                 </div>
-                                <div class="col-md-3">
-                                    <div class="ifs-educore-info-label"><?php esc_html_e( 'Date of Birth', 'ifsedu-school-management' ); ?></div>
-                                    <div class="ifs-educore-info-value"><?php echo esc_html( $dob ); ?></div>
-                                </div>
-                                <div class="col-md-3">
-                                    <div class="ifs-educore-info-label"><?php esc_html_e( 'Gender', 'ifsedu-school-management' ); ?></div>
-                                    <div class="ifs-educore-info-value"><?php echo esc_html( $staff->gender ?: 'Male' ); ?></div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="ifs-educore-info-label"><?php esc_html_e( "Father's Name", 'ifsedu-school-management' ); ?></div>
-                                    <div class="ifs-educore-info-value"><?php echo esc_html( $staff->father_name ?: '—' ); ?></div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="ifs-educore-info-label"><?php esc_html_e( "Mother's Name", 'ifsedu-school-management' ); ?></div>
-                                    <div class="ifs-educore-info-value"><?php echo esc_html( $staff->mother_name ?: '—' ); ?></div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="ifs-educore-info-label"><?php esc_html_e( 'Blood Group', 'ifsedu-school-management' ); ?></div>
-                                    <div class="ifs-educore-info-value text-danger fw-bold">
-                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-3">
-                                            <?php echo esc_html( $staff->blood_group ?: 'N/A' ); ?>
-                                        </span>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="ifs-educore-info-label"><?php esc_html_e( 'National ID (NID)', 'ifsedu-school-management' ); ?></div>
+                                        <div class="ifs-educore-info-value font-monospace"><?php echo esc_html( $staff->nid_no ?: '—' ); ?></div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="ifs-educore-info-label"><?php esc_html_e( 'Date of Birth', 'ifsedu-school-management' ); ?></div>
+                                        <div class="ifs-educore-info-value"><?php echo esc_html( $dob ); ?></div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="ifs-educore-info-label"><?php esc_html_e( 'Gender', 'ifsedu-school-management' ); ?></div>
+                                        <div class="ifs-educore-info-value"><?php echo esc_html( $staff->gender ?: 'Male' ); ?></div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="ifs-educore-info-label"><?php esc_html_e( "Father's Name", 'ifsedu-school-management' ); ?></div>
+                                        <div class="ifs-educore-info-value"><?php echo esc_html( $staff->father_name ?: '—' ); ?></div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="ifs-educore-info-label"><?php esc_html_e( "Mother's Name", 'ifsedu-school-management' ); ?></div>
+                                        <div class="ifs-educore-info-value"><?php echo esc_html( $staff->mother_name ?: '—' ); ?></div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="ifs-educore-info-label"><?php esc_html_e( 'Blood Group', 'ifsedu-school-management' ); ?></div>
+                                        <div class="ifs-educore-info-value text-danger fw-bold"><?php echo esc_html( $staff->blood_group ?: 'N/A' ); ?></div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="ifs-educore-info-label"><?php esc_html_e( 'Quota Category', 'ifsedu-school-management' ); ?></div>
+                                        <div class="ifs-educore-info-value"><?php echo esc_html( $staff->quota_type ?: 'General' ); ?></div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="ifs-educore-info-label"><?php esc_html_e( 'Linked WP User', 'ifsedu-school-management' ); ?></div>
+                                        <div class="ifs-educore-info-value"><?php echo ( isset( $staff->wp_user_id ) && $staff->wp_user_id ) ? 'User #' . absint( $staff->wp_user_id ) : 'Unlinked'; ?></div>
                                     </div>
                                 </div>
-                                <div class="col-md-4">
-                                    <div class="ifs-educore-info-label"><?php esc_html_e( 'Quota Category', 'ifsedu-school-management' ); ?></div>
-                                    <div class="ifs-educore-info-value"><?php echo esc_html( $staff->quota_type ?: 'General' ); ?></div>
+                            </div>
+                        </div>
+
+                        <!-- Academic & Service -->
+                        <div class="col-12">
+                            <div class="ifs-educore-bento-card">
+                                <div class="ifs-educore-bento-section-title">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 10v6M2 10l10-5 10 5-10 5"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>
+                                    <?php esc_html_e( 'Academic & Service Portfolio', 'ifsedu-school-management' ); ?>
                                 </div>
-                                <div class="col-md-4">
-                                    <div class="ifs-educore-info-label"><?php esc_html_e( 'Linked WP User', 'ifsedu-school-management' ); ?></div>
-                                    <div class="ifs-educore-info-value"><?php echo ( isset( $staff->wp_user_id ) && $staff->wp_user_id ) ? '<span class="badge bg-light text-dark border">User #' . absint( $staff->wp_user_id ) . '</span>' : 'Unlinked'; ?></div>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="ifs-educore-info-label"><?php esc_html_e( 'Subject Expertise', 'ifsedu-school-management' ); ?></div>
+                                        <div class="ifs-educore-info-value text-success fw-bold"><?php echo esc_html( $staff->subject_expert ?: '—' ); ?></div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="ifs-educore-info-label"><?php esc_html_e( 'Highest Qualification', 'ifsedu-school-management' ); ?></div>
+                                        <div class="ifs-educore-info-value"><?php echo esc_html( $staff->highest_degree ?: '—' ); ?></div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="ifs-educore-info-label"><?php esc_html_e( 'Joining Date', 'ifsedu-school-management' ); ?></div>
+                                        <div class="ifs-educore-info-value"><?php echo esc_html( $joining_date ); ?></div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="ifs-educore-info-label"><?php esc_html_e( 'Pay Scale Grade', 'ifsedu-school-management' ); ?></div>
+                                        <div class="ifs-educore-info-value"><?php echo esc_html( $staff->pay_grade ?: '—' ); ?></div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="ifs-educore-info-label"><?php esc_html_e( 'Gross Monthly Salary', 'ifsedu-school-management' ); ?></div>
+                                        <div class="ifs-educore-info-value text-success fw-bold">৳<?php echo esc_html( $salary ); ?></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Addresses -->
+                        <div class="col-12">
+                            <div class="ifs-educore-bento-card">
+                                <div class="ifs-educore-bento-section-title">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                                    <?php esc_html_e( 'Residential Address Records', 'ifsedu-school-management' ); ?>
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="ifs-educore-info-label"><?php esc_html_e( 'Present Address', 'ifsedu-school-management' ); ?></div>
+                                        <div class="ifs-educore-address-box"><?php echo nl2br( esc_html( $staff->address ?: '—' ) ); ?></div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="ifs-educore-info-label"><?php esc_html_e( 'Permanent Address', 'ifsedu-school-management' ); ?></div>
+                                        <div class="ifs-educore-address-box"><?php echo nl2br( esc_html( $staff->permanent_address ?: '—' ) ); ?></div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Employment & Academic Qualifications -->
-                    <div class="col-12">
-                        <div class="ifs-educore-bento-card">
-                            <div class="ifs-educore-bento-section-title">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>
-                                <?php esc_html_e( 'Academic & Service Portfolio', 'ifsedu-school-management' ); ?>
+                <!-- Right Column: Contact & Emergency -->
+                <div class="col-lg-4">
+                    <div class="row g-4">
+                        <div class="col-12">
+                            <div class="ifs-educore-bento-card">
+                                <div class="ifs-educore-bento-section-title">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.7 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                                    <?php esc_html_e( 'Direct Contact Channels', 'ifsedu-school-management' ); ?>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="ifs-educore-info-label"><?php esc_html_e( 'Mobile Phone', 'ifsedu-school-management' ); ?></div>
+                                    <div class="ifs-educore-info-value"><a href="tel:<?php echo esc_attr( $staff->phone ); ?>" class="text-decoration-none text-dark fw-bold"><?php echo esc_html( $staff->phone ); ?></a></div>
+                                </div>
+                                <?php if ( ! empty( $staff->whatsapp_no ) ) : ?>
+                                    <div class="mb-3">
+                                        <div class="ifs-educore-info-label"><?php esc_html_e( 'WhatsApp Number', 'ifsedu-school-management' ); ?></div>
+                                        <div class="ifs-educore-info-value"><a href="https://wa.me/<?php echo esc_attr( preg_replace( '/[^0-9]/', '', (string) $staff->whatsapp_no ) ); ?>" target="_blank" class="text-decoration-none text-success fw-bold"><?php echo esc_html( $staff->whatsapp_no ); ?></a></div>
+                                    </div>
+                                <?php endif; ?>
+                                <div class="mb-2">
+                                    <div class="ifs-educore-info-label"><?php esc_html_e( 'Email Address', 'ifsedu-school-management' ); ?></div>
+                                    <div class="ifs-educore-info-value"><?php echo esc_html( $staff->email ?: '—' ); ?></div>
+                                </div>
                             </div>
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <div class="ifs-educore-info-label"><?php esc_html_e( 'Subject Expertise', 'ifsedu-school-management' ); ?></div>
-                                    <div class="ifs-educore-info-value text-success fw-bold"><?php echo esc_html( $staff->subject_expert ?: '—' ); ?></div>
+                        </div>
+
+                        <!-- Emergency -->
+                        <div class="col-12">
+                            <div class="ifs-educore-bento-card ifs-educore-emergency-card">
+                                <div class="ifs-educore-bento-section-title ifs-educore-emergency-title">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                                    <?php esc_html_e( 'Emergency Contact', 'ifsedu-school-management' ); ?>
                                 </div>
-                                <div class="col-md-6">
-                                    <div class="ifs-educore-info-label"><?php esc_html_e( 'Highest Qualification', 'ifsedu-school-management' ); ?></div>
-                                    <div class="ifs-educore-info-value"><?php echo esc_html( $staff->highest_degree ?: '—' ); ?></div>
+                                <div class="mb-2">
+                                    <div class="ifs-educore-info-label"><?php esc_html_e( 'Contact Person', 'ifsedu-school-management' ); ?></div>
+                                    <div class="ifs-educore-info-value fw-bold"><?php echo esc_html( $staff->emergency_name ?: '—' ); ?></div>
                                 </div>
-                                <div class="col-md-4">
-                                    <div class="ifs-educore-info-label"><?php esc_html_e( 'Joining Date', 'ifsedu-school-management' ); ?></div>
-                                    <div class="ifs-educore-info-value"><?php echo esc_html( $joining_date ); ?></div>
+                                <div class="mb-2">
+                                    <div class="ifs-educore-info-label"><?php esc_html_e( 'Relationship', 'ifsedu-school-management' ); ?></div>
+                                    <div class="ifs-educore-info-value"><?php echo esc_html( $staff->emergency_relation ?: '—' ); ?></div>
                                 </div>
-                                <div class="col-md-4">
-                                    <div class="ifs-educore-info-label"><?php esc_html_e( 'Pay Scale Grade', 'ifsedu-school-management' ); ?></div>
-                                    <div class="ifs-educore-info-value"><?php echo esc_html( $staff->pay_grade ?: '—' ); ?></div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="ifs-educore-info-label"><?php esc_html_e( 'Gross Monthly Salary', 'ifsedu-school-management' ); ?></div>
-                                    <div class="ifs-educore-info-value text-success fw-bold fs-5">৳<?php echo esc_html( $salary ); ?></div>
+                                <div>
+                                    <div class="ifs-educore-info-label"><?php esc_html_e( 'Phone Number', 'ifsedu-school-management' ); ?></div>
+                                    <div class="ifs-educore-info-value text-danger fw-bold"><?php echo esc_html( $staff->emergency_phone ?: '—' ); ?></div>
                                 </div>
                             </div>
                         </div>
                     </div>
-
-                    <!-- Addresses -->
-                    <div class="col-12">
-                        <div class="ifs-educore-bento-card">
-                            <div class="ifs-educore-bento-section-title">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                                <?php esc_html_e( 'Residential Address Records', 'ifsedu-school-management' ); ?>
-                            </div>
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <div class="ifs-educore-info-label"><?php esc_html_e( 'Present Address', 'ifsedu-school-management' ); ?></div>
-                                    <div class="ifs-educore-address-box"><?php echo nl2br( esc_html( $staff->address ?: '—' ) ); ?></div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="ifs-educore-info-label"><?php esc_html_e( 'Permanent Address', 'ifsedu-school-management' ); ?></div>
-                                    <div class="ifs-educore-address-box"><?php echo nl2br( esc_html( $staff->permanent_address ?: '—' ) ); ?></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
                 </div>
             </div>
 
-            <!-- Right Column: Contact, Banking & Emergency -->
-            <div class="col-lg-4">
-                <div class="row g-4">
-                    
-                    <!-- Direct Contacts -->
-                    <div class="col-12">
-                        <div class="ifs-educore-bento-card">
-                            <div class="ifs-educore-bento-section-title">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.7 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-                                <?php esc_html_e( 'Direct Contact Channels', 'ifsedu-school-management' ); ?>
-                            </div>
-                            <div class="mb-3">
-                                <div class="ifs-educore-info-label"><?php esc_html_e( 'Mobile Phone', 'ifsedu-school-management' ); ?></div>
-                                <div class="ifs-educore-info-value">
-                                    <a href="tel:<?php echo esc_attr( $staff->phone ); ?>" class="text-decoration-none text-dark fw-bold">
-                                        <?php echo esc_html( $staff->phone ); ?>
-                                    </a>
-                                </div>
-                            </div>
-                            <?php if ( ! empty( $staff->whatsapp_no ) ) : ?>
-                                <div class="mb-3">
-                                    <div class="ifs-educore-info-label"><?php esc_html_e( 'WhatsApp Number', 'ifsedu-school-management' ); ?></div>
-                                    <div class="ifs-educore-info-value">
-                                        <a href="https://wa.me/<?php echo esc_attr( preg_replace( '/[^0-9]/', '', (string) $staff->whatsapp_no ) ); ?>" target="_blank" class="text-decoration-none text-success fw-bold d-inline-flex align-items-center gap-1">
-                                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/></svg>
-                                            <?php echo esc_html( $staff->whatsapp_no ); ?>
-                                        </a>
-                                    </div>
-                                </div>
-                            <?php endif; ?>
-                            <div class="mb-2">
-                                <div class="ifs-educore-info-label"><?php esc_html_e( 'Email Address', 'ifsedu-school-management' ); ?></div>
-                                <div class="ifs-educore-info-value">
-                                    <?php if ( ! empty( $staff->email ) ) : ?>
-                                        <a href="mailto:<?php echo esc_attr( $staff->email ); ?>" class="text-decoration-none text-primary">
-                                            <?php echo esc_html( $staff->email ); ?>
-                                        </a>
-                                    <?php else : ?>
-                                        —
-                                    <?php endif; ?>
-                                </div>
-                            </div>
+        <!-- ======================================================== -->
+        <!-- TAB 2: STAFF ATTENDANCE REPORT & MONTHLY MATRIX -->
+        <!-- ======================================================== -->
+        <?php elseif ( 'attendance' === $active_subtab ) : ?>
+            <div class="ifs-educore-bento-card">
+                <div class="ifs-educore-bento-section-title">
+                    <span class="dashicons dashicons-calendar-alt" style="font-size: 20px;"></span>
+                    <?php printf( esc_html__( 'Staff Attendance Report & Monthly Matrix: %s', 'ifsedu-school-management' ), esc_html( $cal_year ) ); ?>
+                </div>
+
+                <!-- Year Selection Bar & Status Legend -->
+                <div class="ifs-educore-cal-year-bar no-print">
+                    <div class="ifs-educore-cal-legend">
+                        <span><span class="legend-dot legend-dot-present"></span><?php esc_html_e( 'Present (P)', 'ifsedu-school-management' ); ?></span>
+                        <span><span class="legend-dot legend-dot-absent"></span><?php esc_html_e( 'Absent (A)', 'ifsedu-school-management' ); ?></span>
+                        <span><span class="legend-dot legend-dot-leave"></span><?php esc_html_e( 'Leave (L)', 'ifsedu-school-management' ); ?></span>
+                        <span><span class="legend-dot legend-dot-holiday"></span><?php esc_html_e( 'Holiday / Off (H)', 'ifsedu-school-management' ); ?></span>
+                    </div>
+                    <div>
+                        <label class="fw-bold me-2" style="font-size: 13px;"><?php esc_html_e( 'Report Year:', 'ifsedu-school-management' ); ?></label>
+                        <select onchange="window.location.href='<?php echo esc_url( add_query_arg( array( 'subtab' => 'attendance' ), $base_profile_url ) ); ?>&cal_year=' + this.value;" class="form-select form-select-sm d-inline-block w-auto">
+                            <?php for ( $y = (int) gmdate( 'Y' ) - 2; $y <= (int) gmdate( 'Y' ) + 4; $y++ ) : ?>
+                                <option value="<?php echo esc_attr( $y ); ?>" <?php selected( $cal_year, $y ); ?>><?php echo esc_html( $y ); ?></option>
+                            <?php endfor; ?>
+                        </select>
+                    </div>
+                </div>
+
+                <?php
+                $total_present = 0;
+                $total_absent  = 0;
+                $total_leave   = 0;
+                $total_holiday = count( $institutional_holidays );
+                
+                for ( $m = 1; $m <= 12; $m++ ) {
+                    $days_in_m = cal_days_in_month( CAL_GREGORIAN, $m, $cal_year );
+                    for ( $d = 1; $d <= $days_in_m; $d++ ) {
+                        $date_str = sprintf( '%04d-%02d-%02d', $cal_year, $m, $d );
+                        if ( isset( $institutional_holidays[ $date_str ] ) ) {
+                            continue; // Skip counting holidays as working days
+                        }
+
+                        if ( isset( $attendance_map[ $date_str ] ) ) {
+                            $status = $attendance_map[ $date_str ];
+                            if ( 'Present' === $status ) {
+                                $total_present++;
+                            } elseif ( 'Absent' === $status ) {
+                                $total_absent++;
+                            } elseif ( 'Leave' === $status ) {
+                                $total_leave++;
+                            }
+                        }
+                    }
+                }
+                ?>
+
+                <!-- Attendance Summary Counter Cards -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-3">
+                        <div class="p-3 bg-light border rounded-3 text-center">
+                            <div class="text-muted small text-uppercase fw-bold"><?php esc_html_e( 'Total Present', 'ifsedu-school-management' ); ?></div>
+                            <div class="fs-4 fw-extrabold text-success"><?php echo esc_html( $total_present ); ?></div>
                         </div>
                     </div>
+                    <div class="col-md-3">
+                        <div class="p-3 bg-light border rounded-3 text-center">
+                            <div class="text-muted small text-uppercase fw-bold"><?php esc_html_e( 'Total Absent', 'ifsedu-school-management' ); ?></div>
+                            <div class="fs-4 fw-extrabold text-danger"><?php echo esc_html( $total_absent ); ?></div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-3 bg-light border rounded-3 text-center">
+                            <div class="text-muted small text-uppercase fw-bold"><?php esc_html_e( 'Approved Leave', 'ifsedu-school-management' ); ?></div>
+                            <div class="fs-4 fw-extrabold text-warning"><?php echo esc_html( $total_leave ); ?></div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-3 bg-light border rounded-3 text-center">
+                            <div class="text-muted small text-uppercase fw-bold"><?php esc_html_e( 'Holidays / Off', 'ifsedu-school-management' ); ?></div>
+                            <div class="fs-4 fw-extrabold text-secondary"><?php echo esc_html( $total_holiday ); ?></div>
+                        </div>
+                    </div>
+                </div>
 
-                    <!-- Banking Details -->
-                    <div class="col-12">
-                        <div class="ifs-educore-bento-card">
-                            <div class="ifs-educore-bento-section-title">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="5" width="20" height="14" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>
-                                <?php esc_html_e( 'EFT / Payroll Banking', 'ifsedu-school-management' ); ?>
+                <!-- 12 Months Individual Attendance Grid Layout -->
+                <div class="ifs-educore-cal-container-12">
+                    <?php
+                    $month_names = array(
+                        1  => __( 'January', 'ifsedu-school-management' ),
+                        2  => __( 'February', 'ifsedu-school-management' ),
+                        3  => __( 'March', 'ifsedu-school-management' ),
+                        4  => __( 'April', 'ifsedu-school-management' ),
+                        5  => __( 'May', 'ifsedu-school-management' ),
+                        6  => __( 'June', 'ifsedu-school-management' ),
+                        7  => __( 'July', 'ifsedu-school-management' ),
+                        8  => __( 'August', 'ifsedu-school-management' ),
+                        9  => __( 'September', 'ifsedu-school-management' ),
+                        10 => __( 'October', 'ifsedu-school-management' ),
+                        11 => __( 'November', 'ifsedu-school-management' ),
+                        12 => __( 'December', 'ifsedu-school-management' ),
+                    );
+
+                    for ( $m = 1; $m <= 12; $m++ ) :
+                        $first_day_of_month = mktime( 0, 0, 0, $m, 1, $cal_year );
+                        $days_in_this_month = cal_days_in_month( CAL_GREGORIAN, $m, $cal_year );
+                        $start_weekday      = date( 'w', $first_day_of_month );
+                    ?>
+                        <div class="ifs-educore-cal-month-box">
+                            <div class="ifs-educore-cal-m-title"><?php echo esc_html( $month_names[ $m ] ); ?></div>
+                            <div class="ifs-educore-cal-wk-row">
+                                <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
                             </div>
-                            <div class="mb-3">
+                            <div class="ifs-educore-cal-days-row">
+                                <?php
+                                for ( $b = 0; $b < $start_weekday; $b++ ) {
+                                    echo '<div class="ifs-educore-cal-cell is-empty"></div>';
+                                }
+
+                                for ( $d = 1; $d <= $days_in_this_month; $d++ ) {
+                                    $date_str = sprintf( '%04d-%02d-%02d', $cal_year, $m, $d );
+                                    $is_off   = isset( $institutional_holidays[ $date_str ] );
+                                    
+                                    if ( $is_off ) {
+                                        $cell_cls = 'cal-status-holiday';
+                                        $tooltip  = $date_str . ': [Holiday] ' . $institutional_holidays[ $date_str ];
+                                    } elseif ( isset( $attendance_map[ $date_str ] ) ) {
+                                        $status = $attendance_map[ $date_str ];
+                                        if ( 'Present' === $status ) {
+                                            $cell_cls = 'cal-status-present';
+                                            $tooltip  = $date_str . ': Present';
+                                        } elseif ( 'Absent' === $status ) {
+                                            $cell_cls = 'cal-status-absent';
+                                            $tooltip  = $date_str . ': Absent';
+                                        } else {
+                                            $cell_cls = 'cal-status-leave';
+                                            $tooltip  = $date_str . ': Leave';
+                                        }
+                                    } else {
+                                        $cell_cls = ''; // Unrecorded / Pending log
+                                        $tooltip  = $date_str . ': No log';
+                                    }
+                                    ?>
+                                    <div class="ifs-educore-cal-cell <?php echo esc_attr( $cell_cls ); ?>" title="<?php echo esc_attr( $tooltip ); ?>">
+                                        <span><?php echo esc_html( $d ); ?></span>
+                                    </div>
+                                    <?php
+                                }
+                                ?>
+                            </div>
+                        </div>
+                    <?php endfor; ?>
+                </div>
+            </div>
+
+        <!-- ======================================================== -->
+        <!-- TAB 3: SALARY & PAYROLL DETAILS -->
+        <!-- ======================================================== -->
+        <?php elseif ( 'salary' === $active_subtab ) : ?>
+            <div class="row g-4">
+                <div class="col-lg-7">
+                    <div class="ifs-educore-bento-card">
+                        <div class="ifs-educore-bento-section-title">
+                            <span class="dashicons dashicons-money-alt" style="font-size: 20px;"></span>
+                            <?php esc_html_e( 'Payroll Structure & Bank Routing', 'ifsedu-school-management' ); ?>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="ifs-educore-info-label"><?php esc_html_e( 'Pay Scale Grade', 'ifsedu-school-management' ); ?></div>
+                                <div class="ifs-educore-info-value"><?php echo esc_html( $staff->pay_grade ?: '—' ); ?></div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="ifs-educore-info-label"><?php esc_html_e( 'Base Monthly Salary', 'ifsedu-school-management' ); ?></div>
+                                <div class="ifs-educore-info-value text-success">৳<?php echo esc_html( $salary ); ?></div>
+                            </div>
+                            <div class="col-md-12">
+                                <hr class="text-muted">
+                            </div>
+                            <div class="col-md-6">
                                 <div class="ifs-educore-info-label"><?php esc_html_e( 'Bank Name', 'ifsedu-school-management' ); ?></div>
                                 <div class="ifs-educore-info-value"><?php echo esc_html( $staff->bank_name ?: '—' ); ?></div>
                             </div>
-                            <div class="mb-3">
-                                <div class="ifs-educore-info-label"><?php esc_html_e( 'Account Number', 'ifsedu-school-management' ); ?></div>
+                            <div class="col-md-6">
+                                <div class="ifs-educore-info-label"><?php esc_html_e( 'Bank Account Number', 'ifsedu-school-management' ); ?></div>
                                 <div class="ifs-educore-info-value font-monospace bg-light p-2 rounded text-dark border"><?php echo esc_html( $staff->bank_acc_no ?: '—' ); ?></div>
                             </div>
-                            <div>
+                            <div class="col-md-6">
                                 <div class="ifs-educore-info-label"><?php esc_html_e( 'Routing Number', 'ifsedu-school-management' ); ?></div>
                                 <div class="ifs-educore-info-value font-monospace"><?php echo esc_html( $staff->bank_routing ?: '—' ); ?></div>
                             </div>
                         </div>
                     </div>
-
-                    <!-- Emergency Contact -->
-                    <div class="col-12">
-                        <div class="ifs-educore-bento-card ifs-educore-emergency-card">
-                            <div class="ifs-educore-bento-section-title ifs-educore-emergency-title">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                                <?php esc_html_e( 'Emergency Contact', 'ifsedu-school-management' ); ?>
-                            </div>
-                            <div class="mb-2">
-                                <div class="ifs-educore-info-label"><?php esc_html_e( 'Contact Person', 'ifsedu-school-management' ); ?></div>
-                                <div class="ifs-educore-info-value fw-bold"><?php echo esc_html( $staff->emergency_name ?: '—' ); ?></div>
-                            </div>
-                            <div class="mb-2">
-                                <div class="ifs-educore-info-label"><?php esc_html_e( 'Relationship', 'ifsedu-school-management' ); ?></div>
-                                <div class="ifs-educore-info-value"><?php echo esc_html( $staff->emergency_relation ?: '—' ); ?></div>
-                            </div>
-                            <div>
-                                <div class="ifs-educore-info-label"><?php esc_html_e( 'Phone Number', 'ifsedu-school-management' ); ?></div>
-                                <div class="ifs-educore-info-value">
-                                    <?php if ( ! empty( $staff->emergency_phone ) ) : ?>
-                                        <a href="tel:<?php echo esc_attr( $staff->emergency_phone ); ?>" class="text-decoration-none text-danger fw-bold fs-6">
-                                            <?php echo esc_html( $staff->emergency_phone ); ?>
-                                        </a>
-                                    <?php else : ?>
-                                        —
-                                    <?php endif; ?>
-                                </div>
-                            </div>
+                </div>
+                <div class="col-lg-5">
+                    <div class="ifs-educore-bento-card">
+                        <div class="ifs-educore-bento-section-title">
+                            <?php esc_html_e( 'Disbursal Records', 'ifsedu-school-management' ); ?>
                         </div>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                <span><?php esc_html_e( 'Current Salary Status', 'ifsedu-school-management' ); ?></span>
+                                <span class="badge bg-success rounded-pill"><?php esc_html_e( 'Active & Verified', 'ifsedu-school-management' ); ?></span>
+                            </li>
+                        </ul>
                     </div>
-
-                    <!-- Social Networks -->
-                    <?php if ( ! empty( $staff->linkedin_url ) || ! empty( $staff->facebook_url ) || ! empty( $staff->website_url ) ) : ?>
-                        <div class="col-12 no-print">
-                            <div class="ifs-educore-bento-card">
-                                <div class="ifs-educore-bento-section-title">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
-                                    <?php esc_html_e( 'Digital Presence', 'ifsedu-school-management' ); ?>
-                                </div>
-                                <div class="d-flex flex-wrap gap-2">
-                                    <?php if ( ! empty( $staff->linkedin_url ) ) : ?>
-                                        <a href="<?php echo esc_url( $staff->linkedin_url ); ?>" target="_blank" class="ifs-educore-social-pill">
-                                            <svg viewBox="0 0 24 24"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
-                                            LinkedIn
-                                        </a>
-                                    <?php endif; ?>
-                                    <?php if ( ! empty( $staff->facebook_url ) ) : ?>
-                                        <a href="<?php echo esc_url( $staff->facebook_url ); ?>" target="_blank" class="ifs-educore-social-pill">
-                                            <svg viewBox="0 0 24 24"><path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1v2h3v3h-3v6.95c5.05-.5 9-4.76 9-9.95z"/></svg>
-                                            Facebook
-                                        </a>
-                                    <?php endif; ?>
-                                    <?php if ( ! empty( $staff->website_url ) ) : ?>
-                                        <a href="<?php echo esc_url( $staff->website_url ); ?>" target="_blank" class="ifs-educore-social-pill">
-                                            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
-                                            Portfolio
-                                        </a>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                        </div>
-                    <?php endif; ?>
-
                 </div>
             </div>
 
-        </div>
+        <!-- ======================================================== -->
+        <!-- TAB 4: DUTY PROXY RECORDS -->
+        <!-- ======================================================== -->
+        <?php elseif ( 'proxy' === $active_subtab ) : ?>
+            <div class="ifs-educore-bento-card">
+                <div class="ifs-educore-bento-section-title">
+                    <span class="dashicons dashicons-randomize" style="font-size: 20px;"></span>
+                    <?php esc_html_e( 'Assigned Class & Duty Proxies', 'ifsedu-school-management' ); ?>
+                </div>
+                <p class="text-muted small mb-3"><?php esc_html_e( 'Active substitution and proxy duties assigned to this staff member from the database.', 'ifsedu-school-management' ); ?></p>
+                
+                <table class="table table-striped table-bordered align-middle m-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th><?php esc_html_e( 'Date', 'ifsedu-school-management' ); ?></th>
+                            <th><?php esc_html_e( 'Period / Slot', 'ifsedu-school-management' ); ?></th>
+                            <th><?php esc_html_e( 'Original Teacher', 'ifsedu-school-management' ); ?></th>
+                            <th><?php esc_html_e( 'Class / Section', 'ifsedu-school-management' ); ?></th>
+                            <th><?php esc_html_e( 'Status', 'ifsedu-school-management' ); ?></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if ( ! empty( $proxy_records ) ) : ?>
+                            <?php foreach ( $proxy_records as $proxy ) : ?>
+                                <tr>
+                                    <td><?php echo esc_html( date_i18n( 'd M, Y', strtotime( $proxy->proxy_date ) ) ); ?></td>
+                                    <td><?php echo esc_html( $proxy->period_slot ); ?></td>
+                                    <td><?php echo esc_html( $proxy->original_teacher ); ?></td>
+                                    <td><?php echo esc_html( $proxy->class_section ); ?></td>
+                                    <td>
+                                        <span class="badge bg-<?php echo ( 'Completed' === $proxy->status ) ? 'success' : 'warning text-dark'; ?>">
+                                            <?php echo esc_html( $proxy->status ); ?>
+                                        </span>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else : ?>
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-3">
+                                    <?php esc_html_e( 'No duty proxy records found for this staff member.', 'ifsedu-school-management' ); ?>
+                                </td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php endif; ?>
+
     </div>
     <?php
 }

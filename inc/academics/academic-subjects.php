@@ -3,13 +3,15 @@
  * Academic Subjects Management & Mark Distribution Engine with Dynamic Breakdown Repeater
  * File: inc/academics/class-subjects.php
  * Text Domain: ifsedu-school-management
- * Updated: Loaded for All Classes with Class-Wise Grouped Directory View
  */
 
 if ( ! defined( 'ABSPATH' ) ) { 
-    exit; 
+    exit; // Exit if accessed directly.
 }
 
+/**
+ * Render Academic Subjects Management View & Handle Form Actions
+ */
 function educore_render_subjects_view() {
     global $wpdb;
     $table_units    = $wpdb->prefix . 'sms_academic_units';
@@ -36,21 +38,21 @@ function educore_render_subjects_view() {
     if ( 'POST' === $req_method && isset( $_POST['educore_update_single_subject'] ) ) {
         if ( isset( $_POST['edit_subject_nonce_field'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['edit_subject_nonce_field'] ) ), 'ifs_educore_edit_subject_nonce' ) ) {
             $sub_id         = isset( $_POST['subject_id'] ) ? absint( wp_unslash( $_POST['subject_id'] ) ) : 0;
-            $unit_keys       = ( isset( $_POST['class_units'] ) && is_array( $_POST['class_units'] ) ) ? array_map( 'sanitize_text_field', wp_unslash( $_POST['class_units'] ) ) : array();
-            $sub_name        = isset( $_POST['subject_name'] ) ? sanitize_text_field( wp_unslash( $_POST['subject_name'] ) ) : '';
-            $sub_code        = isset( $_POST['subject_code'] ) ? sanitize_text_field( wp_unslash( $_POST['subject_code'] ) ) : '';
-            $sub_order       = isset( $_POST['subject_order'] ) ? intval( wp_unslash( $_POST['subject_order'] ) ) : 0;
-            $tot_m           = isset( $_POST['total_marks'] ) ? floatval( wp_unslash( $_POST['total_marks'] ) ) : 100.00;
-            $pass_m          = isset( $_POST['pass_marks'] ) ? floatval( wp_unslash( $_POST['pass_marks'] ) ) : 33.00;
-            $cq_m            = isset( $_POST['cq_marks'] ) ? floatval( wp_unslash( $_POST['cq_marks'] ) ) : 0.00;
-            $cq_p            = isset( $_POST['cq_pass'] ) ? floatval( wp_unslash( $_POST['cq_pass'] ) ) : 0.00;
-            $mcq_m           = isset( $_POST['mcq_marks'] ) ? floatval( wp_unslash( $_POST['mcq_marks'] ) ) : 0.00;
-            $mcq_p           = isset( $_POST['mcq_pass'] ) ? floatval( wp_unslash( $_POST['mcq_pass'] ) ) : 0.00;
-            $pr_m            = isset( $_POST['practical_marks'] ) ? floatval( wp_unslash( $_POST['practical_marks'] ) ) : 0.00;
-            $pr_p            = isset( $_POST['practical_pass'] ) ? floatval( wp_unslash( $_POST['practical_pass'] ) ) : 0.00;
-            $preset_type     = isset( $_POST['preset_type'] ) ? sanitize_text_field( wp_unslash( $_POST['preset_type'] ) ) : 'gen_100';
+            $unit_keys      = ( isset( $_POST['class_units'] ) && is_array( $_POST['class_units'] ) ) ? array_map( 'sanitize_text_field', wp_unslash( $_POST['class_units'] ) ) : array();
+            $sub_name       = isset( $_POST['subject_name'] ) ? sanitize_text_field( wp_unslash( $_POST['subject_name'] ) ) : '';
+            $sub_code       = isset( $_POST['subject_code'] ) ? sanitize_text_field( wp_unslash( $_POST['subject_code'] ) ) : '';
+            $sub_order      = isset( $_POST['subject_order'] ) ? intval( wp_unslash( $_POST['subject_order'] ) ) : 0;
+            $tot_m          = isset( $_POST['total_marks'] ) ? floatval( wp_unslash( $_POST['total_marks'] ) ) : 100.00;
+            $pass_m         = isset( $_POST['pass_marks'] ) ? floatval( wp_unslash( $_POST['pass_marks'] ) ) : 33.00;
+            $cq_m           = isset( $_POST['cq_marks'] ) ? floatval( wp_unslash( $_POST['cq_marks'] ) ) : 0.00;
+            $cq_p           = isset( $_POST['cq_pass'] ) ? floatval( wp_unslash( $_POST['cq_pass'] ) ) : 0.00;
+            $mcq_m          = isset( $_POST['mcq_marks'] ) ? floatval( wp_unslash( $_POST['mcq_marks'] ) ) : 0.00;
+            $mcq_p          = isset( $_POST['mcq_pass'] ) ? floatval( wp_unslash( $_POST['mcq_pass'] ) ) : 0.00;
+            $pr_m           = isset( $_POST['practical_marks'] ) ? floatval( wp_unslash( $_POST['practical_marks'] ) ) : 0.00;
+            $pr_p           = isset( $_POST['practical_pass'] ) ? floatval( wp_unslash( $_POST['practical_pass'] ) ) : 0.00;
+            $preset_type    = isset( $_POST['preset_type'] ) ? sanitize_text_field( wp_unslash( $_POST['preset_type'] ) ) : 'gen_100';
 
-            // Collect Custom Breakdown if preset is 'other'
+            // Collect Custom Breakdown if preset is 'other'.
             $breakdown_json = null;
             if ( 'other' === $preset_type && isset( $_POST['sub_comp_name'] ) && is_array( $_POST['sub_comp_name'] ) ) {
                 $components = array();
@@ -83,14 +85,16 @@ function educore_render_subjects_view() {
                 }
             }
 
-            if ( $sub_id > 0 && ! empty( $unit_keys ) && ! empty( $sub_name ) ) {
+            if ( 0 < $sub_id && ! empty( $unit_keys ) && ! empty( $sub_name ) ) {
                 $target_unit_ids = array();
                 foreach ( $unit_keys as $ukey ) {
-                    if ( strpos( $ukey, 'id:' ) === 0 ) {
+                    if ( 0 === strpos( $ukey, 'id:' ) ) {
                         $target_unit_ids[] = absint( str_replace( 'id:', '', $ukey ) );
-                    } elseif ( strpos( $ukey, 'class:' ) === 0 ) {
+                    } elseif ( 0 === strpos( $ukey, 'class:' ) ) {
                         $c_name = sanitize_text_field( str_replace( 'class:', '', $ukey ) );
+                        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
                         $c_ids  = $wpdb->get_col( $wpdb->prepare( "SELECT id FROM `{$table_units}` WHERE class_name = %s ORDER BY sort_order ASC, id ASC", $c_name ) );
+                        // phpcs:enable
                         if ( ! empty( $c_ids ) ) {
                             $target_unit_ids = array_merge( $target_unit_ids, array_map( 'absint', $c_ids ) );
                         }
@@ -117,6 +121,7 @@ function educore_render_subjects_view() {
                         'breakdown_data'  => $breakdown_json,
                     );
 
+                    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, PluginCheck.Security.DirectDB.UnescapedDBParameter
                     $wpdb->update(
                         $table_subjects,
                         $update_data,
@@ -124,19 +129,24 @@ function educore_render_subjects_view() {
                         array( '%d', '%s', '%s', '%d', '%f', '%f', '%f', '%f', '%f', '%f', '%f', '%f', '%s' ),
                         array( '%d' )
                     );
+                    // phpcs:enable
 
                     for ( $i = 1; $i < count( $target_unit_ids ); $i++ ) {
                         $other_unit_id = $target_unit_ids[ $i ];
+                        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
                         $exists_id = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM `{$table_subjects}` WHERE class_id = %d AND subject_name = %s LIMIT 1", $other_unit_id, $sub_name ) );
+                        // phpcs:enable
 
                         if ( ! $exists_id ) {
                             $insert_data             = $update_data;
                             $insert_data['class_id'] = $other_unit_id;
+                            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, PluginCheck.Security.DirectDB.UnescapedDBParameter
                             $wpdb->insert(
                                 $table_subjects,
                                 $insert_data,
                                 array( '%d', '%s', '%s', '%d', '%f', '%f', '%f', '%f', '%f', '%f', '%f', '%f', '%s' )
                             );
+                            // phpcs:enable
                         }
                     }
                 }
@@ -179,11 +189,13 @@ function educore_render_subjects_view() {
             if ( ! empty( $unit_keys ) && ! empty( $subject_name ) ) {
                 $target_unit_ids = array();
                 foreach ( $unit_keys as $ukey ) {
-                    if ( strpos( $ukey, 'id:' ) === 0 ) {
+                    if ( 0 === strpos( $ukey, 'id:' ) ) {
                         $target_unit_ids[] = absint( str_replace( 'id:', '', $ukey ) );
-                    } elseif ( strpos( $ukey, 'class:' ) === 0 ) {
+                    } elseif ( 0 === strpos( $ukey, 'class:' ) ) {
                         $c_name = sanitize_text_field( str_replace( 'class:', '', $ukey ) );
+                        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
                         $c_ids  = $wpdb->get_col( $wpdb->prepare( "SELECT id FROM `{$table_units}` WHERE class_name = %s ORDER BY sort_order ASC, id ASC", $c_name ) );
+                        // phpcs:enable
                         if ( ! empty( $c_ids ) ) {
                             $target_unit_ids = array_merge( $target_unit_ids, array_map( 'absint', $c_ids ) );
                         }
@@ -195,7 +207,7 @@ function educore_render_subjects_view() {
                 if ( ! empty( $target_unit_ids ) ) {
                     foreach ( $target_unit_ids as $c_id ) {
                         $c_id_int = absint( $c_id );
-                        if ( $c_id_int <= 0 ) {
+                        if ( 0 >= $c_id_int ) {
                             continue;
                         }
 
@@ -205,18 +217,18 @@ function educore_render_subjects_view() {
                                 continue;
                             }
 
-                            $s_code       = isset( $subject_code[ $index ] ) ? sanitize_text_field( (string) $subject_code[ $index ] ) : '';
-                            $s_order      = isset( $subject_order[ $index ] ) ? intval( $subject_order[ $index ] ) : ( $index + 1 );
-                            $s_preset     = isset( $preset_types[ $index ] ) ? sanitize_text_field( $preset_types[ $index ] ) : 'gen_100';
-                            $s_total      = ( isset( $total_marks[ $index ] ) && floatval( $total_marks[ $index ] ) > 0 ) ? floatval( $total_marks[ $index ] ) : 100.00;
-                            $s_pass       = isset( $pass_marks[ $index ] ) ? floatval( $pass_marks[ $index ] ) : 33.00;
-                            $s_cq         = isset( $cq_marks[ $index ] ) ? floatval( $cq_marks[ $index ] ) : 0.00;
-                            $s_cq_p       = isset( $cq_pass[ $index ] ) ? floatval( $cq_pass[ $index ] ) : 0.00;
-                            $s_mcq        = isset( $mcq_marks[ $index ] ) ? floatval( $mcq_marks[ $index ] ) : 0.00;
-                            $s_mcq_p      = isset( $mcq_pass[ $index ] ) ? floatval( $mcq_pass[ $index ] ) : 0.00;
-                            $s_practical  = isset( $practical_marks[ $index ] ) ? floatval( $practical_marks[ $index ] ) : 0.00;
-                            $s_pr_p       = isset( $practical_pass[ $index ] ) ? floatval( $practical_pass[ $index ] ) : 0.00;
-                            $s_breakdown  = null;
+                            $s_code      = isset( $subject_code[ $index ] ) ? sanitize_text_field( (string) $subject_code[ $index ] ) : '';
+                            $s_order     = isset( $subject_order[ $index ] ) ? intval( $subject_order[ $index ] ) : ( $index + 1 );
+                            $s_preset    = isset( $preset_types[ $index ] ) ? sanitize_text_field( $preset_types[ $index ] ) : 'gen_100';
+                            $s_total     = ( isset( $total_marks[ $index ] ) && 0 < floatval( $total_marks[ $index ] ) ) ? floatval( $total_marks[ $index ] ) : 100.00;
+                            $s_pass      = isset( $pass_marks[ $index ] ) ? floatval( $pass_marks[ $index ] ) : 33.00;
+                            $s_cq        = isset( $cq_marks[ $index ] ) ? floatval( $cq_marks[ $index ] ) : 0.00;
+                            $s_cq_p      = isset( $cq_pass[ $index ] ) ? floatval( $cq_pass[ $index ] ) : 0.00;
+                            $s_mcq       = isset( $mcq_marks[ $index ] ) ? floatval( $mcq_marks[ $index ] ) : 0.00;
+                            $s_mcq_p     = isset( $mcq_pass[ $index ] ) ? floatval( $mcq_pass[ $index ] ) : 0.00;
+                            $s_practical = isset( $practical_marks[ $index ] ) ? floatval( $practical_marks[ $index ] ) : 0.00;
+                            $s_pr_p      = isset( $practical_pass[ $index ] ) ? floatval( $practical_pass[ $index ] ) : 0.00;
+                            $s_breakdown = null;
 
                             if ( 'other' === $s_preset && isset( $raw_custom_names[ $index ] ) && is_array( $raw_custom_names[ $index ] ) ) {
                                 $c_list = array();
@@ -246,6 +258,7 @@ function educore_render_subjects_view() {
                                 }
                             }
 
+                            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, PluginCheck.Security.DirectDB.UnescapedDBParameter
                             $wpdb->insert( 
                                 $table_subjects, 
                                 array( 
@@ -265,12 +278,13 @@ function educore_render_subjects_view() {
                                 ), 
                                 array( '%d', '%s', '%s', '%d', '%f', '%f', '%f', '%f', '%f', '%f', '%f', '%f', '%s' ) 
                             );
+                            // phpcs:enable
                             $inserted_count++;
                         }
                     }
                 }
 
-                if ( $inserted_count > 0 ) {
+                if ( 0 < $inserted_count ) {
                     $redirect_target = add_query_arg( array( 'status' => 'subjects_added', 'count' => $inserted_count ), $base_url );
                     if ( ! headers_sent() ) {
                         wp_safe_redirect( $redirect_target );
@@ -291,8 +305,10 @@ function educore_render_subjects_view() {
         $delete_id = absint( wp_unslash( $_GET['id'] ) );
         $del_nonce = isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) : '';
 
-        if ( $delete_id > 0 && wp_verify_nonce( $del_nonce, 'delete_subject_action_' . $delete_id ) ) {
+        if ( 0 < $delete_id && wp_verify_nonce( $del_nonce, 'delete_subject_action_' . $delete_id ) ) {
+            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $wpdb->delete( $table_subjects, array( 'id' => $delete_id ), array( '%d' ) );
+            // phpcs:enable
 
             $redirect_target = add_query_arg( array( 'status' => 'deleted' ), $base_url );
             if ( ! headers_sent() ) {
@@ -308,6 +324,7 @@ function educore_render_subjects_view() {
     // --------------------------------------------------------------------------
     // 4. DATA QUERIES (LOAD ALL CLASSES)
     // --------------------------------------------------------------------------
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
     $all_raw_units = $wpdb->get_results( 
         "SELECT id, class_name, section_name, sort_order 
          FROM `{$table_units}` 
@@ -315,6 +332,7 @@ function educore_render_subjects_view() {
          ORDER BY sort_order ASC, CAST(class_name AS UNSIGNED) ASC, class_name ASC, section_name ASC", 
         ARRAY_A 
     );
+    // phpcs:enable
 
     $display_units = array();
 
@@ -348,12 +366,14 @@ function educore_render_subjects_view() {
         } );
     }
 
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
     $subjects_list = $wpdb->get_results( "
         SELECT s.*, u.class_name, u.section_name, u.sort_order AS class_sort_order 
         FROM `{$table_subjects}` s 
         LEFT JOIN `{$table_units}` u ON s.class_id = u.id 
         ORDER BY u.sort_order ASC, CAST(u.class_name AS UNSIGNED) ASC, u.class_name ASC, u.section_name ASC, s.subject_order ASC, s.subject_name ASC
     " );
+    // phpcs:enable
 
     if ( ! empty( $subjects_list ) && is_array( $subjects_list ) ) {
         usort( $subjects_list, function( $a, $b ) {
@@ -385,7 +405,7 @@ function educore_render_subjects_view() {
         } );
     }
 
-    // Group subjects class-wise for clean sectional card display
+    // Group subjects class-wise for clean sectional card display.
     $grouped_subjects = array();
     if ( ! empty( $subjects_list ) ) {
         foreach ( $subjects_list as $sub_item ) {
@@ -395,24 +415,53 @@ function educore_render_subjects_view() {
     }
     ?>
 
-    <style>
+    <style id="ifs-educore-class-subjects-styles">
         .ifs-educore-subjects-container {
-            max-width: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            box-sizing: border-box !important;
-            font-family: inherit;
+            max-width: 100%;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #0f172a;
         }
+
+        .ifs-educore-alert-success {
+            background: #ecfdf5;
+            border-left: 4px solid #00523c;
+            color: #065f46;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-weight: 700;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ifs-educore-alert-info {
+            background: #eff6ff;
+            border-left: 4px solid #2563eb;
+            color: #1e40af;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-weight: 700;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
         .ifs-educore-bento-card {
-            background: #ffffff !important;
-            border: 1px solid #e2e8f0 !important;
-            border-radius: 14px !important;
-            padding: 22px !important;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02) !important;
-            margin: 0 0 20px 0 !important;
-            box-sizing: border-box !important;
-            height: auto !important;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 22px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+            margin: 0 0 20px 0;
+            box-sizing: border-box;
+            height: auto;
         }
+
         .ifs-educore-card-header {
             display: flex;
             justify-content: space-between;
@@ -423,6 +472,7 @@ function educore_render_subjects_view() {
             flex-wrap: wrap;
             gap: 10px;
         }
+
         .ifs-educore-card-title {
             font-size: 15px;
             font-weight: 800;
@@ -432,6 +482,7 @@ function educore_render_subjects_view() {
             align-items: center;
             gap: 8px;
         }
+
         .ifs-educore-form-label {
             display: block;
             font-size: 12px;
@@ -441,6 +492,7 @@ function educore_render_subjects_view() {
             letter-spacing: 0.3px;
             margin-bottom: 6px;
         }
+
         .ifs-educore-field-input,
         .ifs-educore-field-select {
             width: 100%;
@@ -453,8 +505,9 @@ function educore_render_subjects_view() {
             background: #ffffff;
             box-sizing: border-box;
             outline: none;
-            transition: border-color 0.2s;
+            transition: border-color 0.2s, box-shadow 0.2s;
         }
+
         .ifs-educore-field-input:focus,
         .ifs-educore-field-select:focus {
             border-color: #00523c;
@@ -462,108 +515,119 @@ function educore_render_subjects_view() {
         }
 
         /* Class Selector Panel */
-        .ifs-class-selector-panel {
-            background: #f8fafc !important;
-            border: 1.5px solid #e2e8f0 !important;
-            border-radius: 10px !important;
-            padding: 14px !important;
-            box-sizing: border-box !important;
+        .ifs-educore-class-selector-panel {
+            background: #f8fafc;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 14px;
+            box-sizing: border-box;
         }
-        .ifs-class-panel-toolbar {
-            display: flex !important;
-            justify-content: space-between !important;
-            align-items: center !important;
-            flex-wrap: wrap !important;
-            gap: 8px !important;
-            margin-bottom: 10px !important;
-            padding-bottom: 10px !important;
-            border-bottom: 1px solid #e2e8f0 !important;
+
+        .ifs-educore-class-panel-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e2e8f0;
         }
-        .ifs-class-search-input {
-            height: 32px !important;
-            padding: 0 10px !important;
-            font-size: 12.5px !important;
-            border: 1px solid #cbd5e1 !important;
-            border-radius: 6px !important;
-            background: #ffffff !important;
-            max-width: 200px !important;
-            outline: none !important;
-            box-sizing: border-box !important;
+
+        .ifs-educore-class-search-input {
+            height: 32px;
+            padding: 0 10px;
+            font-size: 12.5px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            background: #ffffff;
+            max-width: 200px;
+            outline: none;
+            box-sizing: border-box;
         }
-        .ifs-class-toolbar-actions {
-            display: flex !important;
-            align-items: center !important;
-            gap: 8px !important;
+
+        .ifs-educore-class-toolbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
-        .ifs-class-count-badge {
-            font-size: 11.5px !important;
-            font-weight: 700 !important;
-            background: #e2e8f0 !important;
-            color: #475569 !important;
-            padding: 3px 8px !important;
-            border-radius: 999px !important;
+
+        .ifs-educore-class-count-badge {
+            font-size: 11.5px;
+            font-weight: 700;
+            background: #e2e8f0;
+            color: #475569;
+            padding: 3px 8px;
+            border-radius: 999px;
         }
-        .ifs-class-count-badge.has-selected {
-            background: #dcfce7 !important;
-            color: #15803d !important;
+
+        .ifs-educore-class-count-badge.ifs-educore-has-selected {
+            background: #dcfce7;
+            color: #15803d;
         }
-        .ifs-class-btn-toggle {
-            background: #ffffff !important;
-            border: 1px solid #cbd5e1 !important;
-            color: #334155 !important;
-            padding: 4px 10px !important;
-            border-radius: 6px !important;
-            font-size: 11.5px !important;
-            font-weight: 700 !important;
-            cursor: pointer !important;
+
+        .ifs-educore-class-btn-toggle {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            color: #334155;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11.5px;
+            font-weight: 700;
+            cursor: pointer;
         }
-        .ifs-class-btn-toggle:hover {
-            background: #00523c !important;
-            color: #ffffff !important;
-            border-color: #00523c !important;
+
+        .ifs-educore-class-btn-toggle:hover {
+            background: #00523c;
+            color: #ffffff;
+            border-color: #00523c;
         }
 
         /* Class Cards Grid */
-        .ifs-class-grid {
-            display: grid !important;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important;
-            gap: 8px !important;
-            max-height: 160px !important;
-            overflow-y: auto !important;
-            padding: 2px !important;
-            box-sizing: border-box !important;
+        .ifs-educore-class-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 8px;
+            max-height: 160px;
+            overflow-y: auto;
+            padding: 2px;
+            box-sizing: border-box;
         }
-        .ifs-class-card {
-            display: flex !important;
-            align-items: center !important;
-            gap: 6px !important;
-            background: #ffffff !important;
-            border: 1px solid #e2e8f0 !important;
-            padding: 7px 10px !important;
-            border-radius: 6px !important;
-            font-size: 13px !important;
-            font-weight: 600 !important;
-            color: #1e293b !important;
-            cursor: pointer !important;
-            user-select: none !important;
-            box-sizing: border-box !important;
+
+        .ifs-educore-class-card {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            padding: 7px 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #1e293b;
+            cursor: pointer;
+            user-select: none;
+            box-sizing: border-box;
         }
-        .ifs-class-card:hover {
-            border-color: #94a3b8 !important;
-            background: #f8fafc !important;
+
+        .ifs-educore-class-card:hover {
+            border-color: #94a3b8;
+            background: #f8fafc;
         }
-        .ifs-class-card.is-active {
-            border-color: #00523c !important;
-            background: #f0fdf4 !important;
-            color: #00523c !important;
+
+        .ifs-educore-class-card.ifs-educore-is-active {
+            border-color: #00523c;
+            background: #f0fdf4;
+            color: #00523c;
         }
-        .ifs-class-card input[type="checkbox"] {
-            margin: 0 !important;
-            width: 15px !important;
-            height: 15px !important;
-            cursor: pointer !important;
-            accent-color: #00523c !important;
-            flex-shrink: 0 !important;
+
+        .ifs-educore-class-card input[type="checkbox"] {
+            margin: 0;
+            width: 15px;
+            height: 15px;
+            cursor: pointer;
+            accent-color: #00523c;
+            flex-shrink: 0;
         }
 
         /* Repeater Rows */
@@ -574,6 +638,7 @@ function educore_render_subjects_view() {
             padding: 14px;
             margin-bottom: 12px;
         }
+
         .ifs-educore-repeater-grid-top {
             display: grid;
             grid-template-columns: 2fr 1fr 1fr 1.6fr 36px;
@@ -581,6 +646,7 @@ function educore_render_subjects_view() {
             align-items: end;
             margin-bottom: 10px;
         }
+
         .ifs-educore-repeater-grid-marks {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -592,7 +658,7 @@ function educore_render_subjects_view() {
         }
 
         /* Custom Breakdown Sub-Repeater inside Row */
-        .ifs-custom-breakdown-subrepeater {
+        .ifs-educore-custom-breakdown-subrepeater {
             display: none;
             background: #ffffff;
             border: 1.5px solid #00523c;
@@ -600,17 +666,20 @@ function educore_render_subjects_view() {
             padding: 12px;
             margin-top: 10px;
         }
-        .ifs-custom-breakdown-subrepeater.is-active {
+
+        .ifs-educore-custom-breakdown-subrepeater.ifs-educore-is-active {
             display: block;
         }
-        .ifs-sub-item-row {
+
+        .ifs-educore-sub-item-row {
             display: grid;
             grid-template-columns: 2fr 1fr 1fr 32px;
             gap: 8px;
             align-items: center;
             margin-bottom: 6px;
         }
-        .ifs-btn-del-subitem {
+
+        .ifs-educore-btn-del-subitem {
             background: #fee2e2;
             color: #dc2626;
             border: 1px solid #fecaca;
@@ -636,10 +705,12 @@ function educore_render_subjects_view() {
             align-items: center;
             justify-content: center;
         }
+
         .ifs-educore-btn-remove-row:disabled {
             opacity: 0.4;
             cursor: not-allowed;
         }
+
         .ifs-educore-btn-add-repeater {
             background: #f1f5f9;
             color: #00523c;
@@ -654,6 +725,7 @@ function educore_render_subjects_view() {
             gap: 6px;
             margin-right: 8px;
         }
+
         .ifs-educore-btn-submit {
             background: #00523c;
             color: #ffffff;
@@ -667,13 +739,15 @@ function educore_render_subjects_view() {
             align-items: center;
             gap: 6px;
             box-shadow: 0 4px 12px rgba(0, 82, 60, 0.15);
+            transition: background 0.2s;
         }
+
         .ifs-educore-btn-submit:hover {
             background: #047857;
         }
 
         /* Class-Wise Grouped Directory Cards */
-        .ifs-class-group-card {
+        .ifs-educore-class-group-card {
             background: #ffffff;
             border: 1.5px solid #e2e8f0;
             border-radius: 12px;
@@ -681,7 +755,8 @@ function educore_render_subjects_view() {
             overflow: hidden;
             box-shadow: 0 2px 8px rgba(0,0,0,0.01);
         }
-        .ifs-class-group-header {
+
+        .ifs-educore-class-group-header {
             background: #f8fafc;
             padding: 12px 18px;
             border-bottom: 1.5px solid #e2e8f0;
@@ -689,7 +764,8 @@ function educore_render_subjects_view() {
             justify-content: space-between;
             align-items: center;
         }
-        .ifs-class-group-title {
+
+        .ifs-educore-class-group-title {
             margin: 0;
             font-size: 14.5px;
             font-weight: 800;
@@ -698,12 +774,14 @@ function educore_render_subjects_view() {
             align-items: center;
             gap: 6px;
         }
+
         .ifs-educore-architecture-table {
             width: 100%;
             border-collapse: separate;
             border-spacing: 0;
             font-size: 13px;
         }
+
         .ifs-educore-architecture-table th {
             padding: 9px 12px;
             background: #ffffff;
@@ -714,11 +792,13 @@ function educore_render_subjects_view() {
             border-bottom: 1.5px solid #e2e8f0;
             text-align: left;
         }
+
         .ifs-educore-architecture-table td {
             padding: 9px 12px;
             border-bottom: 1px solid #f1f5f9;
             vertical-align: middle;
         }
+
         .ifs-educore-order-badge {
             background: #f1f5f9;
             color: #475569;
@@ -726,6 +806,7 @@ function educore_render_subjects_view() {
             border-radius: 5px;
             font-weight: 700;
         }
+
         .ifs-educore-code-tag {
             font-size: 11px;
             background: #f1f5f9;
@@ -734,6 +815,7 @@ function educore_render_subjects_view() {
             color: #475569;
             margin-left: 4px;
         }
+
         .ifs-educore-marks-badge {
             background: #eff6ff;
             color: #1d4ed8;
@@ -741,6 +823,7 @@ function educore_render_subjects_view() {
             border-radius: 5px;
             font-weight: 700;
         }
+
         .ifs-educore-breakdown-chip {
             font-size: 11.5px;
             color: #334155;
@@ -751,6 +834,7 @@ function educore_render_subjects_view() {
             display: inline-flex;
             gap: 4px;
         }
+
         .ifs-educore-square-btn {
             padding: 4px 6px;
             border-radius: 6px;
@@ -761,11 +845,13 @@ function educore_render_subjects_view() {
             cursor: pointer;
             border: 1px solid transparent;
         }
+
         .ifs-educore-btn-edit {
             background: #eff6ff;
             color: #2563eb;
             border-color: #bfdbfe;
         }
+
         .ifs-educore-btn-delete {
             background: #fee2e2;
             color: #dc2626;
@@ -785,9 +871,11 @@ function educore_render_subjects_view() {
             align-items: center;
             justify-content: center;
         }
-        .ifs-educore-modal-backdrop.is-visible {
+
+        .ifs-educore-modal-backdrop.ifs-educore-is-visible {
             display: flex;
         }
+
         .ifs-educore-modal-card {
             background: #ffffff;
             border-radius: 14px;
@@ -798,27 +886,83 @@ function educore_render_subjects_view() {
             overflow-y: auto;
             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
         }
+
+        .ifs-educore-btn-add-subitem {
+            background: #00523c;
+            color: #fff;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            height: 38px;
+        }
+
+        .ifs-educore-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #f1f5f9;
+            padding-bottom: 14px;
+            margin-bottom: 16px;
+        }
+
+        .ifs-educore-modal-title {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 800;
+            color: #0f172a;
+        }
+
+        .ifs-educore-modal-close-btn {
+            background: none;
+            border: none;
+            font-size: 22px;
+            cursor: pointer;
+            color: #64748b;
+        }
+
+        .ifs-educore-alert-warning-box {
+            background: #fef3c7;
+            border-left: 4px solid #d97706;
+            color: #92400e;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-weight: 700;
+            margin-bottom: 14px;
+        }
+
+        .ifs-educore-alert-info-box {
+            background: #eff6ff;
+            border-left: 4px solid #2563eb;
+            color: #1e40af;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-weight: 700;
+            margin-bottom: 14px;
+        }
     </style>
 
     <div class="ifs-educore-subjects-container">
 
         <!-- Status Alerts -->
         <?php if ( isset( $_GET['status'] ) && 'subjects_added' === $_GET['status'] ) : ?>
-            <div style="background:#ecfdf5; border-left:4px solid #00523c; color:#065f46; padding:10px 14px; border-radius:6px; font-weight:700; margin-bottom:14px;">
-                <span class="dashicons dashicons-yes-alt" style="vertical-align:middle;"></span>
+            <div class="ifs-educore-alert-success">
+                <span class="dashicons dashicons-yes-alt"></span>
                 <?php 
                     $added_count = isset( $_GET['count'] ) ? absint( wp_unslash( $_GET['count'] ) ) : 0;
                     printf( esc_html__( 'Successfully assigned %d subjects across classes.', 'ifsedu-school-management' ), absint( $added_count ) );
                 ?>
             </div>
         <?php elseif ( isset( $_GET['status'] ) && 'updated' === $_GET['status'] ) : ?>
-            <div style="background:#eff6ff; border-left:4px solid #2563eb; color:#1e40af; padding:10px 14px; border-radius:6px; font-weight:700; margin-bottom:14px;">
-                <span class="dashicons dashicons-yes-alt" style="vertical-align:middle;"></span>
+            <div class="ifs-educore-alert-info">
+                <span class="dashicons dashicons-yes-alt"></span>
                 <?php esc_html_e( 'Subject evaluation scheme updated successfully.', 'ifsedu-school-management' ); ?>
             </div>
         <?php elseif ( isset( $_GET['status'] ) && 'deleted' === $_GET['status'] ) : ?>
-            <div style="background:#ecfdf5; border-left:4px solid #00523c; color:#065f46; padding:10px 14px; border-radius:6px; font-weight:700; margin-bottom:14px;">
-                <span class="dashicons dashicons-yes-alt" style="vertical-align:middle;"></span>
+            <div class="ifs-educore-alert-success">
+                <span class="dashicons dashicons-yes-alt"></span>
                 <?php esc_html_e( 'Academic subject deleted successfully.', 'ifsedu-school-management' ); ?>
             </div>
         <?php endif; ?>
@@ -831,19 +975,19 @@ function educore_render_subjects_view() {
                 <div style="margin-bottom: 16px;">
                     <label class="ifs-educore-form-label"><?php esc_html_e( 'Target Classes', 'ifsedu-school-management' ); ?> <span style="color:#dc2626;">*</span></label>
                     
-                    <div class="ifs-class-selector-panel">
-                        <div class="ifs-class-panel-toolbar">
-                            <input type="text" id="classSearchInput" class="ifs-class-search-input" placeholder="<?php esc_attr_e( 'Search classes...', 'ifsedu-school-management' ); ?>" autocomplete="off">
+                    <div class="ifs-educore-class-selector-panel">
+                        <div class="ifs-educore-class-panel-toolbar">
+                            <input type="text" id="classSearchInput" class="ifs-educore-class-search-input" placeholder="<?php esc_attr_e( 'Search classes...', 'ifsedu-school-management' ); ?>" autocomplete="off">
                             
-                            <div class="ifs-class-toolbar-actions">
-                                <span class="ifs-class-count-badge" id="selectedClassCountBadge">0 Selected</span>
-                                <button type="button" class="ifs-class-btn-toggle" id="btnToggleAllClasses"><?php esc_html_e( 'Select All', 'ifsedu-school-management' ); ?></button>
+                            <div class="ifs-educore-class-toolbar-actions">
+                                <span class="ifs-educore-class-count-badge" id="selectedClassCountBadge">0 Selected</span>
+                                <button type="button" class="ifs-educore-class-btn-toggle" id="btnToggleAllClasses"><?php esc_html_e( 'Select All', 'ifsedu-school-management' ); ?></button>
                             </div>
                         </div>
 
-                        <div class="ifs-class-grid" id="classGridContainer">
+                        <div class="ifs-educore-class-grid" id="classGridContainer">
                             <?php if ( ! empty( $display_units ) ) : foreach ( $display_units as $unit ) : ?>
-                                <label class="ifs-class-card" data-class-text="<?php echo esc_attr( strtolower( $unit['label'] ) ); ?>">
+                                <label class="ifs-educore-class-card" data-class-text="<?php echo esc_attr( strtolower( $unit['label'] ) ); ?>">
                                     <input type="checkbox" name="class_units[]" value="<?php echo esc_attr( $unit['key'] ); ?>" class="cb-class">
                                     <span><?php echo esc_html( $unit['label'] ); ?></span>
                                 </label>
@@ -856,7 +1000,7 @@ function educore_render_subjects_view() {
                     </div>
                 </div>
 
-                <div id="ifs-educore-subject-repeater-canvas" class="ifs-educore-repeater-canvas">
+                <div id="ifs-educore-subject-repeater-canvas">
                     <div class="ifs-educore-repeater-row" data-row-index="0">
                         <div class="ifs-educore-repeater-grid-top">
                             <div>
@@ -919,7 +1063,7 @@ function educore_render_subjects_view() {
                             </div>
                         </div>
 
-                        <div class="ifs-custom-breakdown-subrepeater">
+                        <div class="ifs-educore-custom-breakdown-subrepeater">
                             <div style="display:grid; grid-template-columns: 1fr 1fr auto; gap:12px; align-items:end; margin-bottom:12px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;">
                                 <div>
                                     <label class="ifs-educore-form-label" style="color:#00523c;"><?php esc_html_e( 'Subject Total Marks', 'ifsedu-school-management' ); ?> <span style="color:#dc2626;">*</span></label>
@@ -930,7 +1074,7 @@ function educore_render_subjects_view() {
                                     <input type="number" step="0.5" class="ifs-educore-field-input custom-main-pass" value="33" placeholder="33" required>
                                 </div>
                                 <div>
-                                    <button type="button" class="ifs-btn-add-subitem" style="background:#00523c; color:#fff; border:none; padding:8px 12px; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer; height:38px;">+ Add Component</button>
+                                    <button type="button" class="ifs-educore-btn-add-subitem">+ Add Component</button>
                                 </div>
                             </div>
                             <div style="margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
@@ -938,11 +1082,11 @@ function educore_render_subjects_view() {
                                 <small style="font-size:11.5px; color:#64748b;" class="custom-sum-indicator">(Sum of items: Total 100 | Pass 33)</small>
                             </div>
                             <div class="ifs-subitems-container">
-                                <div class="ifs-sub-item-row">
+                                <div class="ifs-educore-sub-item-row">
                                     <input type="text" name="sub_comp_name[0][]" class="ifs-educore-field-input sub-comp-name" placeholder="Component Name" style="height:34px; font-size:12.5px;" value="Written Examination">
                                     <input type="number" step="0.5" name="sub_comp_total[0][]" class="ifs-educore-field-input sub-comp-total" placeholder="Max" style="height:34px; font-size:12.5px;" value="60">
                                     <input type="number" step="0.5" name="sub_comp_pass[0][]" class="ifs-educore-field-input sub-comp-pass" placeholder="Pass" style="height:34px; font-size:12.5px;" value="20">
-                                    <button type="button" class="ifs-btn-del-subitem" title="Remove">&times;</button>
+                                    <button type="button" class="ifs-educore-btn-del-subitem" title="Remove">&times;</button>
                                 </div>
                             </div>
                         </div>
@@ -988,9 +1132,9 @@ function educore_render_subjects_view() {
             <!-- Grouped Directory Matrix -->
             <div id="ifs-educore-grouped-directory">
                 <?php if ( ! empty( $grouped_subjects ) ) : foreach ( $grouped_subjects as $cls_label => $subs_in_class ) : ?>
-                    <div class="ifs-class-group-card" data-group-class="<?php echo esc_attr( strtolower( $cls_label ) ); ?>">
-                        <div class="ifs-class-group-header">
-                            <h6 class="ifs-class-group-title">
+                    <div class="ifs-educore-class-group-card" data-group-class="<?php echo esc_attr( strtolower( $cls_label ) ); ?>">
+                        <div class="ifs-educore-class-group-header">
+                            <h6 class="ifs-educore-class-group-title">
                                 <span class="dashicons dashicons-welcome-learn-more" style="color:#00523c;"></span>
                                 <?php echo esc_html( $cls_label ); ?>
                             </h6>
@@ -1100,9 +1244,9 @@ function educore_render_subjects_view() {
     <!-- Edit Subject Dynamic Modal -->
     <div class="ifs-educore-modal-backdrop" id="ifs-educore-edit-modal">
         <div class="ifs-educore-modal-card">
-            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #f1f5f9; padding-bottom:14px; margin-bottom:16px;">
-                <h4 style="margin:0; font-size:16px; font-weight:800; color:#0f172a;"><?php esc_html_e( 'Edit Subject & Evaluation Scheme', 'ifsedu-school-management' ); ?></h4>
-                <button type="button" id="ifs-educore-close-modal" style="background:none; border:none; font-size:22px; cursor:pointer; color:#64748b;">&times;</button>
+            <div class="ifs-educore-modal-header">
+                <h4 class="ifs-educore-modal-title"><?php esc_html_e( 'Edit Subject & Evaluation Scheme', 'ifsedu-school-management' ); ?></h4>
+                <button type="button" id="ifs-educore-close-modal" class="ifs-educore-modal-close-btn">&times;</button>
             </div>
 
             <form id="ifs-educore-edit-subject-form" method="POST" action="<?php echo esc_url( $base_url ); ?>">
@@ -1113,10 +1257,10 @@ function educore_render_subjects_view() {
                 <div style="display:grid; grid-template-columns: 2fr 1fr; gap:12px; margin-bottom: 12px;">
                     <div>
                         <label class="ifs-educore-form-label"><?php esc_html_e( 'Target Class', 'ifsedu-school-management' ); ?> <span style="color:#dc2626;">*</span></label>
-                        <div class="ifs-class-grid" id="edit_class_checkbox_container" style="max-height: 120px;">
+                        <div class="ifs-educore-class-grid" id="edit_class_checkbox_container" style="max-height: 120px;">
                             <?php foreach ( $display_units as $unit ) : ?>
-                                <label class="ifs-class-card">
-                                    <input type="checkbox" name="class_units[]" class="edit-class-cb" value="<?php echo esc_attr( $unit['key'] ); ?>" data-unit-id="<?php echo esc_attr( str_replace('id:', '', $unit['key']) ); ?>" data-class-name="<?php echo esc_attr( $unit['class_name'] ); ?>">
+                                <label class="ifs-educore-class-card">
+                                    <input type="checkbox" name="class_units[]" class="edit-class-cb" value="<?php echo esc_attr( $unit['key'] ); ?>" data-unit-id="<?php echo esc_attr( str_replace( 'id:', '', $unit['key'] ) ); ?>" data-class-name="<?php echo esc_attr( $unit['class_name'] ); ?>">
                                     <span><?php echo esc_html( $unit['label'] ); ?></span>
                                 </label>
                             <?php endforeach; ?>
@@ -1199,7 +1343,7 @@ function educore_render_subjects_view() {
                             <input type="number" step="0.5" id="edit_custom_main_pass" class="ifs-educore-field-input" value="33" placeholder="33">
                         </div>
                         <div>
-                            <button type="button" id="edit_btn_add_subitem" style="background:#00523c; color:#fff; border:none; padding:8px 12px; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer; height:38px;">+ Add Component</button>
+                            <button type="button" id="edit_btn_add_subitem" class="ifs-educore-btn-add-subitem">+ Add Component</button>
                         </div>
                     </div>
                     <div style="margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
@@ -1241,26 +1385,26 @@ document.addEventListener('DOMContentLoaded', function() {
         if (countBadge) {
             countBadge.textContent = count + ' Selected';
             if (count > 0) {
-                countBadge.classList.add('has-selected');
+                countBadge.classList.add('ifs-educore-has-selected');
             } else {
-                countBadge.classList.remove('has-selected');
+                countBadge.classList.remove('ifs-educore-has-selected');
             }
         }
 
         allCheckboxes.forEach(function(cb) {
-            var card = cb.closest('.ifs-class-card');
+            var card = cb.closest('.ifs-educore-class-card');
             if (card) {
                 if (cb.checked) {
-                    card.classList.add('is-active');
+                    card.classList.add('ifs-educore-is-active');
                 } else {
-                    card.classList.remove('is-active');
+                    card.classList.remove('ifs-educore-is-active');
                 }
             }
         });
 
         if (toggleBtn) {
-            var visibleCheckboxes = grid.querySelectorAll('.ifs-class-card:not([style*="display: none"]) .cb-class');
-            var visibleChecked = grid.querySelectorAll('.ifs-class-card:not([style*="display: none"]) .cb-class:checked');
+            var visibleCheckboxes = grid.querySelectorAll('.ifs-educore-class-card:not([style*="display: none"]) .cb-class');
+            var visibleChecked = grid.querySelectorAll('.ifs-educore-class-card:not([style*="display: none"]) .cb-class:checked');
             var allVisibleChecked = visibleCheckboxes.length > 0 && visibleCheckboxes.length === visibleChecked.length;
             toggleBtn.textContent = allVisibleChecked ? '<?php echo esc_js( __( 'Deselect All', 'ifsedu-school-management' ) ); ?>' : '<?php echo esc_js( __( 'Select All', 'ifsedu-school-management' ) ); ?>';
         }
@@ -1269,7 +1413,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (searchInput && grid) {
         searchInput.addEventListener('input', function() {
             var q = this.value.toLowerCase().trim();
-            var cards = grid.querySelectorAll('.ifs-class-card');
+            var cards = grid.querySelectorAll('.ifs-educore-class-card');
             cards.forEach(function(card) {
                 var text = card.getAttribute('data-class-text') || '';
                 if (!q || text.indexOf(q) !== -1) {
@@ -1293,8 +1437,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (toggleBtn && grid) {
         toggleBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            var visibleCheckboxes = grid.querySelectorAll('.ifs-class-card:not([style*="display: none"]) .cb-class');
-            var visibleChecked = grid.querySelectorAll('.ifs-class-card:not([style*="display: none"]) .cb-class:checked');
+            var visibleCheckboxes = grid.querySelectorAll('.ifs-educore-class-card:not([style*="display: none"]) .cb-class');
+            var visibleChecked = grid.querySelectorAll('.ifs-educore-class-card:not([style*="display: none"]) .cb-class:checked');
             var shouldCheckAll = visibleCheckboxes.length !== visibleChecked.length;
 
             visibleCheckboxes.forEach(function(cb) {
@@ -1308,13 +1452,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (breakdownData && breakdownData.length > 2) {
             return 'other';
         }
-        if (total == 100 && pass == 33 && cq == 70 && cqPass == 23 && mcq == 30 && mcqPass == 10 && pr == 0 && prPass == 0) {
+        if (Number(total) === 100 && Number(pass) === 33 && Number(cq) === 70 && Number(cqPass) === 23 && Number(mcq) === 30 && Number(mcqPass) === 10 && Number(pr) === 0 && Number(prPass) === 0) {
             return 'gen_100';
-        } else if (total == 100 && pass == 33 && cq == 50 && cqPass == 17 && mcq == 25 && mcqPass == 8 && pr == 25 && prPass == 8) {
+        } else if (Number(total) === 100 && Number(pass) === 33 && Number(cq) === 50 && Number(cqPass) === 17 && Number(mcq) === 25 && Number(mcqPass) === 8 && Number(pr) === 25 && Number(prPass) === 8) {
             return 'sci_100';
-        } else if (total == 100 && pass == 33 && cq == 100 && cqPass == 33 && mcq == 0 && mcqPass == 0 && pr == 0 && prPass == 0) {
+        } else if (Number(total) === 100 && Number(pass) === 33 && Number(cq) === 100 && Number(cqPass) === 33 && Number(mcq) === 0 && Number(mcqPass) === 0 && Number(pr) === 0 && Number(prPass) === 0) {
             return 'lang_100';
-        } else if (total == 50 && pass == 17 && cq == 35 && cqPass == 12 && mcq == 15 && mcqPass == 5 && pr == 0 && prPass == 0) {
+        } else if (Number(total) === 50 && Number(pass) === 17 && Number(cq) === 35 && Number(cqPass) === 12 && Number(mcq) === 15 && Number(mcqPass) === 5 && Number(pr) === 0 && Number(prPass) === 0) {
             return 'jun_50';
         }
         return 'other';
@@ -1322,7 +1466,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function syncCustomBreakdownTotals(row) {
         if (!row) return;
-        var subItems = row.querySelectorAll('.ifs-sub-item-row');
+        var subItems = row.querySelectorAll('.ifs-educore-sub-item-row');
         if (subItems.length === 0) return;
 
         var sumTotal = 0;
@@ -1353,7 +1497,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function syncModalCustomBreakdownTotals() {
         var modal = document.getElementById('ifs-educore-edit-modal');
         if (!modal) return;
-        var subItems = modal.querySelectorAll('#edit_subitems_container .ifs-sub-item-row');
+        var subItems = modal.querySelectorAll('#edit_subitems_container .ifs-educore-sub-item-row');
         var sumTotal = 0;
         var sumPass = 0;
 
@@ -1382,17 +1526,17 @@ document.addEventListener('DOMContentLoaded', function() {
     function applyPresetValues(totalInp, passInp, cqInp, cqPass, mcqInp, mcqPass, prInp, prPass, presetKey, rowContext) {
         if (!totalInp) return;
         var standardGrid = rowContext ? rowContext.querySelector('.ifs-educore-repeater-grid-marks') : null;
-        var subRepeater = rowContext ? rowContext.querySelector('.ifs-custom-breakdown-subrepeater') : null;
+        var subRepeater = rowContext ? rowContext.querySelector('.ifs-educore-custom-breakdown-subrepeater') : null;
 
         if (presetKey === 'other') {
             if (standardGrid) standardGrid.style.display = 'none';
             if (subRepeater) {
-                subRepeater.classList.add('is-active');
+                subRepeater.classList.add('ifs-educore-is-active');
                 syncCustomBreakdownTotals(rowContext);
             }
         } else {
             if (standardGrid) standardGrid.style.display = 'grid';
-            if (subRepeater) subRepeater.classList.remove('is-active');
+            if (subRepeater) subRepeater.classList.remove('ifs-educore-is-active');
 
             if (presetKey === 'gen_100') {
                 totalInp.value = 100; passInp.value = 33;
@@ -1465,19 +1609,18 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     document.addEventListener('click', function(e) {
-        if (e.target.classList.contains('ifs-btn-add-subitem')) {
+        if (e.target.classList.contains('ifs-educore-btn-add-subitem')) {
             var parentRow = e.target.closest('.ifs-educore-repeater-row');
             var rowIndex = parentRow ? parentRow.getAttribute('data-row-index') : 0;
-            var subRepeater = e.target.closest('.ifs-custom-breakdown-subrepeater');
+            var subRepeater = e.target.closest('.ifs-educore-custom-breakdown-subrepeater');
             var container = subRepeater.querySelector('.ifs-subitems-container');
             var newSubRow = document.createElement('div');
-            newSubRow.className = 'ifs-sub-item-row';
-            newSubRow.innerHTML = `
-                <input type="text" name="sub_comp_name[${rowIndex}][]" class="ifs-educore-field-input sub-comp-name" placeholder="Component Name" style="height:34px; font-size:12.5px;">
-                <input type="number" step="0.5" name="sub_comp_total[${rowIndex}][]" class="ifs-educore-field-input sub-comp-total" placeholder="Max" style="height:34px; font-size:12.5px;" value="20">
-                <input type="number" step="0.5" name="sub_comp_pass[${rowIndex}][]" class="ifs-educore-field-input sub-comp-pass" placeholder="Pass" style="height:34px; font-size:12.5px;" value="7">
-                <button type="button" class="ifs-btn-del-subitem" title="Remove">&times;</button>
-            `;
+            newSubRow.className = 'ifs-educore-sub-item-row';
+            newSubRow.innerHTML = 
+                '<input type="text" name="sub_comp_name[' + rowIndex + '][]" class="ifs-educore-field-input sub-comp-name" placeholder="Component Name" style="height:34px; font-size:12.5px;">' +
+                '<input type="number" step="0.5" name="sub_comp_total[' + rowIndex + '][]" class="ifs-educore-field-input sub-comp-total" placeholder="Max" style="height:34px; font-size:12.5px;" value="20">' +
+                '<input type="number" step="0.5" name="sub_comp_pass[' + rowIndex + '][]" class="ifs-educore-field-input sub-comp-pass" placeholder="Pass" style="height:34px; font-size:12.5px;" value="7">' +
+                '<button type="button" class="ifs-educore-btn-del-subitem" title="Remove">&times;</button>';
             container.appendChild(newSubRow);
             syncCustomBreakdownTotals(parentRow);
         }
@@ -1485,19 +1628,18 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.target.id === 'edit_btn_add_subitem') {
             var editContainer = document.getElementById('edit_subitems_container');
             var newEditRow = document.createElement('div');
-            newEditRow.className = 'ifs-sub-item-row';
-            newEditRow.innerHTML = `
-                <input type="text" name="sub_comp_name[]" class="ifs-educore-field-input sub-comp-name" placeholder="Component Name" style="height:34px; font-size:12.5px;">
-                <input type="number" step="0.5" name="sub_comp_total[]" class="ifs-educore-field-input sub-comp-total" placeholder="Max" style="height:34px; font-size:12.5px;" value="20">
-                <input type="number" step="0.5" name="sub_comp_pass[]" class="ifs-educore-field-input sub-comp-pass" placeholder="Pass" style="height:34px; font-size:12.5px;" value="7">
-                <button type="button" class="ifs-btn-del-subitem" title="Remove">&times;</button>
-            `;
+            newEditRow.className = 'ifs-educore-sub-item-row';
+            newEditRow.innerHTML = 
+                '<input type="text" name="sub_comp_name[]" class="ifs-educore-field-input sub-comp-name" placeholder="Component Name" style="height:34px; font-size:12.5px;">' +
+                '<input type="number" step="0.5" name="sub_comp_total[]" class="ifs-educore-field-input sub-comp-total" placeholder="Max" style="height:34px; font-size:12.5px;" value="20">' +
+                '<input type="number" step="0.5" name="sub_comp_pass[]" class="ifs-educore-field-input sub-comp-pass" placeholder="Pass" style="height:34px; font-size:12.5px;" value="7">' +
+                '<button type="button" class="ifs-educore-btn-del-subitem" title="Remove">&times;</button>';
             editContainer.appendChild(newEditRow);
             syncModalCustomBreakdownTotals();
         }
 
-        if (e.target.classList.contains('ifs-btn-del-subitem')) {
-            var rowToDel = e.target.closest('.ifs-sub-item-row');
+        if (e.target.classList.contains('ifs-educore-btn-del-subitem')) {
+            var rowToDel = e.target.closest('.ifs-educore-sub-item-row');
             var parentRepeaterRow = e.target.closest('.ifs-educore-repeater-row');
             if (rowToDel) {
                 rowToDel.remove();
@@ -1529,9 +1671,9 @@ document.addEventListener('DOMContentLoaded', function() {
         var rows = canvas.querySelectorAll('.ifs-educore-repeater-row');
         rows.forEach(function(row, idx) {
             row.setAttribute('data-row-index', idx);
-            row.querySelectorAll('.sub-comp-name').forEach(function(i) { i.name = `sub_comp_name[${idx}][]`; });
-            row.querySelectorAll('.sub-comp-total').forEach(function(i) { i.name = `sub_comp_total[${idx}][]`; });
-            row.querySelectorAll('.sub-comp-pass').forEach(function(i) { i.name = `sub_comp_pass[${idx}][]`; });
+            row.querySelectorAll('.sub-comp-name').forEach(function(i) { i.name = 'sub_comp_name[' + idx + '][]'; });
+            row.querySelectorAll('.sub-comp-total').forEach(function(i) { i.name = 'sub_comp_total[' + idx + '][]'; });
+            row.querySelectorAll('.sub-comp-pass').forEach(function(i) { i.name = 'sub_comp_pass[' + idx + '][]'; });
 
             var btn = row.querySelector('.btn-remove-row');
             if (rows.length > 1) {
@@ -1560,9 +1702,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 presetDropdown.value = 'gen_100';
             }
 
-            var subRepeater = newRow.querySelector('.ifs-custom-breakdown-subrepeater');
+            var subRepeater = newRow.querySelector('.ifs-educore-custom-breakdown-subrepeater');
             if (subRepeater) {
-                subRepeater.classList.remove('is-active');
+                subRepeater.classList.remove('ifs-educore-is-active');
             }
             var stdGrid = newRow.querySelector('.ifs-educore-repeater-grid-marks');
             if (stdGrid) {
@@ -1594,9 +1736,9 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Real-Time Table Filter
+    // Real-Time Table Filter.
     var filterSelect = document.getElementById('ifs-educore-class-filter');
-    var groupCards = document.querySelectorAll('.ifs-class-group-card');
+    var groupCards = document.querySelectorAll('.ifs-educore-class-group-card');
     var countPill = document.getElementById('ifs-educore-subject-count-pill');
 
     if (filterSelect) {
@@ -1622,7 +1764,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var editForm = document.getElementById('ifs-educore-edit-subject-form');
 
     function hideModal() {
-        if (modal) modal.classList.remove('is-visible');
+        if (modal) modal.classList.remove('ifs-educore-is-visible');
     }
 
     if (closeModalBtn) closeModalBtn.addEventListener('click', hideModal);
@@ -1645,17 +1787,17 @@ document.addEventListener('DOMContentLoaded', function() {
             var breakdownRaw = editBtn.getAttribute('data-breakdown') || '';
 
             document.getElementById('edit_subject_id').value         = editBtn.getAttribute('data-id');
-            document.getElementById('edit_subject_name').value       = editBtn.getAttribute('data-name');
-            document.getElementById('edit_subject_code').value       = editBtn.getAttribute('data-code');
+            document.getElementById('edit_subject_name').value        = editBtn.getAttribute('data-name');
+            document.getElementById('edit_subject_code').value        = editBtn.getAttribute('data-code');
             document.getElementById('edit_subject_order').value      = editBtn.getAttribute('data-order') || 0;
-            document.getElementById('edit_total_marks').value        = totVal;
-            document.getElementById('edit_pass_marks').value         = passVal;
-            document.getElementById('edit_cq_marks').value           = cqVal;
-            document.getElementById('edit_cq_pass').value            = cqPassVal;
-            document.getElementById('edit_mcq_marks').value          = mcqVal;
-            document.getElementById('edit_mcq_pass').value           = mcqPassVal;
-            document.getElementById('edit_practical_marks').value    = prVal;
-            document.getElementById('edit_practical_pass').value     = prPassVal;
+            document.getElementById('edit_total_marks').value         = totVal;
+            document.getElementById('edit_pass_marks').value          = passVal;
+            document.getElementById('edit_cq_marks').value            = cqVal;
+            document.getElementById('edit_cq_pass').value             = cqPassVal;
+            document.getElementById('edit_mcq_marks').value           = mcqVal;
+            document.getElementById('edit_mcq_pass').value            = mcqPassVal;
+            document.getElementById('edit_practical_marks').value     = prVal;
+            document.getElementById('edit_practical_pass').value      = prPassVal;
 
             var editPresetDropdown = document.getElementById('edit_preset_selector');
             var modalStdGrid = document.getElementById('edit_modal_standard_grid');
@@ -1684,24 +1826,22 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (Array.isArray(parsedBreakdown) && parsedBreakdown.length > 0) {
                         parsedBreakdown.forEach(function(item) {
                             var div = document.createElement('div');
-                            div.className = 'ifs-sub-item-row';
-                            div.innerHTML = `
-                                <input type="text" name="sub_comp_name[]" class="ifs-educore-field-input sub-comp-name" placeholder="Component Name" style="height:34px; font-size:12.5px;" value="${item.name}">
-                                <input type="number" step="0.5" name="sub_comp_total[]" class="ifs-educore-field-input sub-comp-total" placeholder="Max" style="height:34px; font-size:12.5px;" value="${item.total}">
-                                <input type="number" step="0.5" name="sub_comp_pass[]" class="ifs-educore-field-input sub-comp-pass" placeholder="Pass" style="height:34px; font-size:12.5px;" value="${item.pass}">
-                                <button type="button" class="ifs-btn-del-subitem" title="Remove">&times;</button>
-                            `;
+                            div.className = 'ifs-educore-sub-item-row';
+                            div.innerHTML = 
+                                '<input type="text" name="sub_comp_name[]" class="ifs-educore-field-input sub-comp-name" placeholder="Component Name" style="height:34px; font-size:12.5px;" value="' + item.name + '">' +
+                                '<input type="number" step="0.5" name="sub_comp_total[]" class="ifs-educore-field-input sub-comp-total" placeholder="Max" style="height:34px; font-size:12.5px;" value="' + item.total + '">' +
+                                '<input type="number" step="0.5" name="sub_comp_pass[]" class="ifs-educore-field-input sub-comp-pass" placeholder="Pass" style="height:34px; font-size:12.5px;" value="' + item.pass + '">' +
+                                '<button type="button" class="ifs-educore-btn-del-subitem" title="Remove">&times;</button>';
                             editSubContainer.appendChild(div);
                         });
                     } else {
-                        editSubContainer.innerHTML = `
-                            <div class="ifs-sub-item-row">
-                                <input type="text" name="sub_comp_name[]" class="ifs-educore-field-input sub-comp-name" placeholder="Component Name" style="height:34px; font-size:12.5px;" value="Written Exam">
-                                <input type="number" step="0.5" name="sub_comp_total[]" class="ifs-educore-field-input sub-comp-total" placeholder="Max" style="height:34px; font-size:12.5px;" value="${totVal}">
-                                <input type="number" step="0.5" name="sub_comp_pass[]" class="ifs-educore-field-input sub-comp-pass" placeholder="Pass" style="height:34px; font-size:12.5px;" value="${passVal}">
-                                <button type="button" class="ifs-btn-del-subitem" title="Remove">&times;</button>
-                            </div>
-                        `;
+                        editSubContainer.innerHTML = 
+                            '<div class="ifs-educore-sub-item-row">' +
+                            '<input type="text" name="sub_comp_name[]" class="ifs-educore-field-input sub-comp-name" placeholder="Component Name" style="height:34px; font-size:12.5px;" value="Written Exam">' +
+                            '<input type="number" step="0.5" name="sub_comp_total[]" class="ifs-educore-field-input sub-comp-total" placeholder="Max" style="height:34px; font-size:12.5px;" value="' + totVal + '">' +
+                            '<input type="number" step="0.5" name="sub_comp_pass[]" class="ifs-educore-field-input sub-comp-pass" placeholder="Pass" style="height:34px; font-size:12.5px;" value="' + passVal + '">' +
+                            '<button type="button" class="ifs-educore-btn-del-subitem" title="Remove">&times;</button>' +
+                            '</div>';
                     }
                     syncModalCustomBreakdownTotals();
                 }
@@ -1721,7 +1861,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
 
-            modal.classList.add('is-visible');
+            modal.classList.add('ifs-educore-is-visible');
         }
     });
 

@@ -7,9 +7,12 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Direct access safety buffer
+    exit; // Direct access safety buffer.
 }
 
+/**
+ * Render Enterprise Core Students Directory & Interactive DataTables Workspace
+ */
 function educore_students_list_view() {
     if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'You do not have sufficient administrative permissions to access the student directory.', 'ifsedu-school-management' ) );
@@ -19,7 +22,7 @@ function educore_students_list_view() {
     $table_students = $wpdb->prefix . 'sms_students';
     $table_units    = $wpdb->prefix . 'sms_academic_units';
 
-    // 1. Fetch only required columns for active students to prevent memory bloat
+    // 1. Fetch only required columns for active students to prevent memory bloat.
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
     $students_records = $wpdb->get_results(
         "SELECT id, student_id, full_name, class_name, section_name, roll_no, gender, student_phone, guardian_phone, guardian_name, father_name, photo_url 
@@ -28,7 +31,7 @@ function educore_students_list_view() {
          ORDER BY id DESC"
     );
 
-    // 2. Fetch Classes & Sections Map with sort_order Priority
+    // 2. Fetch Classes & Sections Map with sort_order Priority.
     $raw_units = $wpdb->get_results(
         "SELECT class_name, section_name, dept_name, sort_order 
          FROM `{$table_units}` 
@@ -41,8 +44,8 @@ function educore_students_list_view() {
     $class_order_map   = array();
     $available_classes = array();
 
-    // Arrays to compute analytics for metric cards
-    $class_gender_stats    = array();
+    // Arrays to compute analytics for metric cards.
+    $class_gender_stats     = array();
     $total_active_students = count( $students_records );
     $total_male_count      = 0;
     $total_female_count    = 0;
@@ -84,7 +87,7 @@ function educore_students_list_view() {
         } );
     }
 
-    // Initialize stats structure for all available classes to ensure 0 counts appear accurately
+    // Initialize stats structure for all available classes to ensure 0 counts appear accurately.
     foreach ( $available_classes as $c_name ) {
         $class_gender_stats[ $c_name ] = array( 'male' => 0, 'female' => 0, 'total' => 0 );
     }
@@ -552,7 +555,7 @@ function educore_students_list_view() {
                             'delete_student_' . $student->id
                         );
 
-                        $gender_style  = ( strtolower( trim( $student->gender ) ) === 'male' ) ? 'gender-male' : 'gender-female';
+                        $gender_style  = ( 'male' === strtolower( trim( $student->gender ) ) ) ? 'gender-male' : 'gender-female';
                         $phone_display = ! empty( $student->student_phone ) ? $student->student_phone : $student->guardian_phone;
                         $first_letter  = function_exists( 'mb_substr' ) ? mb_substr( $student->full_name, 0, 1 ) : substr( $student->full_name, 0, 1 );
                     ?>
@@ -645,14 +648,14 @@ function educore_students_list_view() {
             metricCards.forEach(card => {
                 const cardId = card.getAttribute('data-metric-card-id');
                 if (!selectedClass || selectedClass === '') {
-                    // Show global overview card, hide class cards
+                    // Show global overview card, hide class cards.
                     if (cardId === 'all') {
                         card.classList.add('is-visible');
                     } else {
                         card.classList.remove('is-visible');
                     }
                 } else {
-                    // Hide global overview card, show selected class card live
+                    // Hide global overview card, show selected class card live.
                     if (cardId === selectedClass) {
                         card.classList.add('is-visible');
                     } else {

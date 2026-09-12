@@ -6,15 +6,17 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Direct access safety buffer
+    exit; // Direct access safety buffer.
 }
 
-// Dynamically load Sections based on Class selection
 add_action( 'wp_ajax_ifs_educore_get_sections_by_class_attendance', 'ifs_educore_get_sections_by_class_attendance_handler' );
+/**
+ * AJAX Handler: Dynamically load Sections based on Class selection
+ */
 function ifs_educore_get_sections_by_class_attendance_handler() {
     check_ajax_referer( 'ifs_educore_attendance_nonce', 'security' );
 
-    // Allow Administrators, Teachers, and Staff who can edit posts or manage options
+    // Allow Administrators, Teachers, and Staff who can edit posts or manage options.
     if ( ! current_user_can( 'manage_options' ) && ! current_user_can( 'edit_posts' ) ) {
         wp_send_json_error( array( 'message' => esc_html__( 'Permission denied.', 'ifsedu-school-management' ) ) );
     }

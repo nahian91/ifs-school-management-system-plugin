@@ -6,10 +6,10 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Direct access safety buffer
+    exit; // Direct access safety buffer.
 }
 
-// Load Modular Dependency Sub-Files if segregated
+// Load Modular Dependency Sub-Files if segregated.
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
 $educore_acct_dir = defined( 'EDUCORE_PATH' ) ? EDUCORE_PATH . 'inc/accounting/' : plugin_dir_path( __FILE__ ) . 'accounting/';
 
@@ -26,12 +26,15 @@ if ( file_exists( $educore_acct_dir . 'accounting-delete.php' ) ) {
     require_once $educore_acct_dir . 'accounting-delete.php';
 }
 
+/**
+ * Render Accounting Sub-Navigation & Router Controller
+ */
 function educore_accounting_tab() {
     global $wpdb;
     $current_user = wp_get_current_user();
     $table_staff  = $wpdb->prefix . 'sms_staff';
 
-    // 1. Procedural Capability & Role Verification
+    // 1. Procedural Capability & Role Verification.
     $is_admin = current_user_can( 'manage_options' ) || in_array( 'administrator', (array) $current_user->roles, true );
     
     $is_accountant = false;
@@ -52,7 +55,7 @@ function educore_accounting_tab() {
 
         if ( $staff_row ) {
             $desig = strtolower( (string) ( $staff_row->designation . ' ' . $staff_row->staff_type ) );
-            if ( strpos( $desig, 'account' ) !== false || strpos( $desig, 'finance' ) !== false || strpos( $desig, 'cash' ) !== false ) {
+            if ( false !== strpos( $desig, 'account' ) || false !== strpos( $desig, 'finance' ) || false !== strpos( $desig, 'cash' ) ) {
                 $is_accountant = true;
             }
         }
@@ -70,7 +73,7 @@ function educore_accounting_tab() {
 
     $sub_tab = in_array( $raw_sub_tab, $allowed_sub_tabs, true ) ? $raw_sub_tab : 'list';
 
-    // Submenu URLs
+    // Submenu URLs.
     $base_admin_url = admin_url( 'admin.php' );
     $list_url       = add_query_arg( array( 'page' => 'school_management_system', 'tab' => 'accounting', 'sub' => 'list' ), $base_admin_url );
     $add_url        = add_query_arg( array( 'page' => 'school_management_system', 'tab' => 'accounting', 'sub' => 'add' ), $base_admin_url );

@@ -1,12 +1,13 @@
 <?php
-if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Exit if accessed directly
-}
-
 /**
  * Master Reports Module Loader
  * File: inc/reports.php
+ * Text Domain: ifsedu-school-management
  */
+
+if ( ! defined( 'ABSPATH' ) ) {
+    exit; // Exit if accessed directly.
+}
 
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
 $educore_reports_dir = plugin_dir_path( __FILE__ ) . 'reports/';

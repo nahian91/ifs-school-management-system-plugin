@@ -6,24 +6,27 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Direct access lockdown
+    exit; // Direct access lockdown.
 }
 
+/**
+ * Render Staff Directory List View & Handle Tab Navigation
+ */
 function educore_staff_list_view() {
     global $wpdb;
     $table_staff = $wpdb->prefix . 'sms_staff';
     
-    // 1. Capability Check
+    // 1. Capability Check.
     if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'You do not have permission to view the staff directory.', 'ifsedu-school-management' ) );
     }
 
-    // Active Tab Handler (URL Key)
+    // Active Tab Handler (URL Key).
     // phpcs:disable WordPress.Security.NonceVerification.Recommended
     $active_tab = isset( $_GET['type'] ) ? sanitize_key( wp_unslash( $_GET['type'] ) ) : 'school_teacher';
     // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
-    // Flexible mapping allowing matching against multiple potential DB `staff_type` values
+    // Flexible mapping allowing matching against multiple potential DB `staff_type` values.
     $tab_to_db_map = array(
         'school_teacher'  => array( 'Teacher', 'Teacher (School)' ),
         'college_teacher' => array( 'Teacher (College)' ),
@@ -31,19 +34,19 @@ function educore_staff_list_view() {
         'officer'         => array( 'Officer' ),
     );
 
-    // Fallback to School Teacher if tab is invalid
+    // Fallback to School Teacher if tab is invalid.
     if ( ! array_key_exists( $active_tab, $tab_to_db_map ) ) {
         $active_tab = 'school_teacher';
     }
 
     $allowed_types = $tab_to_db_map[ $active_tab ];
 
-    // Detect Order Column dynamically in db safely
+    // Detect Order Column dynamically in db safely.
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
     $db_columns = $wpdb->get_col( "DESCRIBE `{$table_staff}`", 0 );
     // phpcs:enable
     
-    $order_col  = 'id';
+    $order_col            = 'id';
     $allowed_order_cols = array( 'sort_order', 'serial_number', 'position', 'order_no', 'serial', 'id' );
 
     foreach ( $allowed_order_cols as $col ) {
@@ -53,7 +56,7 @@ function educore_staff_list_view() {
         }
     }
 
-    // Safely construct a dynamic IN clause query for multiple staff_type variations
+    // Safely construct a dynamic IN clause query for multiple staff_type variations.
     $placeholders = implode( ',', array_fill( 0, count( $allowed_types ), '%s' ) );
     $query_string = "SELECT *, `{$order_col}` AS db_order_number 
                      FROM `{$table_staff}` 
@@ -62,12 +65,12 @@ function educore_staff_list_view() {
     
     $query_params = array_merge( array( $query_string ), $allowed_types );
 
-    // Fetch DB records ordered strictly by DB order column
+    // Fetch DB records ordered strictly by DB order column.
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
     $staff_members = $wpdb->get_results( call_user_func_array( array( $wpdb, 'prepare' ), $query_params ) );
     // phpcs:enable
 
-    // Tab Base URL Generator
+    // Tab Base URL Generator.
     $base_tab_url = add_query_arg( array( 'page' => 'school_management_system', 'tab' => 'staff' ), admin_url( 'admin.php' ) );
     $school_url   = add_query_arg( 'type', 'school_teacher', $base_tab_url );
     $college_url  = add_query_arg( 'type', 'college_teacher', $base_tab_url );
@@ -134,16 +137,16 @@ function educore_staff_list_view() {
                                 'delete_staff_' . $staff_id 
                             );
 
-                            // Order value direct from DB
+                            // Order value direct from DB.
                             $order_no = isset( $staff->db_order_number ) ? absint( $staff->db_order_number ) : 0;
 
-                            // Primary Name Resolution
+                            // Primary Name Resolution.
                             $full_name = ! empty( $staff->full_name ) ? $staff->full_name : ( ! empty( $staff->name ) ? $staff->name : '' );
 
-                            // Staff ID fallback
+                            // Staff ID fallback.
                             $display_staff_id = ! empty( $staff->staff_id ) ? strtoupper( (string) $staff->staff_id ) : '—';
 
-                            // Employment Type display value stored directly in staff_type
+                            // Employment Type display value stored directly in staff_type.
                             $emp_type_label = ! empty( $staff->staff_type ) ? $staff->staff_type : ucfirst( $active_tab );
                         ?>
                         <tr>

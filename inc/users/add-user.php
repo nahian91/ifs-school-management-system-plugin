@@ -6,9 +6,16 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+    exit; // Exit if accessed directly.
 }
 
+/**
+ * Render Add / Edit User Form View
+ *
+ * @param string $sub_mode          Current mode ('add' or 'edit').
+ * @param array  $all_staff_members List of active staff objects.
+ * @param string $table_staff       Staff database table name.
+ */
 function educore_user_add_edit_view( $sub_mode, $all_staff_members, $table_staff ) {
     global $wpdb;
 
@@ -25,7 +32,7 @@ function educore_user_add_edit_view( $sub_mode, $all_staff_members, $table_staff
         $edit_user       = get_userdata( $user_id_to_edit );
 
         if ( $edit_user ) {
-            // Prevent non-superadmins from editing administrators if lacking capabilities
+            // Prevent non-superadmins from editing administrators if lacking capabilities.
             if ( in_array( 'administrator', (array) $edit_user->roles, true ) && ! current_user_can( 'manage_options' ) ) {
                 wp_die( esc_html__( 'You cannot edit administrator profiles.', 'ifsedu-school-management' ) );
             }
@@ -201,7 +208,7 @@ function educore_user_add_edit_view( $sub_mode, $all_staff_members, $table_staff
             });
         }
 
-        // Show/Hide Password Visibility Toggle
+        // Show/Hide Password Visibility Toggle.
         document.querySelectorAll('.ifs-educore-toggle-password').forEach(function(btn) {
             btn.addEventListener('click', function() {
                 var targetId = this.getAttribute('data-target');
@@ -222,7 +229,7 @@ function educore_user_add_edit_view( $sub_mode, $all_staff_members, $table_staff
             });
         });
 
-        // Password Strength & Match Validation Engine
+        // Password Strength & Match Validation Engine.
         var pass1 = document.getElementById('educore_pass1');
         var pass2 = document.getElementById('educore_pass2');
         var strengthBar = document.getElementById('educorePasswordStrengthBar');
@@ -241,7 +248,7 @@ function educore_user_add_edit_view( $sub_mode, $all_staff_members, $table_staff
                 return true;
             }
 
-            // Strength Calculation
+            // Strength Calculation.
             var score = 0;
             if (p1.length >= 6) score++;
             if (p1.length >= 10) score++;
@@ -274,7 +281,7 @@ function educore_user_add_edit_view( $sub_mode, $all_staff_members, $table_staff
             strengthText.textContent = msg;
             strengthText.style.color = color;
 
-            // Match Check
+            // Match Check.
             if (p2.length > 0) {
                 if (p1 === p2) {
                     matchText.textContent = '<?php echo esc_js( __( '✓ Passwords Match', 'ifsedu-school-management' ) ); ?>';

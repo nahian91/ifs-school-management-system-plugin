@@ -6,9 +6,14 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+    exit; // Exit if accessed directly.
 }
 
+/**
+ * Render Fees Settings & Structure View
+ *
+ * @param string $base_url Base URL for settings subtabs.
+ */
 function educore_render_settings_fees_view( $base_url ) {
     if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'You do not have sufficient administrative permissions to access this page.', 'ifsedu-school-management' ) );
@@ -29,7 +34,7 @@ function educore_render_settings_fees_view( $base_url ) {
     // --------------------------------------------------------------------------
     // 1. FORM SUBMISSIONS & ACTIONS
     // --------------------------------------------------------------------------
-    // Save Class-wise Fee Structure
+    // Save Class-wise Fee Structure.
     if ( isset( $_POST['save_class_fee_structure'] ) && check_admin_referer( 'educore_save_fees_settings_action', 'educore_fees_settings_nonce' ) ) {
         $target_class = isset( $_POST['target_class'] ) ? sanitize_text_field( wp_unslash( $_POST['target_class'] ) ) : '';
         $fee_titles   = ( isset( $_POST['fee_title'] ) && is_array( $_POST['fee_title'] ) ) ? array_map( 'sanitize_text_field', wp_unslash( $_POST['fee_title'] ) ) : array();
@@ -53,7 +58,7 @@ function educore_render_settings_fees_view( $base_url ) {
                         )
                     );
 
-                    if ( $existing_id > 0 ) {
+                    if ( 0 < $existing_id ) {
                         $wpdb->update(
                             $table_fee_types,
                             array( 'amount' => $amount, 'period_type' => $period ),
@@ -87,7 +92,7 @@ function educore_render_settings_fees_view( $base_url ) {
         }
     }
 
-    // Save Late Fee Configuration
+    // Save Late Fee Configuration.
     if ( isset( $_POST['save_late_fine_config'] ) && check_admin_referer( 'educore_save_late_fine_action', 'educore_late_fine_nonce' ) ) {
         $fine_type       = isset( $_POST['fine_type'] ) ? sanitize_text_field( wp_unslash( $_POST['fine_type'] ) ) : 'Fixed';
         $fine_amount     = isset( $_POST['fine_amount'] ) ? floatval( wp_unslash( $_POST['fine_amount'] ) ) : 0.00;
@@ -110,7 +115,7 @@ function educore_render_settings_fees_view( $base_url ) {
 
         $config_formats = array( '%s', '%f', '%d', '%d', '%f', '%s' );
 
-        if ( $existing_cfg_id > 0 ) {
+        if ( 0 < $existing_cfg_id ) {
             $wpdb->update( $table_late_cfg, $config_data, array( 'id' => $existing_cfg_id ), $config_formats, array( '%d' ) );
         } else {
             $wpdb->insert( $table_late_cfg, $config_data, $config_formats );
@@ -124,12 +129,12 @@ function educore_render_settings_fees_view( $base_url ) {
         $notice_message = esc_html__( 'Late fee fine automation rules saved successfully.', 'ifsedu-school-management' );
     }
 
-    // Delete Single Fee Item
+    // Delete Single Fee Item.
     // phpcs:disable WordPress.Security.NonceVerification.Recommended
     if ( isset( $_GET['action'] ) && 'delete_fee_type' === $_GET['action'] && isset( $_GET['id'] ) ) {
         $del_id    = absint( $_GET['id'] );
         $del_nonce = isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) : '';
-        if ( $del_id > 0 && wp_verify_nonce( $del_nonce, 'delete_fee_type_' . $del_id ) ) {
+        if ( 0 < $del_id && wp_verify_nonce( $del_nonce, 'delete_fee_type_' . $del_id ) ) {
             // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $wpdb->delete( $table_fee_types, array( 'id' => $del_id ), array( '%d' ) );
             // phpcs:enable
@@ -163,22 +168,340 @@ function educore_render_settings_fees_view( $base_url ) {
     // phpcs:enable
     ?>
 
-    <div class="ifs-fees-settings-container">
+    <style id="ifs-educore-fees-styles">
+        .ifs-educore-fees-settings-container {
+            font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #0f172a;
+        }
+
+        .ifs-educore-fees-alert-box {
+            background: #ecfdf5;
+            border-left: 4px solid #10b981;
+            color: #065f46;
+            padding: 12px 18px;
+            border-radius: 8px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ifs-educore-fees-nav-pills {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+
+        .ifs-educore-fees-nav-pill {
+            background: #ffffff;
+            border: 1.5px solid #cbd5e1;
+            color: #475569;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 13.5px;
+            font-weight: 700;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        .ifs-educore-fees-nav-pill:hover {
+            background: #f8fafc;
+            color: #00523c;
+            border-color: #94a3b8;
+        }
+
+        .ifs-educore-fees-nav-pill.is-active {
+            background: #00523c;
+            color: #ffffff;
+            border-color: #00523c;
+            box-shadow: 0 4px 12px rgba(0, 82, 60, 0.2);
+        }
+
+        .ifs-educore-fees-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
+            margin-bottom: 30px;
+        }
+
+        .ifs-educore-fees-card-title {
+            margin: 0 0 24px 0;
+            font-size: 17px;
+            font-weight: 800;
+            color: #00523c;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ifs-educore-fees-grid-layout {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 768px) {
+            .ifs-educore-fees-grid-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .ifs-educore-fees-label {
+            font-size: 12.5px;
+            font-weight: 700;
+            color: #334155;
+            letter-spacing: -0.1px;
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .ifs-educore-fees-required-star {
+            color: #ef4444;
+        }
+
+        .ifs-educore-fees-input,
+        .ifs-educore-fees-select {
+            width: 100%;
+            height: 42px;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 10px;
+            padding: 0 14px;
+            font-size: 13.5px;
+            color: #0f172a;
+            background-color: #f8fafc;
+            box-sizing: border-box;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .ifs-educore-fees-input:focus,
+        .ifs-educore-fees-select:focus {
+            border-color: #00523c;
+            background-color: #ffffff;
+            box-shadow: 0 0 0 3px rgba(0, 82, 60, 0.1);
+        }
+
+        .ifs-educore-fees-select-class-wrap {
+            max-width: 350px;
+            margin-bottom: 24px;
+        }
+
+        .ifs-educore-fees-repeater-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1.2fr auto;
+            gap: 14px;
+            align-items: flex-end;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        @media (max-width: 768px) {
+            .ifs-educore-fees-repeater-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .ifs-educore-fees-btn-remove {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+            height: 42px;
+            width: 42px;
+            border-radius: 10px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .ifs-educore-fees-btn-remove:hover {
+            background: #dc2626;
+            color: #ffffff;
+        }
+
+        .ifs-educore-fees-actions-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .ifs-educore-fees-btn-add {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            height: 40px;
+            padding: 0 16px;
+            background: #f1f5f9;
+            color: #334155;
+            font-size: 13px;
+            font-weight: 700;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .ifs-educore-fees-btn-add:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+
+        .ifs-educore-fees-btn-save {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            height: 42px;
+            padding: 0 24px;
+            background: #00523c;
+            color: #ffffff;
+            font-size: 13.5px;
+            font-weight: 800;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 82, 60, 0.25);
+            transition: all 0.2s ease;
+        }
+
+        .ifs-educore-fees-btn-save:hover {
+            background: #003e2d;
+        }
+
+        .ifs-educore-directory-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .ifs-educore-directory-count {
+            font-size: 14px;
+            font-weight: 700;
+            color: #475569;
+        }
+
+        .ifs-educore-search-input {
+            max-width: 260px;
+            height: 38px;
+        }
+
+        .ifs-educore-table-container {
+            overflow-x: auto;
+        }
+
+        .ifs-educore-fees-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 13.5px;
+        }
+
+        .ifs-educore-fees-table th {
+            padding: 12px 16px;
+            color: #475569;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 11.5px;
+            text-transform: capitalize;
+            font-weight: 800;
+        }
+
+        .ifs-educore-fees-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: middle;
+        }
+
+        .ifs-educore-class-strong {
+            color: #00523c;
+        }
+
+        .ifs-educore-title-strong {
+            color: #0f172a;
+        }
+
+        .ifs-educore-amount-badge {
+            font-weight: 800;
+            color: #00523c;
+        }
+
+        .ifs-educore-cycle-badge {
+            background: #f1f5f9;
+            color: #475569;
+            padding: 3px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .ifs-educore-action-cell {
+            text-align: right;
+        }
+
+        .ifs-educore-delete-action {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            background: #fef2f2;
+            color: #dc2626;
+            border-radius: 8px;
+            border: 1px solid #fecaca;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .ifs-educore-delete-action:hover {
+            background: #dc2626;
+            color: #ffffff;
+        }
+
+        .ifs-educore-empty-cell {
+            text-align: center;
+            color: #94a3b8;
+            padding: 40px;
+            font-weight: 600;
+        }
+    </style>
+
+    <div class="ifs-educore-fees-settings-container">
 
         <?php if ( ! empty( $notice_message ) ) : ?>
-            <div class="ifs-fees-alert-box">
-                <span class="dashicons dashicons-yes-alt ifs-fees-alert-icon"></span>
+            <div class="ifs-educore-fees-alert-box">
+                <span class="dashicons dashicons-yes-alt"></span>
                 <?php echo esc_html( $notice_message ); ?>
             </div>
         <?php endif; ?>
         
         <!-- Section Toggle Navigation Pills -->
-        <div class="ifs-fees-nav-pills">
-            <a href="<?php echo esc_url( add_query_arg( 'section', 'structure', $subtab_base_url ) ); ?>" class="ifs-fees-nav-pill <?php echo 'structure' === $active_section ? 'is-active' : ''; ?>">
+        <div class="ifs-educore-fees-nav-pills">
+            <a href="<?php echo esc_url( add_query_arg( 'section', 'structure', $subtab_base_url ) ); ?>" class="ifs-educore-fees-nav-pill <?php echo 'structure' === $active_section ? 'is-active' : ''; ?>">
                 <span class="dashicons dashicons-money-alt"></span>
                 <?php esc_html_e( 'Class Fee Structure', 'ifsedu-school-management' ); ?>
             </a>
-            <a href="<?php echo esc_url( add_query_arg( 'section', 'late_fine', $subtab_base_url ) ); ?>" class="ifs-fees-nav-pill <?php echo 'late_fine' === $active_section ? 'is-active' : ''; ?>">
+            <a href="<?php echo esc_url( add_query_arg( 'section', 'late_fine', $subtab_base_url ) ); ?>" class="ifs-educore-fees-nav-pill <?php echo 'late_fine' === $active_section ? 'is-active' : ''; ?>">
                 <span class="dashicons dashicons-clock"></span>
                 <?php esc_html_e( 'Late Fine Rules', 'ifsedu-school-management' ); ?>
             </a>
@@ -186,19 +509,19 @@ function educore_render_settings_fees_view( $base_url ) {
 
         <?php if ( 'late_fine' === $active_section ) : ?>
             <!-- SECTION 2: LATE FINE AUTOMATION -->
-            <div class="ifs-fees-card">
-                <h4 class="ifs-fees-card-title">
-                    <span class="dashicons dashicons-clock ifs-fees-card-title-icon"></span>
+            <div class="ifs-educore-fees-card">
+                <h4 class="ifs-educore-fees-card-title">
+                    <span class="dashicons dashicons-clock"></span>
                     <?php esc_html_e( 'Automated Late Fine Rules & Surcharge Criteria', 'ifsedu-school-management' ); ?>
                 </h4>
 
                 <form method="POST" action="">
                     <?php wp_nonce_field( 'educore_save_late_fine_action', 'educore_late_fine_nonce' ); ?>
 
-                    <div class="ifs-fees-grid-layout">
+                    <div class="ifs-educore-fees-grid-layout">
                         <div>
-                            <label class="ifs-fees-label"><?php esc_html_e( 'Fine Calculation Type', 'ifsedu-school-management' ); ?></label>
-                            <select name="fine_type" class="ifs-fees-select">
+                            <label class="ifs-educore-fees-label"><?php esc_html_e( 'Fine Calculation Type', 'ifsedu-school-management' ); ?></label>
+                            <select name="fine_type" class="ifs-educore-fees-select">
                                 <option value="Fixed" <?php selected( $late_config->fine_type ?? 'Fixed', 'Fixed' ); ?>><?php esc_html_e( 'Fixed Fine (Per Overdue Bill)', 'ifsedu-school-management' ); ?></option>
                                 <option value="Daily" <?php selected( $late_config->fine_type ?? 'Fixed', 'Daily' ); ?>><?php esc_html_e( 'Daily Accruing Fine (Per Day)', 'ifsedu-school-management' ); ?></option>
                                 <option value="Percentage" <?php selected( $late_config->fine_type ?? 'Fixed', 'Percentage' ); ?>><?php esc_html_e( 'Percentage of Due (%)', 'ifsedu-school-management' ); ?></option>
@@ -206,13 +529,13 @@ function educore_render_settings_fees_view( $base_url ) {
                         </div>
 
                         <div>
-                            <label class="ifs-fees-label"><?php esc_html_e( 'Fine Rate (৳ or %)', 'ifsedu-school-management' ); ?></label>
-                            <input type="number" step="0.01" min="0" name="fine_amount" class="ifs-fees-input" value="<?php echo esc_attr( $late_config->fine_amount ?? '50.00' ); ?>">
+                            <label class="ifs-educore-fees-label"><?php esc_html_e( 'Fine Rate (৳ or %)', 'ifsedu-school-management' ); ?></label>
+                            <input type="number" step="0.01" min="0" name="fine_amount" class="ifs-educore-fees-input" value="<?php echo esc_attr( $late_config->fine_amount ?? '50.00' ); ?>">
                         </div>
 
                         <div>
-                            <label class="ifs-fees-label"><?php esc_html_e( 'Billing Cut-off Date (Day of Month)', 'ifsedu-school-management' ); ?></label>
-                            <select name="fine_start_date" class="ifs-fees-select">
+                            <label class="ifs-educore-fees-label"><?php esc_html_e( 'Billing Cut-off Date (Day of Month)', 'ifsedu-school-management' ); ?></label>
+                            <select name="fine_start_date" class="ifs-educore-fees-select">
                                 <?php 
                                 $selected_day = isset( $late_config->fine_start_date ) ? absint( $late_config->fine_start_date ) : 12;
                                 for ( $d = 1; $d <= 31; $d++ ) {
@@ -225,25 +548,25 @@ function educore_render_settings_fees_view( $base_url ) {
                         </div>
 
                         <div>
-                            <label class="ifs-fees-label"><?php esc_html_e( 'Grace Period (Days Allowed)', 'ifsedu-school-management' ); ?></label>
-                            <input type="number" min="0" name="grace_days" class="ifs-fees-input" value="<?php echo esc_attr( $late_config->grace_days ?? '5' ); ?>">
+                            <label class="ifs-educore-fees-label"><?php esc_html_e( 'Grace Period (Days Allowed)', 'ifsedu-school-management' ); ?></label>
+                            <input type="number" min="0" name="grace_days" class="ifs-educore-fees-input" value="<?php echo esc_attr( $late_config->grace_days ?? '5' ); ?>">
                         </div>
 
                         <div>
-                            <label class="ifs-fees-label"><?php esc_html_e( 'Maximum Fine Cap (৳ 0 = Unlimited)', 'ifsedu-school-management' ); ?></label>
-                            <input type="number" step="0.01" min="0" name="max_fine_cap" class="ifs-fees-input" value="<?php echo esc_attr( $late_config->max_fine_cap ?? '500.00' ); ?>">
+                            <label class="ifs-educore-fees-label"><?php esc_html_e( 'Maximum Fine Cap (৳ 0 = Unlimited)', 'ifsedu-school-management' ); ?></label>
+                            <input type="number" step="0.01" min="0" name="max_fine_cap" class="ifs-educore-fees-input" value="<?php echo esc_attr( $late_config->max_fine_cap ?? '500.00' ); ?>">
                         </div>
 
                         <div>
-                            <label class="ifs-fees-label"><?php esc_html_e( 'Rule Status', 'ifsedu-school-management' ); ?></label>
-                            <select name="fine_status" class="ifs-fees-select">
+                            <label class="ifs-educore-fees-label"><?php esc_html_e( 'Rule Status', 'ifsedu-school-management' ); ?></label>
+                            <select name="fine_status" class="ifs-educore-fees-select">
                                 <option value="Active" <?php selected( $late_config->status ?? 'Active', 'Active' ); ?>><?php esc_html_e( 'Active (Apply Penalty)', 'ifsedu-school-management' ); ?></option>
                                 <option value="Inactive" <?php selected( $late_config->status ?? 'Active', 'Inactive' ); ?>><?php esc_html_e( 'Inactive (Disabled)', 'ifsedu-school-management' ); ?></option>
                             </select>
                         </div>
                     </div>
 
-                    <button type="submit" name="save_late_fine_config" class="ifs-fees-btn-save">
+                    <button type="submit" name="save_late_fine_config" class="ifs-educore-fees-btn-save">
                         <span class="dashicons dashicons-saved"></span>
                         <?php esc_html_e( 'Save Late Fine Rules', 'ifsedu-school-management' ); ?>
                     </button>
@@ -252,18 +575,18 @@ function educore_render_settings_fees_view( $base_url ) {
 
         <?php else : ?>
             <!-- SECTION 1: FEE STRUCTURE SETUP & DIRECTORY -->
-            <div class="ifs-fees-card">
-                <h4 class="ifs-fees-card-title">
-                    <span class="dashicons dashicons-money-alt ifs-fees-card-title-icon"></span>
+            <div class="ifs-educore-fees-card">
+                <h4 class="ifs-educore-fees-card-title">
+                    <span class="dashicons dashicons-money-alt"></span>
                     <?php esc_html_e( 'Class-wise Standard Fee Structure Configuration', 'ifsedu-school-management' ); ?>
                 </h4>
 
                 <form method="POST" action="">
                     <?php wp_nonce_field( 'educore_save_fees_settings_action', 'educore_fees_settings_nonce' ); ?>
 
-                    <div class="ifs-fees-select-class-wrap">
-                        <label class="ifs-fees-label"><?php esc_html_e( 'Select Target Class', 'ifsedu-school-management' ); ?> <span class="ifs-fees-required-star">*</span></label>
-                        <select name="target_class" id="ifs_target_class_select" class="ifs-fees-select" required>
+                    <div class="ifs-educore-fees-select-class-wrap">
+                        <label class="ifs-educore-fees-label"><?php esc_html_e( 'Select Target Class', 'ifsedu-school-management' ); ?> <span class="ifs-educore-fees-required-star">*</span></label>
+                        <select name="target_class" id="ifs_target_class_select" class="ifs-educore-fees-select" required>
                             <option value=""><?php esc_html_e( '-- Choose Class --', 'ifsedu-school-management' ); ?></option>
                             <?php foreach ( $academic_classes as $cls_name ) : ?>
                                 <option value="<?php echo esc_attr( $cls_name ); ?>"><?php echo esc_html( $cls_name ); ?></option>
@@ -272,18 +595,18 @@ function educore_render_settings_fees_view( $base_url ) {
                     </div>
 
                     <div id="ifs_fee_repeater_canvas">
-                        <div class="ifs-fees-repeater-row">
+                        <div class="ifs-educore-fees-repeater-row">
                             <div>
-                                <label class="ifs-fees-label"><?php esc_html_e( 'Fee Title / Particulars', 'ifsedu-school-management' ); ?> <span class="ifs-fees-required-star">*</span></label>
-                                <input type="text" name="fee_title[]" class="ifs-fees-input" placeholder="<?php esc_attr_e( 'e.g. Monthly Tuition Fee / Exam Fee', 'ifsedu-school-management' ); ?>" required>
+                                <label class="ifs-educore-fees-label"><?php esc_html_e( 'Fee Title / Particulars', 'ifsedu-school-management' ); ?> <span class="ifs-educore-fees-required-star">*</span></label>
+                                <input type="text" name="fee_title[]" class="ifs-educore-fees-input" placeholder="<?php esc_attr_e( 'e.g. Monthly Tuition Fee / Exam Fee', 'ifsedu-school-management' ); ?>" required>
                             </div>
                             <div>
-                                <label class="ifs-fees-label"><?php esc_html_e( 'Amount (৳)', 'ifsedu-school-management' ); ?> <span class="ifs-fees-required-star">*</span></label>
-                                <input type="number" step="0.01" min="0" name="amount[]" class="ifs-fees-input" placeholder="0.00" required>
+                                <label class="ifs-educore-fees-label"><?php esc_html_e( 'Amount (৳)', 'ifsedu-school-management' ); ?> <span class="ifs-educore-fees-required-star">*</span></label>
+                                <input type="number" step="0.01" min="0" name="amount[]" class="ifs-educore-fees-input" placeholder="0.00" required>
                             </div>
                             <div>
-                                <label class="ifs-fees-label"><?php esc_html_e( 'Billing Cycle', 'ifsedu-school-management' ); ?></label>
-                                <select name="period_type[]" class="ifs-fees-select">
+                                <label class="ifs-educore-fees-label"><?php esc_html_e( 'Billing Cycle', 'ifsedu-school-management' ); ?></label>
+                                <select name="period_type[]" class="ifs-educore-fees-select">
                                     <option value="Monthly"><?php esc_html_e( 'Monthly', 'ifsedu-school-management' ); ?></option>
                                     <option value="Term/Exam"><?php esc_html_e( 'Term / Exam-wise', 'ifsedu-school-management' ); ?></option>
                                     <option value="Annual/Admission"><?php esc_html_e( 'Annual / Admission', 'ifsedu-school-management' ); ?></option>
@@ -291,20 +614,20 @@ function educore_render_settings_fees_view( $base_url ) {
                                 </select>
                             </div>
                             <div>
-                                <button type="button" class="ifs-fees-btn-remove btn-remove-row" title="<?php esc_attr_e( 'Remove', 'ifsedu-school-management' ); ?>">
+                                <button type="button" class="ifs-educore-fees-btn-remove btn-remove-row" title="<?php esc_attr_e( 'Remove', 'ifsedu-school-management' ); ?>">
                                     <span class="dashicons dashicons-no-alt"></span>
                                 </button>
                             </div>
                         </div>
                     </div>
 
-                    <div class="ifs-fees-actions-bar">
-                        <button type="button" id="ifs_add_fee_row_btn" class="ifs-fees-btn-add">
+                    <div class="ifs-educore-fees-actions-bar">
+                        <button type="button" id="ifs_add_fee_row_btn" class="ifs-educore-fees-btn-add">
                             <span class="dashicons dashicons-plus-alt2"></span>
                             <?php esc_html_e( 'Add Another Item', 'ifsedu-school-management' ); ?>
                         </button>
 
-                        <button type="submit" name="save_class_fee_structure" class="ifs-fees-btn-save">
+                        <button type="submit" name="save_class_fee_structure" class="ifs-educore-fees-btn-save">
                             <span class="dashicons dashicons-saved"></span>
                             <?php esc_html_e( 'Save Fee Structure', 'ifsedu-school-management' ); ?>
                         </button>
@@ -313,16 +636,16 @@ function educore_render_settings_fees_view( $base_url ) {
             </div>
 
             <!-- Directory Table Card -->
-            <div class="ifs-fees-card">
-                <div class="ifs-fees-directory-header">
-                    <div class="ifs-fees-directory-count">
+            <div class="ifs-educore-fees-card">
+                <div class="ifs-educore-directory-header">
+                    <div class="ifs-educore-directory-count">
                         <?php echo count( $all_fee_types ); ?> <?php esc_html_e( 'Fee Items Configured', 'ifsedu-school-management' ); ?>
                     </div>
-                    <input type="text" id="ifs_fee_filter_input" class="ifs-fees-input ifs-fees-search-input" placeholder="<?php esc_attr_e( 'Search class or fee item...', 'ifsedu-school-management' ); ?>">
+                    <input type="text" id="ifs_fee_filter_input" class="ifs-educore-fees-input ifs-educore-search-input" placeholder="<?php esc_attr_e( 'Search class or fee item...', 'ifsedu-school-management' ); ?>">
                 </div>
 
-                <div class="ifs-fees-table-container">
-                    <table class="ifs-fees-table" id="ifs_fees_directory_table">
+                <div class="ifs-educore-table-container">
+                    <table class="ifs-educore-fees-table" id="ifs_fees_directory_table">
                         <thead>
                             <tr>
                                 <th style="width: 22%;"><?php esc_html_e( 'Class', 'ifsedu-school-management' ); ?></th>
@@ -334,7 +657,7 @@ function educore_render_settings_fees_view( $base_url ) {
                         </thead>
                         <tbody>
                             <?php if ( ! empty( $all_fee_types ) ) : foreach ( $all_fee_types as $item ) : 
-                                $del_id = absint( $item->id );
+                                $del_id   = absint( $item->id );
                                 $del_link = wp_nonce_url(
                                     add_query_arg(
                                         array(
@@ -347,19 +670,19 @@ function educore_render_settings_fees_view( $base_url ) {
                                 );
                             ?>
                                 <tr class="fee-row" data-search="<?php echo esc_attr( strtolower( (string) ( $item->class_name . ' ' . $item->fee_title ) ) ); ?>">
-                                    <td><strong class="ifs-fees-class-strong"><?php echo esc_html( $item->class_name ); ?></strong></td>
-                                    <td><strong class="ifs-fees-title-strong"><?php echo esc_html( $item->fee_title ); ?></strong></td>
-                                    <td><span class="ifs-fees-amount-badge">৳<?php echo esc_html( number_format( floatval( $item->amount ), 2 ) ); ?></span></td>
-                                    <td><span class="ifs-fees-cycle-badge"><?php echo esc_html( $item->period_type ); ?></span></td>
-                                    <td class="ifs-fees-action-cell">
-                                        <a href="<?php echo esc_url( $del_link ); ?>" onclick="return confirm('<?php echo esc_js( __( 'Remove this fee item?', 'ifsedu-school-management' ) ); ?>');" class="ifs-fees-delete-action" title="<?php esc_attr_e( 'Delete Fee Item', 'ifsedu-school-management' ); ?>">
-                                            <span class="dashicons dashicons-trash ifs-fees-delete-icon"></span>
+                                    <td><strong class="ifs-educore-class-strong"><?php echo esc_html( $item->class_name ); ?></strong></td>
+                                    <td><strong class="ifs-educore-title-strong"><?php echo esc_html( $item->fee_title ); ?></strong></td>
+                                    <td><span class="ifs-educore-amount-badge">৳<?php echo esc_html( number_format( floatval( $item->amount ), 2 ) ); ?></span></td>
+                                    <td><span class="ifs-educore-cycle-badge"><?php echo esc_html( $item->period_type ); ?></span></td>
+                                    <td class="ifs-educore-action-cell">
+                                        <a href="<?php echo esc_url( $del_link ); ?>" onclick="return confirm('<?php echo esc_js( __( 'Remove this fee item?', 'ifsedu-school-management' ) ); ?>');" class="ifs-educore-delete-action" title="<?php esc_attr_e( 'Delete Fee Item', 'ifsedu-school-management' ); ?>">
+                                            <span class="dashicons dashicons-trash"></span>
                                         </a>
                                     </td>
                                 </tr>
                             <?php endforeach; else : ?>
                                 <tr>
-                                    <td colspan="5" class="ifs-fees-empty-cell">
+                                    <td colspan="5" class="ifs-educore-empty-cell">
                                         <?php esc_html_e( 'No fee structure configured yet.', 'ifsedu-school-management' ); ?>
                                     </td>
                                 </tr>
@@ -381,7 +704,7 @@ function educore_render_settings_fees_view( $base_url ) {
 
         if (addBtn && canvas) {
             addBtn.addEventListener('click', function() {
-                var rows = canvas.querySelectorAll('.ifs-fees-repeater-row');
+                var rows = canvas.querySelectorAll('.ifs-educore-fees-repeater-row');
                 if (rows.length > 0) {
                     var newRow = rows[0].cloneNode(true);
                     newRow.querySelectorAll('input').forEach(function(inp) {
@@ -398,9 +721,9 @@ function educore_render_settings_fees_view( $base_url ) {
             canvas.addEventListener('click', function(e) {
                 var removeBtn = e.target.closest('.btn-remove-row');
                 if (removeBtn) {
-                    var rows = canvas.querySelectorAll('.ifs-fees-repeater-row');
+                    var rows = canvas.querySelectorAll('.ifs-educore-fees-repeater-row');
                     if (rows.length > 1) {
-                        removeBtn.closest('.ifs-fees-repeater-row').remove();
+                        removeBtn.closest('.ifs-educore-fees-repeater-row').remove();
                     } else {
                         alert('<?php echo esc_js( __( 'At least one fee row is required.', 'ifsedu-school-management' ) ); ?>');
                     }

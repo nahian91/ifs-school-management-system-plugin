@@ -6,9 +6,12 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+    exit; // Exit if accessed directly.
 }
 
+/**
+ * Render Standalone Single Examination Scheme Details View
+ */
 function educore_exam_single_view() {
     global $wpdb;
 
@@ -43,7 +46,7 @@ function educore_exam_single_view() {
         admin_url( 'admin.php' )
     );
 
-    // Fetch Exam Record
+    // Fetch Exam Record.
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     $exam = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table_exams}` WHERE id = %d LIMIT 1", $exam_id ) );
     // phpcs:enable
@@ -64,12 +67,14 @@ function educore_exam_single_view() {
         return;
     }
 
-    // Parse Classes & Subjects Map
+    // Parse Classes & Subjects Map.
     $classes_array = ! empty( $exam->class_name ) ? array_map( 'trim', explode( ',', $exam->class_name ) ) : array();
     $subject_map   = ! empty( $exam->subject_ids ) ? json_decode( $exam->subject_ids, true ) : array();
 
-    // Fetch Subject Details Map
+    // Fetch Subject Details Map.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
     $all_subs_raw = $wpdb->get_results( "SELECT id, subject_name, subject_code FROM `{$table_subjects}`" );
+    // phpcs:enable
     $subject_dict = array();
     if ( ! empty( $all_subs_raw ) ) {
         foreach ( $all_subs_raw as $s_row ) {
@@ -85,14 +90,14 @@ function educore_exam_single_view() {
     $att_start_ts = ! empty( $exam->att_start_date ) ? strtotime( $exam->att_start_date ) : $start_ts;
     $att_end_ts   = ! empty( $exam->att_end_date ) ? strtotime( $exam->att_end_date ) : $end_ts;
 
-    // Calculate Working Days vs Off Days within Examination Window
+    // Calculate Working Days vs Off Days within Examination Window.
     $total_working_days = 0;
     $total_off_days     = 0;
     if ( $start_ts && $end_ts && $end_ts >= $start_ts ) {
         $curr = $start_ts;
         while ( $curr <= $end_ts ) {
-            $day_of_week = (int) gmdate( 'w', $curr ); // 0 = Sunday, 5 = Friday, 6 = Saturday
-            // Assuming Friday (5) and Saturday (6) are weekly off days/weekends in Bangladesh standard
+            $day_of_week = (int) gmdate( 'w', $curr ); // 0 = Sunday, 5 = Friday, 6 = Saturday.
+            // Assuming Friday (5) and Saturday (6) are weekly off days/weekends in Bangladesh standard.
             if ( 5 === $day_of_week || 6 === $day_of_week ) {
                 $total_off_days++;
             } else {
@@ -102,7 +107,7 @@ function educore_exam_single_view() {
         }
     }
 
-    // Total unique subjects across this exam scheme
+    // Total unique subjects across this exam scheme.
     $total_distinct_subjects = 0;
     if ( is_array( $subject_map ) ) {
         $flat_sub_ids = array();
@@ -114,10 +119,14 @@ function educore_exam_single_view() {
         $total_distinct_subjects = count( array_unique( $flat_sub_ids ) );
     }
 
-    // Dynamic School Settings Info
+    // Dynamic School Settings Info.
     $school_name    = get_option( 'educore_school_name', get_bloginfo( 'name' ) );
     $school_tagline = get_option( 'educore_school_tagline', get_bloginfo( 'description' ) );
     $school_logo    = get_option( 'educore_school_logo', '' );
+
+    if ( empty( $school_name ) || 'WordPress' === $school_name ) {
+        $school_name = get_bloginfo( 'name' );
+    }
     ?>
 
     <style>

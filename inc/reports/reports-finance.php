@@ -6,19 +6,22 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+    exit; // Exit if accessed directly.
 }
 
+/**
+ * Render Financial Analytics & Transaction Audit Report View
+ */
 function educore_reports_finance_view() {
     if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'You do not have sufficient administrative permissions to access financial analytics.', 'ifsedu-school-management' ) );
     }
 
     global $wpdb;
-    $table_fees        = $wpdb->prefix . 'sms_fees';
-    $table_accounting  = $wpdb->prefix . 'sms_accounting';
-    $table_students    = $wpdb->prefix . 'sms_students';
-    $table_staff       = $wpdb->prefix . 'sms_staff';
+    $table_fees       = $wpdb->prefix . 'sms_fees';
+    $table_accounting = $wpdb->prefix . 'sms_accounting';
+    $table_students   = $wpdb->prefix . 'sms_students';
+    $table_staff      = $wpdb->prefix . 'sms_staff';
 
     // --------------------------------------------------------------------------
     // 1. CAPTURE FILTER REQUEST INPUTS
@@ -37,7 +40,7 @@ function educore_reports_finance_view() {
     // --------------------------------------------------------------------------
     $combined_logs = array();
 
-    // Query Student Fees if matching scope
+    // Query Student Fees if matching scope.
     if ( in_array( $scope_filter, array( 'all', 'fees' ), true ) ) {
         $where_fees  = array( 'DATE(f.payment_date) BETWEEN %s AND %s' );
         $params_fees = array( $start_date, $end_date );
@@ -91,7 +94,7 @@ function educore_reports_finance_view() {
         }
     }
 
-    // Query General Accounting if matching scope
+    // Query General Accounting if matching scope.
     if ( in_array( $scope_filter, array( 'all', 'general_income', 'general_expense' ), true ) ) {
         $where_acct  = array( 'a.entry_date BETWEEN %s AND %s' );
         $params_acct = array( $start_date, $end_date );
@@ -146,7 +149,7 @@ function educore_reports_finance_view() {
         }
     }
 
-    // Sort Combined Logs chronologically descending
+    // Sort Combined Logs chronologically descending.
     if ( ! empty( $combined_logs ) && is_array( $combined_logs ) ) {
         usort( $combined_logs, function( $a, $b ) {
             $time_a = ! empty( $a->trans_date ) ? strtotime( $a->trans_date ) : 0;
@@ -183,11 +186,317 @@ function educore_reports_finance_view() {
     );
     ?>
 
-    <div class="dpt-finance-root">
+    <style id="ifs-educore-finance-report-styles">
+        .ifs-educore-finance-root {
+            font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #0f172a;
+        }
+
+        .ifs-educore-header-frame {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.03);
+            margin-bottom: 24px;
+        }
+
+        .ifs-educore-header-content h2 {
+            margin: 0 0 4px 0;
+            font-size: 18px;
+            font-weight: 800;
+            color: #00523c;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ifs-educore-header-content p {
+            margin: 0;
+            font-size: 13.5px;
+            color: #64748b;
+        }
+
+        .ifs-educore-filter-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.03);
+            margin-bottom: 24px;
+        }
+
+        .ifs-educore-filter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) auto;
+            gap: 16px;
+            align-items: flex-end;
+        }
+
+        .ifs-educore-field-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .ifs-educore-label {
+            font-size: 12.5px;
+            font-weight: 700;
+            color: #334155;
+            letter-spacing: -0.1px;
+        }
+
+        .ifs-educore-input-control {
+            width: 100%;
+            height: 40px;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 0 12px;
+            font-size: 13px;
+            color: #0f172a;
+            background: #ffffff;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .ifs-educore-input-control:focus {
+            border-color: #00523c;
+            box-shadow: 0 0 0 3px rgba(0, 82, 60, 0.12);
+        }
+
+        .ifs-educore-btn-generate {
+            height: 40px;
+            padding: 0 18px;
+            background: #00523c;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 82, 60, 0.18);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: background 0.2s;
+            text-decoration: none;
+        }
+
+        .ifs-educore-btn-generate:hover {
+            background: #047857;
+            color: #ffffff;
+        }
+
+        .ifs-educore-btn-reset {
+            height: 40px;
+            padding: 0 14px;
+            background: #f1f5f9;
+            color: #475569;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+
+        .ifs-educore-btn-reset:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+
+        /* Metrics Bento Grid */
+        .ifs-educore-metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .ifs-educore-metric-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.03);
+            position: relative;
+            overflow: hidden;
+            border-left: 4px solid #00523c;
+        }
+
+        .ifs-educore-card-emerald { border-left-color: #059669; }
+        .ifs-educore-card-rose { border-left-color: #dc2626; }
+        .ifs-educore-card-blue { border-left-color: #2563eb; }
+        .ifs-educore-card-amber { border-left-color: #d97706; }
+
+        .ifs-educore-metric-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .ifs-educore-metric-label {
+            font-size: 11.5px;
+            font-weight: 800;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .ifs-educore-metric-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: #f8fafc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #00523c;
+        }
+
+        .ifs-educore-metric-value {
+            font-size: 22px;
+            font-weight: 900;
+            color: #0f172a;
+        }
+
+        /* Table Card */
+        .ifs-educore-table-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
+            margin-bottom: 30px;
+        }
+
+        .ifs-educore-table-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            background: #f8fafc;
+        }
+
+        .ifs-educore-table-title {
+            margin: 0;
+            font-size: 15px;
+            font-weight: 800;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ifs-educore-btn-print {
+            height: 36px;
+            padding: 0 16px;
+            background: #ffffff;
+            color: #334155;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 12.5px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            transition: all 0.2s ease;
+        }
+
+        .ifs-educore-btn-print:hover {
+            background: #f1f5f9;
+            color: #0f172a;
+        }
+
+        .ifs-educore-table-wrapper {
+            overflow-x: auto;
+        }
+
+        .ifs-educore-data-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 13px;
+        }
+
+        .ifs-educore-data-table th {
+            padding: 12px 18px;
+            color: #475569;
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 11.5px;
+            text-transform: capitalize;
+            font-weight: 800;
+        }
+
+        .ifs-educore-data-table td {
+            padding: 12px 18px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: middle;
+        }
+
+        .ifs-educore-ref-badge {
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            color: #334155;
+            font-size: 10.5px;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 4px;
+        }
+
+        .ifs-educore-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11.5px;
+            font-weight: 700;
+        }
+
+        .ifs-educore-badge-income { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+        .ifs-educore-badge-expense { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+
+        .ifs-educore-badge-paid { background: #f0fdf4; color: #059669; border: 1px solid #bbf7d0; }
+        .ifs-educore-badge-partial { background: #fff7ed; color: #d97706; border: 1px solid #fed7aa; }
+        .ifs-educore-badge-unpaid { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+
+        .ifs-educore-waiver-tag {
+            display: inline-block;
+            background: #fef3c7;
+            color: #b45309;
+            font-size: 10.5px;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 4px;
+            margin-top: 3px;
+            border: 1px solid #fde68a;
+        }
+
+        @media print {
+            .no-print { display: none !important; }
+            body, .ifs-educore-finance-root { background: #ffffff !important; padding: 0 !important; }
+            .ifs-educore-table-card { border: none !important; box-shadow: none !important; }
+        }
+    </style>
+
+    <div class="ifs-educore-finance-root">
         
         <!-- Header Banner -->
-        <div class="afdp-header-frame no-print">
-            <div class="afdp-header-content">
+        <div class="ifs-educore-header-frame no-print">
+            <div class="ifs-educore-header-content">
                 <h2>
                     <span class="dashicons dashicons-chart-bar" style="color:#00523c;"></span>
                     <?php esc_html_e( 'Financial Statement & Revenue Audit', 'ifsedu-school-management' ); ?>
@@ -197,18 +506,18 @@ function educore_reports_finance_view() {
         </div>
 
         <!-- Filter Control Matrix Card -->
-        <div class="dpt-filter-card no-print">
+        <div class="ifs-educore-filter-card no-print">
             <form method="GET" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>">
                 <input type="hidden" name="page" value="school_management_system">
                 <input type="hidden" name="tab" value="reports">
                 <input type="hidden" name="sub" value="finance">
                 
-                <div class="dpt-filter-grid">
+                <div class="ifs-educore-filter-grid">
                     
                     <!-- 1. Scope Selector -->
-                    <div class="dpt-field-group">
-                        <label class="dpt-label"><?php esc_html_e( 'Financial Scope', 'ifsedu-school-management' ); ?></label>
-                        <select name="scope" class="dpt-input-control">
+                    <div class="ifs-educore-field-group">
+                        <label class="ifs-educore-label"><?php esc_html_e( 'Financial Scope', 'ifsedu-school-management' ); ?></label>
+                        <select name="scope" class="ifs-educore-input-control">
                             <option value="all" <?php selected( $scope_filter, 'all' ); ?>><?php esc_html_e( 'All Cash & Ledger (Income + Expense)', 'ifsedu-school-management' ); ?></option>
                             <option value="fees" <?php selected( $scope_filter, 'fees' ); ?>><?php esc_html_e( 'Student Academic Fees Only', 'ifsedu-school-management' ); ?></option>
                             <option value="general_income" <?php selected( $scope_filter, 'general_income' ); ?>><?php esc_html_e( 'General Incomes (+)', 'ifsedu-school-management' ); ?></option>
@@ -217,9 +526,9 @@ function educore_reports_finance_view() {
                     </div>
 
                     <!-- 2. Category Dropdown -->
-                    <div class="dpt-field-group">
-                        <label class="dpt-label"><?php esc_html_e( 'Fee / Entry Category', 'ifsedu-school-management' ); ?></label>
-                        <select name="fee_category" class="dpt-input-control">
+                    <div class="ifs-educore-field-group">
+                        <label class="ifs-educore-label"><?php esc_html_e( 'Fee / Entry Category', 'ifsedu-school-management' ); ?></label>
+                        <select name="fee_category" class="ifs-educore-input-control">
                             <option value=""><?php esc_html_e( '-- All Categories --', 'ifsedu-school-management' ); ?></option>
                             <optgroup label="<?php esc_attr_e( 'Student Academic Fees', 'ifsedu-school-management' ); ?>">
                                 <option value="Tuition Fee" <?php selected( $category_filter, 'Tuition Fee' ); ?>><?php esc_html_e( 'Tuition Fee', 'ifsedu-school-management' ); ?></option>
@@ -241,9 +550,9 @@ function educore_reports_finance_view() {
                     </div>
 
                     <!-- 3. Payment Status -->
-                    <div class="dpt-field-group">
-                        <label class="dpt-label"><?php esc_html_e( 'Status', 'ifsedu-school-management' ); ?></label>
-                        <select name="payment_status" class="dpt-input-control">
+                    <div class="ifs-educore-field-group">
+                        <label class="ifs-educore-label"><?php esc_html_e( 'Status', 'ifsedu-school-management' ); ?></label>
+                        <select name="payment_status" class="ifs-educore-input-control">
                             <option value=""><?php esc_html_e( '-- All Statuses --', 'ifsedu-school-management' ); ?></option>
                             <option value="Paid" <?php selected( $status_filter, 'Paid' ); ?>><?php esc_html_e( 'Paid (Settled)', 'ifsedu-school-management' ); ?></option>
                             <option value="Partial" <?php selected( $status_filter, 'Partial' ); ?>><?php esc_html_e( 'Partial Payment', 'ifsedu-school-management' ); ?></option>
@@ -252,9 +561,9 @@ function educore_reports_finance_view() {
                     </div>
 
                     <!-- 4. Payment Method -->
-                    <div class="dpt-field-group">
-                        <label class="dpt-label"><?php esc_html_e( 'Method', 'ifsedu-school-management' ); ?></label>
-                        <select name="payment_method" class="dpt-input-control">
+                    <div class="ifs-educore-field-group">
+                        <label class="ifs-educore-label"><?php esc_html_e( 'Method', 'ifsedu-school-management' ); ?></label>
+                        <select name="payment_method" class="ifs-educore-input-control">
                             <option value=""><?php esc_html_e( '-- All Methods --', 'ifsedu-school-management' ); ?></option>
                             <option value="Cash" <?php selected( $method_filter, 'Cash' ); ?>><?php esc_html_e( 'Cash', 'ifsedu-school-management' ); ?></option>
                             <option value="Bank Transfer" <?php selected( $method_filter, 'Bank Transfer' ); ?>><?php esc_html_e( 'Bank Transfer', 'ifsedu-school-management' ); ?></option>
@@ -265,23 +574,23 @@ function educore_reports_finance_view() {
                     </div>
 
                     <!-- 5. Date From -->
-                    <div class="dpt-field-group">
-                        <label class="dpt-label"><?php esc_html_e( 'From Date', 'ifsedu-school-management' ); ?></label>
-                        <input type="date" name="start_date" class="dpt-input-control" value="<?php echo esc_attr( $start_date ); ?>" required>
+                    <div class="ifs-educore-field-group">
+                        <label class="ifs-educore-label"><?php esc_html_e( 'From Date', 'ifsedu-school-management' ); ?></label>
+                        <input type="date" name="start_date" class="ifs-educore-input-control" value="<?php echo esc_attr( $start_date ); ?>" required>
                     </div>
 
                     <!-- 6. Date To -->
-                    <div class="dpt-field-group">
-                        <label class="dpt-label"><?php esc_html_e( 'To Date', 'ifsedu-school-management' ); ?></label>
-                        <input type="date" name="end_date" class="dpt-input-control" value="<?php echo esc_attr( $end_date ); ?>" required>
+                    <div class="ifs-educore-field-group">
+                        <label class="ifs-educore-label"><?php esc_html_e( 'To Date', 'ifsedu-school-management' ); ?></label>
+                        <input type="date" name="end_date" class="ifs-educore-input-control" value="<?php echo esc_attr( $end_date ); ?>" required>
                     </div>
 
                     <!-- Actions -->
                     <div style="display:flex; gap:8px;">
-                        <button type="submit" class="dpt-btn-generate">
+                        <button type="submit" class="ifs-educore-btn-generate">
                             <span class="dashicons dashicons-filter"></span> <?php esc_html_e( 'Filter', 'ifsedu-school-management' ); ?>
                         </button>
-                        <a href="<?php echo esc_url( $base_report_url ); ?>" class="dpt-btn-reset">
+                        <a href="<?php echo esc_url( $base_report_url ); ?>" class="ifs-educore-btn-reset">
                             <?php esc_html_e( 'Reset', 'ifsedu-school-management' ); ?>
                         </a>
                     </div>
@@ -291,56 +600,56 @@ function educore_reports_finance_view() {
         </div>
 
         <!-- Summary Metric Bento Cards Matrix -->
-        <div class="dpt-metrics-grid">
+        <div class="ifs-educore-metrics-grid">
             
             <!-- Card 1: Total Revenue Inflow -->
-            <div class="dpt-metric-card dpt-card-emerald">
-                <div class="dpt-metric-header">
-                    <span class="dpt-metric-label"><?php esc_html_e( 'Total Inflow (+)', 'ifsedu-school-management' ); ?></span>
-                    <div class="dpt-metric-icon">
+            <div class="ifs-educore-metric-card ifs-educore-card-emerald">
+                <div class="ifs-educore-metric-header">
+                    <span class="ifs-educore-metric-label"><?php esc_html_e( 'Total Inflow (+)', 'ifsedu-school-management' ); ?></span>
+                    <div class="ifs-educore-metric-icon">
                         <span class="dashicons dashicons-money-alt"></span>
                     </div>
                 </div>
-                <div class="dpt-metric-value">
+                <div class="ifs-educore-metric-value">
                     ৳<?php echo esc_html( number_format( $total_revenue_inflow, 2 ) ); ?>
                 </div>
             </div>
 
             <!-- Card 2: Operating Expenses Outflow -->
-            <div class="dpt-metric-card dpt-card-rose">
-                <div class="dpt-metric-header">
-                    <span class="dpt-metric-label"><?php esc_html_e( 'Total Outflow (-)', 'ifsedu-school-management' ); ?></span>
-                    <div class="dpt-metric-icon">
+            <div class="ifs-educore-metric-card ifs-educore-card-rose">
+                <div class="ifs-educore-metric-header">
+                    <span class="ifs-educore-metric-label"><?php esc_html_e( 'Total Outflow (-)', 'ifsedu-school-management' ); ?></span>
+                    <div class="ifs-educore-metric-icon">
                         <span class="dashicons dashicons-arrow-down-alt"></span>
                     </div>
                 </div>
-                <div class="dpt-metric-value">
+                <div class="ifs-educore-metric-value">
                     ৳<?php echo esc_html( number_format( $total_expenses, 2 ) ); ?>
                 </div>
             </div>
 
             <!-- Card 3: Net Cash Balance -->
-            <div class="dpt-metric-card dpt-card-blue">
-                <div class="dpt-metric-header">
-                    <span class="dpt-metric-label"><?php esc_html_e( 'Net Operating Cash', 'ifsedu-school-management' ); ?></span>
-                    <div class="dpt-metric-icon">
+            <div class="ifs-educore-metric-card ifs-educore-card-blue">
+                <div class="ifs-educore-metric-header">
+                    <span class="ifs-educore-metric-label"><?php esc_html_e( 'Net Operating Cash', 'ifsedu-school-management' ); ?></span>
+                    <div class="ifs-educore-metric-icon">
                         <span class="dashicons dashicons-chart-line"></span>
                     </div>
                 </div>
-                <div class="dpt-metric-value">
+                <div class="ifs-educore-metric-value">
                     ৳<?php echo esc_html( number_format( $net_operating_cash, 2 ) ); ?>
                 </div>
             </div>
 
             <!-- Card 4: Total Pending Student Dues -->
-            <div class="dpt-metric-card dpt-card-amber">
-                <div class="dpt-metric-header">
-                    <span class="dpt-metric-label"><?php esc_html_e( 'Pending Dues', 'ifsedu-school-management' ); ?></span>
-                    <div class="dpt-metric-icon">
+            <div class="ifs-educore-metric-card ifs-educore-card-amber">
+                <div class="ifs-educore-metric-header">
+                    <span class="ifs-educore-metric-label"><?php esc_html_e( 'Pending Dues', 'ifsedu-school-management' ); ?></span>
+                    <div class="ifs-educore-metric-icon">
                         <span class="dashicons dashicons-warning"></span>
                     </div>
                 </div>
-                <div class="dpt-metric-value">
+                <div class="ifs-educore-metric-value">
                     ৳<?php echo esc_html( number_format( $total_pending_dues, 2 ) ); ?>
                 </div>
             </div>
@@ -348,9 +657,9 @@ function educore_reports_finance_view() {
         </div>
 
         <!-- Transaction Audit Log Table -->
-        <div class="dpt-table-card">
-            <div class="dpt-table-header">
-                <h3 class="dpt-table-title">
+        <div class="ifs-educore-table-card">
+            <div class="ifs-educore-table-header">
+                <h3 class="ifs-educore-table-title">
                     <span class="dashicons dashicons-list-view" style="color:#00523c;"></span> 
                     <?php 
                     $start_ts = ! empty( $start_date ) ? strtotime( $start_date ) : false;
@@ -366,13 +675,13 @@ function educore_reports_finance_view() {
                     ); 
                     ?>
                 </h3>
-                <button onclick="window.print()" class="dpt-btn-print no-print">
+                <button onclick="window.print()" class="ifs-educore-btn-print no-print">
                     <span class="dashicons dashicons-printer"></span> <?php esc_html_e( 'Print Financial Statement', 'ifsedu-school-management' ); ?>
                 </button>
             </div>
 
-            <div class="dpt-table-wrapper">
-                <table class="dpt-data-table">
+            <div class="ifs-educore-table-wrapper">
+                <table class="ifs-educore-data-table">
                     <thead>
                         <tr>
                             <th><?php esc_html_e( 'Date & Voucher', 'ifsedu-school-management' ); ?></th>
@@ -388,11 +697,11 @@ function educore_reports_finance_view() {
                     <tbody>
                         <?php if ( ! empty( $combined_logs ) && is_array( $combined_logs ) ) : foreach ( $combined_logs as $log ) : 
                             $is_income    = ( 'Income' === $log->flow_type );
-                            $status_class = 'dpt-badge-unpaid';
+                            $status_class = 'ifs-educore-badge-unpaid';
                             if ( 'Paid' === $log->payment_status ) {
-                                $status_class = 'dpt-badge-paid';
+                                $status_class = 'ifs-educore-badge-paid';
                             } elseif ( 'Partial' === $log->payment_status ) {
-                                $status_class = 'dpt-badge-partial';
+                                $status_class = 'ifs-educore-badge-partial';
                             }
 
                             $trans_ts = ! empty( $log->trans_date ) ? strtotime( $log->trans_date ) : false;
@@ -401,10 +710,10 @@ function educore_reports_finance_view() {
                         <tr>
                             <td>
                                 <strong style="color:#0f172a;"><?php echo esc_html( $trans_str ); ?></strong><br>
-                                <span class="dpt-ref-badge">#<?php echo esc_html( $log->ref_code ); ?></span>
+                                <span class="ifs-educore-ref-badge">#<?php echo esc_html( $log->ref_code ); ?></span>
                             </td>
                             <td>
-                                <span class="dpt-badge <?php echo $is_income ? 'dpt-badge-income' : 'dpt-badge-expense'; ?>">
+                                <span class="ifs-educore-badge <?php echo $is_income ? 'ifs-educore-badge-income' : 'ifs-educore-badge-expense'; ?>">
                                     <?php echo esc_html( $log->flow_group ); ?>
                                 </span>
                             </td>
@@ -416,7 +725,7 @@ function educore_reports_finance_view() {
                                         <?php esc_html_e( 'ID:', 'ifsedu-school-management' ); ?> <?php echo esc_html( (string) $log->student_uid ); ?> | <?php esc_html_e( 'Class:', 'ifsedu-school-management' ); ?> <?php echo esc_html( $log->class_name ); ?><?php echo ! empty( $log->section_name ) ? ' (' . esc_html( $log->section_name ) . ')' : ''; ?><?php echo ( ! empty( $log->shift ) && 'No Shift' !== $log->shift ) ? ' [' . esc_html( $log->shift ) . ']' : ''; ?>
                                     </small>
                                     <?php if ( ! empty( $log->waiver_percentage ) && floatval( $log->waiver_percentage ) > 0 ) : ?>
-                                        <span class="dpt-waiver-tag">
+                                        <span class="ifs-educore-waiver-tag">
                                             <?php echo esc_html( floatval( $log->waiver_percentage ) ); ?>% <?php esc_html_e( 'Waiver', 'ifsedu-school-management' ); ?> <?php echo ! empty( $log->waiver_ref_staff ) ? esc_html( '[' . $log->waiver_ref_staff . ']' ) : ''; ?>
                                         </span>
                                     <?php endif; ?>
@@ -432,7 +741,7 @@ function educore_reports_finance_view() {
                                 <?php echo $is_income ? '+' : '-'; ?>৳<?php echo esc_html( number_format( (float) $log->paid_amount, 2 ) ); ?>
                             </td>
                             <td>
-                                <span class="dpt-badge <?php echo esc_attr( $status_class ); ?>">
+                                <span class="ifs-educore-badge <?php echo esc_attr( $status_class ); ?>">
                                     <?php echo esc_html( $log->payment_status ); ?>
                                 </span>
                             </td>

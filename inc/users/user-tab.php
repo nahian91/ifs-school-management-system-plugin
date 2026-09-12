@@ -6,9 +6,12 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Immediate access layer lockdown
+    exit; // Immediate access layer lockdown.
 }
 
+/**
+ * Main Users Tab Router & Execution Controller
+ */
 function educore_users_tab() {
     if ( ! current_user_can( 'create_users' ) && ! current_user_can( 'manage_options' ) && ! current_user_can( 'edit_users' ) && ! current_user_can( 'list_users' ) ) {
         wp_die( esc_html__( 'You do not have sufficient permissions to manage users.', 'ifsedu-school-management' ) );
@@ -21,7 +24,7 @@ function educore_users_tab() {
     $sub_mode = isset( $_GET['sub'] ) ? sanitize_key( wp_unslash( $_GET['sub'] ) ) : 'list';
     // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
-    // Construct URLs for top submenu links using add_query_arg()
+    // Construct URLs for top submenu links using add_query_arg().
     $base_admin_url = admin_url( 'admin.php' );
     $all_users_url  = add_query_arg( array( 'page' => 'school_management_system', 'tab' => 'users', 'sub' => 'list' ), $base_admin_url );
     $add_user_url   = add_query_arg( array( 'page' => 'school_management_system', 'tab' => 'users', 'sub' => 'add' ), $base_admin_url );
@@ -63,7 +66,7 @@ function educore_users_tab() {
 
         $target_user = get_userdata( $del_user_id );
 
-        // Prevent non-administrators from deleting administrator accounts
+        // Prevent non-administrators from deleting administrator accounts.
         if ( $target_user && in_array( 'administrator', (array) $target_user->roles, true ) && ! current_user_can( 'manage_options' ) ) {
             wp_die( esc_html__( 'Security check failed. You cannot delete an administrator account.', 'ifsedu-school-management' ) );
         }

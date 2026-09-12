@@ -6,13 +6,16 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Immediate access layer lockdown
+    exit; // Immediate access layer lockdown.
 }
 
 // --------------------------------------------------------------------------
 // 0. AJAX HANDLERS FOR DYNAMIC SELECTORS
 // --------------------------------------------------------------------------
 add_action( 'wp_ajax_ifs_educore_get_sections_by_class_admit', 'ifs_educore_get_sections_by_class_admit_handler' );
+/**
+ * AJAX Handler: Get sections by class for admit card generator.
+ */
 function ifs_educore_get_sections_by_class_admit_handler() {
     check_ajax_referer( 'ifs_educore_admit_nonce', 'security' );
 
@@ -41,6 +44,9 @@ function ifs_educore_get_sections_by_class_admit_handler() {
 }
 
 add_action( 'wp_ajax_ifs_educore_get_students_by_class_admit', 'ifs_educore_get_students_by_class_admit_handler' );
+/**
+ * AJAX Handler: Get students by class and section for admit card generator.
+ */
 function ifs_educore_get_students_by_class_admit_handler() {
     check_ajax_referer( 'ifs_educore_admit_nonce', 'security' );
 
@@ -82,6 +88,9 @@ function ifs_educore_get_students_by_class_admit_handler() {
 // --------------------------------------------------------------------------
 // 1. MAIN ADMIT CARD COMPILER VIEW
 // --------------------------------------------------------------------------
+/**
+ * Render Academic Admit Card Compiler View
+ */
 function educore_student_admit_card_view() {
     if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'You do not have sufficient administrative permissions to access this page.', 'ifsedu-school-management' ) );
@@ -93,7 +102,7 @@ function educore_student_admit_card_view() {
     $table_exams      = $wpdb->prefix . 'sms_exams';
     $table_attendance = $wpdb->prefix . 'sms_attendance';
 
-    // Fetch Exams & Unique Classes (Ordered by sort_order)
+    // Fetch Exams & Unique Classes (Ordered by sort_order).
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
     $exams = $wpdb->get_results( "SELECT id, exam_name, start_date, end_date, att_start_date, att_end_date FROM `{$table_exams}` ORDER BY id DESC" );
     
@@ -116,7 +125,7 @@ function educore_student_admit_card_view() {
         }
     }
 
-    // Capture Filter Requests
+    // Capture Filter Requests.
     // phpcs:disable WordPress.Security.NonceVerification.Recommended
     $selected_exam_id = isset( $_GET['exam_id'] ) ? absint( $_GET['exam_id'] ) : 0;
     $selected_class   = isset( $_GET['class_name'] ) ? sanitize_text_field( wp_unslash( $_GET['class_name'] ) ) : '';
@@ -125,7 +134,7 @@ function educore_student_admit_card_view() {
     $exam_year        = isset( $_GET['exam_year'] ) ? sanitize_text_field( wp_unslash( $_GET['exam_year'] ) ) : current_time( 'Y' );
     // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
-    // Pre-populate sections & students if class filter is present
+    // Pre-populate sections & students if class filter is present.
     $available_sections = array();
     $available_students = array();
     if ( ! empty( $selected_class ) ) {
@@ -156,13 +165,13 @@ function educore_student_admit_card_view() {
         // phpcs:enable
     }
 
-    $students   = array();
-    $exam_title = '';
+    $students       = array();
+    $exam_title     = '';
     $exam_att_start = '';
     $exam_att_end   = '';
 
-    // Resolve Exam Details & Attendance Calculation Range
-    if ( $selected_exam_id > 0 ) {
+    // Resolve Exam Details & Attendance Calculation Range.
+    if ( 0 < $selected_exam_id ) {
         // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $exam_row = $wpdb->get_row(
             $wpdb->prepare(
@@ -182,14 +191,14 @@ function educore_student_admit_card_view() {
     // Calculate Working Days & Attendance Ratio
     // --------------------------------------------------------------------------
     $cal_year_num = intval( substr( $exam_att_start, 0, 4 ) );
-    if ( $cal_year_num < 2000 ) {
+    if ( 2000 > $cal_year_num ) {
         $cal_year_num = intval( $exam_year );
     }
 
-    $saved_off_days_map = get_option( 'educore_academic_off_dates_' . $cal_year_num, array() );
+    $saved_off_days_map   = get_option( 'educore_academic_off_dates_' . $cal_year_num, array() );
     $attendance_threshold = absint( get_option( 'educore_attendance_threshold', 75 ) );
 
-    // Count Net Working Days in the Range
+    // Count Net Working Days in the Range.
     $total_working_days = 0;
     if ( ! empty( $exam_att_start ) && ! empty( $exam_att_end ) ) {
         $curr_ts = strtotime( $exam_att_start );
@@ -203,17 +212,17 @@ function educore_student_admit_card_view() {
             $curr_ts = strtotime( '+1 day', $curr_ts );
         }
     }
-    if ( $total_working_days <= 0 ) {
-        $total_working_days = 1; // Prevent division by zero
+    if ( 0 >= $total_working_days ) {
+        $total_working_days = 1; // Prevent division by zero.
     }
 
-    // Target fields for admit cards
-    $target_fields = "id, student_id, full_name, class_name, section_name, roll_no, photo_url, guardian_phone, father_phone, student_phone";
+    // Target fields for admit cards.
+    $target_fields = 'id, student_id, full_name, class_name, section_name, roll_no, photo_url, guardian_phone, father_phone, student_phone';
 
-    // Fetch Target Students Dataset
+    // Fetch Target Students Dataset.
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-    if ( ! empty( $selected_class ) && $selected_exam_id > 0 ) {
-        if ( ! empty( $selected_section ) && $selected_student > 0 ) {
+    if ( ! empty( $selected_class ) && 0 < $selected_exam_id ) {
+        if ( ! empty( $selected_section ) && 0 < $selected_student ) {
             $students = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT {$target_fields} FROM `{$table_students}` WHERE status = 'Active' AND class_name = %s AND section_name = %s AND id = %d ORDER BY CAST(roll_no AS UNSIGNED) ASC, roll_no ASC",
@@ -230,7 +239,7 @@ function educore_student_admit_card_view() {
                     $selected_section
                 )
             );
-        } elseif ( $selected_student > 0 ) {
+        } elseif ( 0 < $selected_student ) {
             $students = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT {$target_fields} FROM `{$table_students}` WHERE status = 'Active' AND class_name = %s AND id = %d ORDER BY CAST(roll_no AS UNSIGNED) ASC, roll_no ASC",
@@ -249,7 +258,7 @@ function educore_student_admit_card_view() {
     }
     // phpcs:enable
 
-    // Pull Dynamic Attendance Counts for selected students within the range
+    // Pull Dynamic Attendance Counts for selected students within the range.
     $attendance_present_counts = array();
     if ( ! empty( $students ) && ! empty( $exam_att_start ) && ! empty( $exam_att_end ) ) {
         $student_ids_list = array_map( 'absint', wp_list_pluck( $students, 'id' ) );
@@ -276,7 +285,7 @@ function educore_student_admit_card_view() {
         }
     }
 
-    // Pull Dynamic Institutional Settings
+    // Pull Dynamic Institutional Settings.
     $school_name    = get_option( 'educore_school_name', get_bloginfo( 'name' ) );
     $school_tagline = get_option( 'educore_school_tagline', '' );
     $school_logo    = get_option( 'educore_school_logo', '' );
@@ -712,14 +721,14 @@ function educore_student_admit_card_view() {
         </div>
 
         <!-- Compiled Grid Output Area -->
-        <?php if ( ! empty( $selected_class ) && $selected_exam_id > 0 ) : ?>
+        <?php if ( ! empty( $selected_class ) && 0 < $selected_exam_id ) : ?>
             <div id="ifs-educore-printable-admit-area">
                 <?php if ( ! empty( $students ) ) : ?>
                     <div class="ifs-educore-admit-cards-container">
                         <?php foreach ( $students as $student ) : 
                             $card_id = 'admit_card_' . $student->id;
 
-                            // Calculate Student Attendance Percentage for this Exam Range
+                            // Calculate Student Attendance Percentage for this Exam Range.
                             $student_present_days = isset( $attendance_present_counts[ $student->id ] ) ? $attendance_present_counts[ $student->id ] : 0;
                             $att_percentage       = round( ( $student_present_days / $total_working_days ) * 100, 1 );
                             $is_eligible          = $att_percentage >= $attendance_threshold;
@@ -928,7 +937,7 @@ function educore_student_admit_card_view() {
 
                     if (response.success && response.data.length > 0) {
                         $.each(response.data, function(i, st) {
-                            var uid = (st.student_id || '').tocapitalize();
+                            var uid = (st.student_id || '').toUpperCase();
                             var labelText = '[Roll ' + st.roll_no + '] ' + st.full_name + ' (' + uid + ')';
                             $studentSelect.append($('<option>', {
                                 value: st.id,
@@ -941,7 +950,7 @@ function educore_student_admit_card_view() {
         }
     });
 
-    // Individual Single Card Print Isolation Trigger
+    // Individual Single Card Print Isolation Trigger.
     function educorePrintSingleCard(cardId) {
         var targetCard = document.getElementById(cardId);
         if (!targetCard) return;

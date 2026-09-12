@@ -6,7 +6,7 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Direct access safety buffer
+    exit; // Direct access safety buffer.
 }
 
 $educore_accounting_dir = plugin_dir_path( __FILE__ ) . 'accounting/';

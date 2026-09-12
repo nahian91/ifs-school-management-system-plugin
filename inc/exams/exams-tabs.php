@@ -7,9 +7,12 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Immediate access layer lockdown
+    exit; // Immediate access layer lockdown.
 }
 
+/**
+ * Render Examinations Sub-Navigation and Route Viewports
+ */
 function educore_exams_tab() {
     if ( ! current_user_can( 'manage_options' ) && ! current_user_can( 'edit_posts' ) ) {
         wp_die( esc_html__( 'You do not have sufficient permissions to access the examinations module.', 'ifsedu-school-management' ) );
@@ -23,7 +26,7 @@ function educore_exams_tab() {
 
     $sub_tab = in_array( $raw_sub_tab, $allowed_sub_tabs, true ) ? $raw_sub_tab : 'list';
 
-    // Construct URLs for top submenu links using add_query_arg()
+    // Construct URLs for top submenu links using add_query_arg().
     $base_admin_url     = admin_url( 'admin.php' );
     $all_exams_url      = add_query_arg( array( 'page' => 'school_management_system', 'tab' => 'exams', 'sub' => 'list' ), $base_admin_url );
     $add_exam_url       = add_query_arg( array( 'page' => 'school_management_system', 'tab' => 'exams', 'sub' => 'add' ), $base_admin_url );

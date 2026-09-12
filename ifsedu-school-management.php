@@ -2,20 +2,20 @@
 /**
  * Plugin Name: IFSEdu - School Management System
  * Description: Standalone, high-performance management system for Schools featuring student admissions, attendance, fees, exams, results, and HR.
- * Version:     1.2.2
+ * Version:     1.0
  * Author:      DevNahian
  * License:     GPL-2.0-or-later
  * Text Domain: ifsedu-school-management
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Exit if accessed directly
+    exit; // Exit if accessed directly.
 }
 
 /**
  * 1. Constants & Path Definitions
  */
-define( 'EDUCORE_VERSION', '1.2.2' );
+define( 'EDUCORE_VERSION', '1.0' );
 define( 'EDUCORE_PATH', plugin_dir_path( __FILE__ ) );
 define( 'EDUCORE_URL', plugin_dir_url( __FILE__ ) );
 
@@ -40,7 +40,6 @@ educore_load_modular_dependencies();
 
 /**
  * Helper: Check if current user is authorized to manage settings
- * Fixed: Removed hardcoded email vulnerability; purely capability-driven.
  */
 function educore_is_settings_manager() {
     $current_user = wp_get_current_user();
@@ -240,7 +239,7 @@ function educore_execute_database_migration() {
     dbDelta( $sql_staff );
 
     $table_staff_att = $wpdb->prefix . 'sms_staff_attendance';
-    $sql = "CREATE TABLE IF NOT EXISTS `$table_staff_att` (
+    $sql_staff_att = "CREATE TABLE IF NOT EXISTS `$table_staff_att` (
         id bigint(20) NOT NULL AUTO_INCREMENT,
         staff_id bigint(20) NOT NULL,
         attendance_date date NOT NULL,
@@ -252,7 +251,7 @@ function educore_execute_database_migration() {
         KEY staff_id (staff_id),
         KEY attendance_date (attendance_date)
     ) $charset_collate;";
-    dbDelta( $sql );
+    dbDelta( $sql_staff_att );
 
     // 3. Attendance Table
     $table_attendance = $wpdb->prefix . 'sms_attendance';
@@ -268,6 +267,22 @@ function educore_execute_database_migration() {
         KEY date_status_idx (attendance_date, status)
     ) {$charset_collate};";
     dbDelta( $sql_attendance );
+
+    // Staff Duty Proxies Table
+    $table_staff_proxies = $wpdb->prefix . 'sms_staff_proxies';
+    $sql_proxies = "CREATE TABLE {$table_staff_proxies} (
+        id bigint(20) NOT NULL AUTO_INCREMENT,
+        staff_id bigint(20) NOT NULL,
+        proxy_date date NOT NULL,
+        period_slot varchar(100) NOT NULL,
+        original_teacher varchar(255) NOT NULL,
+        class_section varchar(100) NOT NULL,
+        status varchar(30) DEFAULT 'Pending' NOT NULL,
+        PRIMARY KEY  (id),
+        KEY staff_proxy_idx (staff_id),
+        KEY proxy_date_idx (proxy_date)
+    ) {$charset_collate};";
+    dbDelta( $sql_proxies );
 
     // 4. Fees Table
     $table_fees = $wpdb->prefix . 'sms_fees';
@@ -298,7 +313,7 @@ function educore_execute_database_migration() {
     ) {$charset_collate};";
     dbDelta( $sql_fees );
 
-    // 5. Exams Table (Updated with Attendance Calculation Range)
+    // 5. Exams Table
     $table_exams = $wpdb->prefix . 'sms_exams';
     $sql_exams = "CREATE TABLE {$table_exams} (
         id bigint(20) NOT NULL AUTO_INCREMENT,
@@ -365,7 +380,7 @@ function educore_execute_database_migration() {
     ) {$charset_collate};";
     dbDelta( $sql_academic_units );
 
-   // 9. Subjects Table (Enhanced with Dynamic Breakdown Data)
+    // 9. Subjects Table
     $table_subjects = $wpdb->prefix . 'sms_subjects';
     $sql_subjects = "CREATE TABLE {$table_subjects} (
         id bigint(20) NOT NULL AUTO_INCREMENT,
@@ -548,7 +563,7 @@ function educore_execute_database_migration() {
     ) {$charset_collate};";
     dbDelta( $sql_late_cfg );
 
-    // 19. Exam Routine Table (Fixes missing table error)
+    // 19. Exam Routine Table
     $table_exam_routine = $wpdb->prefix . 'sms_exam_routine';
     $sql_exam_routine = "CREATE TABLE {$table_exam_routine} (
         id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -569,14 +584,14 @@ function educore_execute_database_migration() {
     dbDelta( $sql_exam_routine );
 
     // Update DB Version
-    $db_version = defined( 'EDUCORE_VERSION' ) ? EDUCORE_VERSION : '1.2.3';
+    $db_version = defined( 'EDUCORE_VERSION' ) ? EDUCORE_VERSION : '1.0';
     update_option( 'educore_db_version', $db_version );
 }
 register_activation_hook( __FILE__, 'educore_execute_database_migration' );
 
 add_action( 'plugins_loaded', function() {
     $current_ver = get_option( 'educore_db_version', '0' );
-    $target_ver  = defined( 'EDUCORE_VERSION' ) ? EDUCORE_VERSION : '1.2.2';
+    $target_ver  = defined( 'EDUCORE_VERSION' ) ? EDUCORE_VERSION : '1.0';
     if ( version_compare( (string) $current_ver, (string) $target_ver, '<' ) ) {
         educore_execute_database_migration();
     }
@@ -588,8 +603,8 @@ add_action( 'plugins_loaded', function() {
 function educore_log_activity( $action_description ) {
     global $wpdb;
     $current_user = wp_get_current_user();
-    $user_id   = ( $current_user && $current_user->exists() ) ? $current_user->ID : 0;
-    $user_role = ( $current_user && $current_user->exists() ) ? implode( ', ', (array) $current_user->roles ) : 'guest';
+    $user_id      = ( $current_user && $current_user->exists() ) ? $current_user->ID : 0;
+    $user_role    = ( $current_user && $current_user->exists() ) ? implode( ', ', (array) $current_user->roles ) : 'guest';
     
     $ip_address = '0.0.0.0';
     if ( ! empty( $_SERVER['REMOTE_ADDR'] ) ) {
@@ -603,8 +618,8 @@ function educore_log_activity( $action_description ) {
     $wpdb->insert(
         $wpdb->prefix . 'sms_audit_logs',
         array(
-            'user_id'            => $user_id,
-            'user_role'          => $user_role,
+            'user_id'          => $user_id,
+            'user_role'        => $user_role,
             'action_performed' => sanitize_text_field( $action_description ),
             'ip_address'       => $ip_address,
             'timestamp'        => current_time( 'mysql' ),
@@ -790,9 +805,7 @@ function educore_render_dynamic_router_interface() {
         $custom_avatar = $staff_row->profile_image;
     }
 
-    // Fallback to institutional setting logo if staff profile image is not explicitly set
     if ( empty( $custom_avatar ) ) {
-        // Replace 'educore_school_logo' with your settings option key if it differs
         $settings_logo = get_option( 'educore_school_logo', '' );
         if ( ! empty( $settings_logo ) ) {
             $custom_avatar = $settings_logo;
@@ -1275,7 +1288,6 @@ add_filter( 'login_headertext', 'educore_get_login_logo_title' );
 
 /**
  * 13. Captcha Validation Engine (Stateless HMAC-Signed Verification)
- * Fixed: Avoids transient race conditions and object-cache dependency on failed logins.
  */
 function educore_display_mathematical_captcha() {
     $num1 = wp_rand( 1, 9 );
@@ -1283,7 +1295,6 @@ function educore_display_mathematical_captcha() {
     $sum  = $num1 + $num2;
     $time = time();
 
-    // Generate tamper-proof signature with expiration window
     $payload = $sum . '|' . $time;
     $token   = hash_hmac( 'sha256', $payload, wp_salt( 'nonce' ) ) . ':' . $payload;
     ?>
@@ -1311,10 +1322,10 @@ add_action( 'login_form', 'educore_display_mathematical_captcha' );
 function educore_validate_mathematical_captcha( $user, $username, $password ) {
     $req_method = isset( $_SERVER['REQUEST_METHOD'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : '';
 
-// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Native WP login form does not include a nonce.
-if ( is_wp_error( $user ) || 'POST' !== $req_method || empty( $_POST['log'] ) ) { 
-    return $user; 
-}
+    // phpcs:ignore WordPress.Security.NonceVerification.Missing
+    if ( is_wp_error( $user ) || 'POST' !== $req_method || empty( $_POST['log'] ) ) { 
+        return $user; 
+    }
 
     // phpcs:disable WordPress.Security.NonceVerification.Missing
     $user_answer = isset( $_POST['educore_captcha_answer'] ) ? sanitize_text_field( wp_unslash( $_POST['educore_captcha_answer'] ) ) : '';
@@ -1328,14 +1339,12 @@ if ( is_wp_error( $user ) || 'POST' !== $req_method || empty( $_POST['log'] ) ) 
     list( $hash, $payload ) = explode( ':', $token, 2 );
     $expected_hash = hash_hmac( 'sha256', $payload, wp_salt( 'nonce' ) );
 
-    // Timing-attack safe hash comparison
     if ( ! hash_equals( $expected_hash, $hash ) ) {
         return new WP_Error( 'authentication_failed', __( '<strong>ERROR</strong>: Security verification failed. Please try again.', 'ifsedu-school-management' ) );
     }
 
     list( $correct_answer, $timestamp ) = explode( '|', $payload );
 
-    // 10-minute token lifespan check
     if ( ( time() - intval( $timestamp ) ) > 600 ) {
         return new WP_Error( 'authentication_failed', __( '<strong>ERROR</strong>: Security question expired. Please refresh and try again.', 'ifsedu-school-management' ) );
     }
@@ -1367,7 +1376,6 @@ function educore_restrict_backend_access() {
         return;
     }
 
-    // Allow full access to true administrators
     if ( current_user_can( 'manage_options' ) ) {
         return;
     }
@@ -1380,7 +1388,6 @@ function educore_restrict_backend_access() {
 
     $is_allowed_script = in_array( $pagenow, array( 'admin-ajax.php', 'admin-post.php', 'async-upload.php' ), true );
 
-    // If accessing standard WordPress admin screens, redirect directly to ERP Dashboard
     if ( ! $is_erp_page && ! $is_allowed_script ) {
         wp_safe_redirect( admin_url( 'admin.php?page=school_management_system&tab=dashboard' ) );
         exit;
@@ -1402,7 +1409,7 @@ function educore_hide_default_wp_admin_menus() {
         remove_menu_page( 'plugins.php' );                  // Plugins
         remove_menu_page( 'users.php' );                    // Users
         remove_menu_page( 'tools.php' );                    // Tools
-        remove_menu_page( 'options-general.php' );        // Settings
+        remove_menu_page( 'options-general.php' );          // Settings
     }
 }
 add_action( 'admin_menu', 'educore_hide_default_wp_admin_menus', 999 );

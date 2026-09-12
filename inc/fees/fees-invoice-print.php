@@ -6,16 +6,22 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Exit if accessed directly
+    exit; // Exit if accessed directly.
 }
 
 /**
  * Helper: Convert Numeric Amount into Words
  */
 if ( ! function_exists( 'educore_number_to_words' ) ) {
+    /**
+     * Convert numeric amount into words representation.
+     *
+     * @param float $amount Numeric amount.
+     * @return string Amount in words.
+     */
     function educore_number_to_words( $amount ) {
         $amount = floatval( $amount );
-        if ( $amount <= 0 ) {
+        if ( 0 >= $amount ) {
             return esc_html__( 'Zero Only', 'ifsedu-school-management' );
         }
 
@@ -54,28 +60,28 @@ if ( ! function_exists( 'educore_number_to_words' ) ) {
         $paisa  = round( ( $amount - $number ) * 100 );
         $str    = array();
 
-        if ( $number >= 10000000 ) { // Crore
+        if ( 10000000 <= $number ) { // Crore.
             $crore   = floor( $number / 10000000 );
             $number %= 10000000;
             $str[]   = educore_number_to_words( $crore ) . ' Crore';
         }
-        if ( $number >= 100000 ) { // Lakh
+        if ( 100000 <= $number ) { // Lakh.
             $lakh    = floor( $number / 100000 );
             $number %= 100000;
             $str[]   = educore_number_to_words( $lakh ) . ' Lakh';
         }
-        if ( $number >= 1000 ) { // Thousand
+        if ( 1000 <= $number ) { // Thousand.
             $thousand = floor( $number / 1000 );
             $number  %= 1000;
             $str[]    = educore_number_to_words( $thousand ) . ' Thousand';
         }
-        if ( $number >= 100 ) { // Hundred
+        if ( 100 <= $number ) { // Hundred.
             $hundred  = floor( $number / 100 );
             $number  %= 100;
             $str[]    = $words[ $hundred ] . ' Hundred';
         }
-        if ( $number > 0 ) {
-            if ( $number < 20 ) {
+        if ( 0 < $number ) {
+            if ( 20 > $number ) {
                 $str[] = $words[ $number ];
             } else {
                 $ten   = floor( $number / 10 ) * 10;
@@ -85,13 +91,16 @@ if ( ! function_exists( 'educore_number_to_words' ) ) {
         }
 
         $result = implode( ' ', array_filter( $str ) );
-        if ( $paisa > 0 ) {
+        if ( 0 < $paisa ) {
             $result .= ' and ' . $paisa . ' Cents/Paisa';
         }
         return $result . ' Only';
     }
 }
 
+/**
+ * Render Triplicate Fee Invoice Print View
+ */
 function educore_fees_invoice_print_view() {
     global $wpdb;
 
@@ -103,7 +112,7 @@ function educore_fees_invoice_print_view() {
     $invoice_id = isset( $_GET['invoice'] ) ? sanitize_text_field( wp_unslash( $_GET['invoice'] ) ) : '';
     // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
-    if ( empty( $invoice_id ) ) {
+    if ( '' === $invoice_id ) {
         echo '<div class="ifs-educore-alert-danger">' . esc_html__( 'No invoice identifier specified.', 'ifsedu-school-management' ) . '</div>';
         return;
     }
@@ -146,7 +155,7 @@ function educore_fees_invoice_print_view() {
         __( 'Accounts / Bank Copy', 'ifsedu-school-management' ),
     );
 
-    $pay_timestamp = ! empty( $receipt->payment_date ) ? strtotime( $receipt->payment_date ) : false;
+    $pay_timestamp      = ! empty( $receipt->payment_date ) ? strtotime( $receipt->payment_date ) : false;
     $pay_date_formatted = $pay_timestamp ? date_i18n( 'd-M-Y', $pay_timestamp ) : '—';
     ?>
 
@@ -226,17 +235,17 @@ function educore_fees_invoice_print_view() {
                                     </td>
                                     <td style="text-align: right; font-weight: 600;"><?php echo esc_html( number_format( (float) $receipt->amount, 2 ) ); ?></td>
                                 </tr>
-                                <?php if ( floatval( $receipt->late_fine ) > 0 ) : ?>
+                                <?php if ( 0 < floatval( $receipt->late_fine ) ) : ?>
                                 <tr>
                                     <td style="color: #dc2626;"><?php esc_html_e( 'Late Fine (+)', 'ifsedu-school-management' ); ?></td>
                                     <td style="text-align: right; color: #dc2626; font-weight: 600;"><?php echo esc_html( number_format( (float) $receipt->late_fine, 2 ) ); ?></td>
                                 </tr>
                                 <?php endif; ?>
-                                <?php if ( floatval( $receipt->discount ) > 0 ) : ?>
+                                <?php if ( 0 < floatval( $receipt->discount ) ) : ?>
                                 <tr>
                                     <td style="color: #2563eb;">
                                         <?php esc_html_e( 'Waiver / Discount (-)', 'ifsedu-school-management' ); ?>
-                                        <?php if ( ! empty( $receipt->waiver_percentage ) && floatval( $receipt->waiver_percentage ) > 0 ) : ?>
+                                        <?php if ( ! empty( $receipt->waiver_percentage ) && 0 < floatval( $receipt->waiver_percentage ) ) : ?>
                                             <span style="font-size:8.5px; color:#15803d; display:block;">
                                                 [<?php echo esc_html( floatval( $receipt->waiver_percentage ) ); ?>% <?php esc_html_e( 'Waiver', 'ifsedu-school-management' ); ?><?php echo ! empty( $receipt->ref_staff_name ) ? ' - ' . esc_html( $receipt->ref_staff_name ) : ''; ?>]
                                             </span>
@@ -253,7 +262,7 @@ function educore_fees_invoice_print_view() {
                                     <td style="font-weight: 800; color: #00523c;"><?php esc_html_e( 'Paid Amount', 'ifsedu-school-management' ); ?></td>
                                     <td style="text-align: right; font-weight: 800; color: #00523c;"><?php echo esc_html( number_format( (float) $receipt->paid_amount, 2 ) ); ?></td>
                                 </tr>
-                                <?php if ( floatval( $receipt->due_amount ) > 0 ) : ?>
+                                <?php if ( 0 < floatval( $receipt->due_amount ) ) : ?>
                                 <tr>
                                     <td style="font-weight: 700; color: #dc2626;"><?php esc_html_e( 'Due Balance', 'ifsedu-school-management' ); ?></td>
                                     <td style="text-align: right; font-weight: 800; color: #dc2626;"><?php echo esc_html( number_format( (float) $receipt->due_amount, 2 ) ); ?></td>

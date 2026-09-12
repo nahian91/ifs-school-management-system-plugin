@@ -6,9 +6,12 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Immediate access layer lockdown
+    exit; // Immediate access layer lockdown.
 }
 
+/**
+ * Render Enterprise Academic Certificate, Testimonial & TC Compiler Engine View
+ */
 function educore_student_certificate_view() {
     if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'You do not have sufficient administrative permissions to access this page.', 'ifsedu-school-management' ) );
@@ -18,14 +21,14 @@ function educore_student_certificate_view() {
     $table_students = $wpdb->prefix . 'sms_students';
     $table_units    = $wpdb->prefix . 'sms_academic_units';
     
-    // Request routing
+    // Request routing.
     // phpcs:disable WordPress.Security.NonceVerification.Recommended
     $action     = isset( $_GET['cert_action'] ) ? sanitize_key( wp_unslash( $_GET['cert_action'] ) ) : '';
     $student_id = isset( $_GET['student_id'] ) ? absint( wp_unslash( $_GET['student_id'] ) ) : 0;
     $doc_type   = isset( $_GET['doc_type'] ) ? sanitize_key( wp_unslash( $_GET['doc_type'] ) ) : 'certificate';
     // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
-    // Pull Dynamic Institutional Settings
+    // Pull Dynamic Institutional Settings.
     $school_name    = get_option( 'educore_school_name', get_bloginfo( 'name' ) );
     $school_tagline = get_option( 'educore_school_tagline', '' );
     $school_logo    = get_option( 'educore_school_logo', '' );
@@ -38,7 +41,7 @@ function educore_student_certificate_view() {
     // =========================================================================
     // 1. PRINT & PREVIEW VIEW
     // =========================================================================
-    if ( 'print' === $action && $student_id > 0 ) {
+    if ( 'print' === $action && 0 < $student_id ) {
         // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $student = $wpdb->get_row(
             $wpdb->prepare(
@@ -64,7 +67,7 @@ function educore_student_certificate_view() {
             admin_url( 'admin.php' )
         );
         
-        // Define Document Titles
+        // Define Document Titles.
         $doc_title = __( 'CERTIFICATE OF ACHIEVEMENT', 'ifsedu-school-management' );
         if ( 'testimonial' === $doc_type ) {
             $doc_title = __( 'ACADEMIC TESTIMONIAL', 'ifsedu-school-management' );
@@ -383,7 +386,7 @@ function educore_student_certificate_view() {
         </div>
 
         <?php
-        return; // End print view
+        return; // End print view.
     }
 
     // =========================================================================

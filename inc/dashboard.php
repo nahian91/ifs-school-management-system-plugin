@@ -6,7 +6,7 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Direct access safety
+    exit; // Direct access safety.
 }
 
 /**
@@ -659,13 +659,13 @@ function educore_dashboard_view() {
 
     $roles = (array) $current_user->roles;
 
-    // 1. Administrators and Super Admins always have full access
+    // 1. Administrators and Super Admins always have full access.
     if ( in_array( 'administrator', $roles, true ) || current_user_can( 'manage_options' ) ) {
         educore_admin_dashboard_view( $current_user );
         return;
     }
 
-    // Determine current user's primary permission key based on WordPress capabilities/roles
+    // Determine current user's primary permission key based on WordPress capabilities/roles.
     $user_role_key = 'student';
     if ( in_array( 'teacher', $roles, true ) || in_array( 'instructor', $roles, true ) || current_user_can( 'edit_posts' ) ) {
         $user_role_key = 'teacher';
@@ -675,7 +675,7 @@ function educore_dashboard_view() {
         $user_role_key = 'staff';
     }
 
-    // Route based on role
+    // Route based on role.
     if ( 'teacher' === $user_role_key ) {
         educore_teacher_dashboard_view( $current_user );
     } elseif ( 'accountant' === $user_role_key ) {
@@ -700,7 +700,7 @@ function educore_dashboard_render_hero_profile( $user, $role_title, $extra_meta 
     $designation   = '';
     $display_name  = $user->display_name;
 
-    // 1. Resolve Profile Details from Staff Table
+    // 1. Resolve Profile Details from Staff Table.
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
     $staff_row = $wpdb->get_row(
         $wpdb->prepare(
@@ -715,7 +715,7 @@ function educore_dashboard_render_hero_profile( $user, $role_title, $extra_meta 
         $designation   = $staff_row->designation;
         $custom_avatar = $staff_row->profile_image;
     } else {
-        // 2. Resolve Profile Details from Student Table
+        // 2. Resolve Profile Details from Student Table.
         $student_row = $wpdb->get_row(
             $wpdb->prepare(
                 "SELECT full_name, photo_url, class_name, section_name, roll_no FROM `{$table_students}` WHERE student_email = %s LIMIT 1",
@@ -814,7 +814,7 @@ function educore_admin_dashboard_view( $user ) {
     $table_notices    = $wpdb->prefix . 'sms_notices';
 
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-    $total_students = (int) $wpdb->get_var( "SELECT COUNT(id) FROM `{$table_students}` WHERE status = 'Active'" );
+    $total_students  = (int) $wpdb->get_var( "SELECT COUNT(id) FROM `{$table_students}` WHERE status = 'Active'" );
     $male_students   = (int) $wpdb->get_var( "SELECT COUNT(id) FROM `{$table_students}` WHERE status = 'Active' AND (gender = 'Male' OR gender = 'M')" );
     $female_students = max( 0, $total_students - $male_students );
 
@@ -832,8 +832,8 @@ function educore_admin_dashboard_view( $user ) {
     $month_start = current_time( 'Y-m-01' );
     $month_end   = current_time( 'Y-m-t' );
 
-    $month_collections = (float) $wpdb->get_var( $wpdb->prepare( "SELECT SUM(paid_amount) FROM `{$table_fees}` WHERE payment_date BETWEEN %s AND %s", $month_start, $month_end ) );
-    $month_expenses    = (float) $wpdb->get_var( $wpdb->prepare( "SELECT SUM(amount) FROM `{$table_accounting}` WHERE entry_type = 'Expense' AND entry_date BETWEEN %s AND %s", $month_start, $month_end ) );
+    $month_collections  = (float) $wpdb->get_var( $wpdb->prepare( "SELECT SUM(paid_amount) FROM `{$table_fees}` WHERE payment_date BETWEEN %s AND %s", $month_start, $month_end ) );
+    $month_expenses     = (float) $wpdb->get_var( $wpdb->prepare( "SELECT SUM(amount) FROM `{$table_accounting}` WHERE entry_type = 'Expense' AND entry_date BETWEEN %s AND %s", $month_start, $month_end ) );
     $net_operating_cash = $month_collections - $month_expenses;
 
     $exams_count = (int) $wpdb->get_var( "SELECT COUNT(id) FROM `{$table_exams}`" );
@@ -857,7 +857,7 @@ function educore_admin_dashboard_view( $user ) {
         )
     );
 
-    $upcoming_exams = $wpdb->get_results( "SELECT id, exam_name, class_name, start_date FROM `{$table_exams}` ORDER BY id DESC LIMIT 4" );
+    $upcoming_exams       = $wpdb->get_results( "SELECT id, exam_name, class_name, start_date FROM `{$table_exams}` ORDER BY id DESC LIMIT 4" );
     $recent_admin_notices = $wpdb->get_results( "SELECT id, title, target_audience, event_date, publish_date, created_at FROM `{$table_notices}` ORDER BY id DESC LIMIT 4" );
     // phpcs:enable
 
@@ -1233,11 +1233,11 @@ function educore_admin_dashboard_view( $user ) {
 // ==============================================================================
 function educore_teacher_dashboard_view( $user ) {
     global $wpdb;
-    $table_staff            = $wpdb->prefix . 'sms_staff';
-    $table_teacher_subjects = $wpdb->prefix . 'sms_teacher_subjects';
-    $table_units            = $wpdb->prefix . 'sms_academic_units';
-    $table_subjects         = $wpdb->prefix . 'sms_subjects';
-    $table_notices          = $wpdb->prefix . 'sms_notices';
+    $table_staff             = $wpdb->prefix . 'sms_staff';
+    $table_teacher_subjects  = $wpdb->prefix . 'sms_teacher_subjects';
+    $table_units             = $wpdb->prefix . 'sms_academic_units';
+    $table_subjects          = $wpdb->prefix . 'sms_subjects';
+    $table_notices           = $wpdb->prefix . 'sms_notices';
 
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
     $teacher_profile = $wpdb->get_row(

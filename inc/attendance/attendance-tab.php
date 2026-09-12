@@ -6,9 +6,12 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Direct access safety buffer
+    exit; // Direct access safety buffer.
 }
 
+/**
+ * Render Attendance Sub-Navigation & Router Controller
+ */
 function educore_attendance_tab() {
     global $wpdb;
 
@@ -17,7 +20,7 @@ function educore_attendance_tab() {
     $table_staff  = $wpdb->prefix . 'sms_staff';
     $table_assign = $wpdb->prefix . 'sms_teacher_subjects';
 
-    // 1. Role & Capability Checks
+    // 1. Role & Capability Checks.
     $is_admin = current_user_can( 'manage_options' ) || in_array( 'administrator', (array) $current_user->roles, true );
     
     $is_staff = false;
@@ -52,7 +55,7 @@ function educore_attendance_tab() {
 
     $sub_tab = in_array( $raw_sub_tab, $allowed_sub_tabs, true ) ? $raw_sub_tab : 'daily';
 
-    // Restrict staff from accessing admin-only tabs
+    // Restrict staff from accessing admin-only tabs.
     $admin_only_tabs = array( 'staff', 'reports' );
     if ( ! $is_admin && in_array( $sub_tab, $admin_only_tabs, true ) ) {
         $sub_tab = 'daily';
@@ -64,7 +67,7 @@ function educore_attendance_tab() {
     $filter_date    = isset( $_REQUEST['attendance_date'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['attendance_date'] ) ) : current_time( 'Y-m-d' );
     // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
-    // 2. Fetch Assigned Classes & Sections
+    // 2. Fetch Assigned Classes & Sections.
     $classes  = array();
     $sections = array();
 
@@ -104,7 +107,7 @@ function educore_attendance_tab() {
             }
         }
 
-        // Fallback: If no specific units assigned, allow all active classes
+        // Fallback: If no specific units assigned, allow all active classes.
         if ( empty( $classes ) ) {
             $raw_classes = $wpdb->get_results( "SELECT DISTINCT class_name FROM `{$table_units}` WHERE class_name != '' ORDER BY CAST(class_name AS UNSIGNED) ASC, class_name ASC" );
             if ( ! empty( $raw_classes ) ) {
@@ -159,7 +162,7 @@ function educore_attendance_tab() {
         }
     }
 
-    // Dynamic Navigation URLs
+    // Dynamic Navigation URLs.
     $base_admin_url = admin_url( 'admin.php' );
     $daily_url      = add_query_arg( array( 'page' => 'school_management_system', 'tab' => 'attendance', 'sub' => 'daily' ), $base_admin_url );
     $exam_url       = add_query_arg( array( 'page' => 'school_management_system', 'tab' => 'attendance', 'sub' => 'exam' ), $base_admin_url );

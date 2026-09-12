@@ -7,16 +7,25 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Direct access safety buffer
+    exit; // Direct access safety buffer.
 }
 
+/**
+ * Render Daily Student Attendance Entry Workspace & Handle Commit
+ *
+ * @param array  $classes        Available classes list.
+ * @param array  $sections       Available sections list.
+ * @param string $filter_class   Currently filtered class.
+ * @param string $filter_section Currently filtered section.
+ * @param string $filter_date    Currently filtered date.
+ */
 function educore_daily_attendance_view( $classes, $sections, $filter_class, $filter_section, $filter_date ) {
     global $wpdb;
 
     $current_user = wp_get_current_user();
     $is_admin     = current_user_can( 'manage_options' );
 
-    // 1. Resolve Exact Assigned Classes & Sections for Non-Admin Teachers
+    // 1. Resolve Exact Assigned Classes & Sections for Non-Admin Teachers.
     $teacher_assigned_classes  = array();
     $teacher_assigned_sections = array();
     $assigned_unit_ids         = array();
@@ -63,8 +72,10 @@ function educore_daily_attendance_view( $classes, $sections, $filter_class, $fil
         $classes = $teacher_assigned_classes;
     }
 
-    // Build sort_order dictionary for classes
+    // Build sort_order dictionary for classes.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
     $class_order_rows = $wpdb->get_results( "SELECT class_name, MIN(sort_order) as min_sort FROM `{$wpdb->prefix}sms_academic_units` GROUP BY class_name" );
+    // phpcs:enable
     $class_order_map  = array();
     if ( ! empty( $class_order_rows ) ) {
         foreach ( $class_order_rows as $cor ) {
@@ -72,7 +83,7 @@ function educore_daily_attendance_view( $classes, $sections, $filter_class, $fil
         }
     }
 
-    // Apply sort_order then natural numeric sorting to classes
+    // Apply sort_order then natural numeric sorting to classes.
     if ( ! empty( $classes ) ) {
         usort( $classes, function( $a, $b ) use ( $class_order_map ) {
             $order_a = isset( $class_order_map[ $a ] ) ? $class_order_map[ $a ] : 0;
@@ -84,12 +95,12 @@ function educore_daily_attendance_view( $classes, $sections, $filter_class, $fil
         } );
     }
 
-    // 2. Fetch Academic Units scoped to teacher's assignments or global (Ordered by sort_order)
+    // 2. Fetch Academic Units scoped to teacher's assignments or global (Ordered by sort_order).
     if ( ! $is_admin && ! empty( $assigned_unit_ids ) ) {
-        $assigned_unit_ids = array_map( 'absint', $assigned_unit_ids );
-        $unit_placeholders = implode( ',', array_fill( 0, count( $assigned_unit_ids ), '%d' ) );
+        $assigned_unit_ids  = array_map( 'absint', $assigned_unit_ids );
+        $unit_placeholders  = implode( ',', array_fill( 0, count( $assigned_unit_ids ), '%d' ) );
         
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $all_units = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT id, class_name, section_name, sort_order FROM `{$wpdb->prefix}sms_academic_units` WHERE id IN ($unit_placeholders) AND section_name != '' ORDER BY sort_order ASC, section_name ASC",
@@ -103,7 +114,7 @@ function educore_daily_attendance_view( $classes, $sections, $filter_class, $fil
         // phpcs:enable
     }
 
-    // Auto-select class & section for teachers if not explicitly chosen
+    // Auto-select class & section for teachers if not explicitly chosen.
     if ( ! $is_admin && empty( $filter_class ) && ! empty( $classes[0] ) ) {
         $filter_class = $classes[0];
     }
@@ -116,7 +127,7 @@ function educore_daily_attendance_view( $classes, $sections, $filter_class, $fil
         }
     }
 
-    // 3. Fetch Active Students scoped to Assigned Classes & Sections
+    // 3. Fetch Active Students scoped to Assigned Classes & Sections.
     if ( ! $is_admin && ! empty( $classes ) ) {
         $class_placeholders = implode( ',', array_fill( 0, count( $classes ), '%s' ) );
         $st_args            = $classes;
@@ -140,13 +151,13 @@ function educore_daily_attendance_view( $classes, $sections, $filter_class, $fil
         // phpcs:enable
     }
 
-    // Additional Filter for specific student
+    // Additional Filter for specific student.
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended
     $filter_student = isset( $_GET['filter_student'] ) ? absint( wp_unslash( $_GET['filter_student'] ) ) : 0;
 
     $notice_banner_html = '';
 
-    // Handle Attendance Form Commit
+    // Handle Attendance Form Commit.
     if ( isset( $_POST['educore_save_attendance'], $_POST['educore_attendance_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['educore_attendance_nonce'] ) ), 'save_attendance_action' ) ) {
         $attendance_date = isset( $_POST['attendance_date'] ) ? sanitize_text_field( wp_unslash( $_POST['attendance_date'] ) ) : current_time( 'Y-m-d' );
         
@@ -277,7 +288,7 @@ function educore_daily_attendance_view( $classes, $sections, $filter_class, $fil
 
         <?php
         if ( ! empty( $filter_class ) ) {
-            // Enforce boundary check for non-admin teachers
+            // Enforce boundary check for non-admin teachers.
             if ( ! $is_admin && ! in_array( $filter_class, $classes, true ) ) {
                 echo '<div class="ifs-educore-alert-danger"><p style="margin:0;">' . esc_html__( 'You are not authorized to mark attendance for this class.', 'ifsedu-school-management' ) . '</p></div>';
                 return;
@@ -295,7 +306,7 @@ function educore_daily_attendance_view( $classes, $sections, $filter_class, $fil
                 $sql_args         = array_merge( $sql_args, $teacher_assigned_sections );
             }
 
-            if ( $filter_student > 0 ) {
+            if ( 0 < $filter_student ) {
                 $query_sql  .= ' AND id = %d';
                 $sql_args[]  = $filter_student;
             }
@@ -321,7 +332,7 @@ function educore_daily_attendance_view( $classes, $sections, $filter_class, $fil
                 );
                 // phpcs:enable
                 
-                $att_timestamp      = strtotime( $filter_date );
+                $att_timestamp       = strtotime( $filter_date );
                 $att_date_formatted = $att_timestamp ? date_i18n( 'd F, Y', $att_timestamp ) : '—';
                 ?>
                 <div class="ifs-educore-bento-card" style="padding:0; overflow:hidden;">
@@ -452,7 +463,7 @@ function educore_daily_attendance_view( $classes, $sections, $filter_class, $fil
                     }
                 });
 
-                // Apply natural numeric sorting to sections
+                // Apply natural numeric sorting to sections.
                 uniqueSections.sort(function(a, b) {
                     return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
                 });

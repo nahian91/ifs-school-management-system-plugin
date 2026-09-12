@@ -7,22 +7,30 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Direct access safety buffer
+    exit; // Direct access safety buffer.
 }
 
+/**
+ * Render Monthly Attendance Summary Audit Statement View
+ *
+ * @param array  $classes        Available classes list.
+ * @param array  $sections       Available sections list.
+ * @param string $filter_class   Currently filtered class.
+ * @param string $filter_section Currently filtered section.
+ */
 function educore_monthly_attendance_summary_view( $classes, $sections, $filter_class, $filter_section ) {
     global $wpdb;
 
     $current_user = wp_get_current_user();
     $is_admin     = current_user_can( 'manage_options' );
 
-    $table_students         = $wpdb->prefix . 'sms_students';
-    $table_attendance       = $wpdb->prefix . 'sms_attendance';
-    $table_units            = $wpdb->prefix . 'sms_academic_units';
-    $table_staff            = $wpdb->prefix . 'sms_staff';
+    $table_students        = $wpdb->prefix . 'sms_students';
+    $table_attendance      = $wpdb->prefix . 'sms_attendance';
+    $table_units           = $wpdb->prefix . 'sms_academic_units';
+    $table_staff           = $wpdb->prefix . 'sms_staff';
     $table_teacher_subjects = $wpdb->prefix . 'sms_teacher_subjects';
 
-    // 1. Resolve Exact Assigned Classes & Sections for Non-Admin Teachers from sms_teacher_subjects
+    // 1. Resolve Exact Assigned Classes & Sections for Non-Admin Teachers from sms_teacher_subjects.
     $teacher_assigned_classes  = array();
     $teacher_assigned_sections = array();
     $assigned_unit_ids         = array();
@@ -67,8 +75,10 @@ function educore_monthly_attendance_summary_view( $classes, $sections, $filter_c
         $classes = $teacher_assigned_classes;
     }
 
-    // Build sort_order dictionary for classes
+    // Build sort_order dictionary for classes.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
     $class_order_rows = $wpdb->get_results( "SELECT class_name, MIN(sort_order) as min_sort FROM `{$table_units}` GROUP BY class_name" );
+    // phpcs:enable
     $class_order_map  = array();
     if ( ! empty( $class_order_rows ) ) {
         foreach ( $class_order_rows as $cor ) {
@@ -76,7 +86,7 @@ function educore_monthly_attendance_summary_view( $classes, $sections, $filter_c
         }
     }
 
-    // Apply sort_order then natural comparison to classes
+    // Apply sort_order then natural comparison to classes.
     if ( ! empty( $classes ) ) {
         usort( $classes, function( $a, $b ) use ( $class_order_map ) {
             $order_a = isset( $class_order_map[ $a ] ) ? $class_order_map[ $a ] : 0;
@@ -88,7 +98,7 @@ function educore_monthly_attendance_summary_view( $classes, $sections, $filter_c
         } );
     }
 
-    // 2. Fetch academic units scoped to teacher's assignments or global (Ordered by sort_order)
+    // 2. Fetch academic units scoped to teacher's assignments or global (Ordered by sort_order).
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
     if ( ! $is_admin && ! empty( $assigned_unit_ids ) ) {
         $unit_placeholders = implode( ',', array_map( 'absint', $assigned_unit_ids ) );
@@ -100,7 +110,7 @@ function educore_monthly_attendance_summary_view( $classes, $sections, $filter_c
     }
     // phpcs:enable
 
-    // Auto-select class & section for teachers if not explicitly chosen
+    // Auto-select class & section for teachers if not explicitly chosen.
     if ( ! $is_admin && empty( $filter_class ) && ! empty( $classes[0] ) ) {
         $filter_class = $classes[0];
     }
@@ -113,7 +123,7 @@ function educore_monthly_attendance_summary_view( $classes, $sections, $filter_c
         }
     }
 
-    // 3. Fetch all active students scoped to Assigned Classes & Sections
+    // 3. Fetch all active students scoped to Assigned Classes & Sections.
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
     if ( ! $is_admin && ! empty( $classes ) ) {
         $class_placeholders = implode( ',', array_map( function( $val ) use ( $wpdb ) {
@@ -150,7 +160,7 @@ function educore_monthly_attendance_summary_view( $classes, $sections, $filter_c
     $summary_counts = array();
 
     if ( ! empty( $filter_class ) ) {
-        // Enforce boundary check for non-admin teachers
+        // Enforce boundary check for non-admin teachers.
         if ( ! $is_admin && ! in_array( $filter_class, $classes, true ) ) {
             echo '<div class="ifs-educore-alert-danger">' . esc_html__( 'You are not authorized to view the monthly summary for this class.', 'ifsedu-school-management' ) . '</div>';
             return;
@@ -160,7 +170,7 @@ function educore_monthly_attendance_summary_view( $classes, $sections, $filter_c
         $params = array( $filter_class );
 
         if ( ! empty( $filter_section ) ) {
-            $query   .= ' AND section_name = %s';
+            $query  .= ' AND section_name = %s';
             $params[] = $filter_section;
         } elseif ( ! $is_admin && ! empty( $teacher_assigned_sections ) ) {
             $sec_placeholders = implode( ',', array_fill( 0, count( $teacher_assigned_sections ), '%s' ) );
@@ -168,8 +178,8 @@ function educore_monthly_attendance_summary_view( $classes, $sections, $filter_c
             $params           = array_merge( $params, $teacher_assigned_sections );
         }
 
-        if ( $filter_student > 0 ) {
-            $query   .= ' AND id = %d';
+        if ( 0 < $filter_student ) {
+            $query  .= ' AND id = %d';
             $params[] = $filter_student;
         }
 
@@ -182,7 +192,7 @@ function educore_monthly_attendance_summary_view( $classes, $sections, $filter_c
             $student_ids  = array_map( 'absint', wp_list_pluck( $students, 'id' ) );
             $placeholders = implode( ',', $student_ids );
 
-            // Fetch day-by-day attendance entries for matrix grid
+            // Fetch day-by-day attendance entries for matrix grid.
             $raw_daily = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT student_id, attendance_date, status
@@ -329,8 +339,8 @@ function educore_monthly_attendance_summary_view( $classes, $sections, $filter_c
                                 $a_cnt          = isset( $summary_counts[ $st_id ]['Absent'] ) ? $summary_counts[ $st_id ]['Absent'] : 0;
                                 $l_cnt          = isset( $summary_counts[ $st_id ]['Late'] ) ? $summary_counts[ $st_id ]['Late'] : 0;
                                 $total_recorded = $p_cnt + $a_cnt + $l_cnt;
-                                $pct            = $total_recorded > 0 ? round( ( $p_cnt / $total_recorded ) * 100, 1 ) : 0;
-                                $pct_color      = $pct >= 80 ? '#059669' : ( $pct >= 60 ? '#d97706' : '#dc2626' );
+                                $pct            = 0 < $total_recorded ? round( ( $p_cnt / $total_recorded ) * 100, 1 ) : 0;
+                                $pct_color      = 80 <= $pct ? '#059669' : ( 60 <= $pct ? '#d97706' : '#dc2626' );
                             ?>
                                 <tr style="border-bottom:1px solid #f1f5f9;">
                                     <td style="padding:10px 8px;"><strong>#<?php echo esc_html( $st->roll_no ); ?></strong></td>

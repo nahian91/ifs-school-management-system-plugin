@@ -1,10 +1,18 @@
 <?php
+/**
+ * Notice & Event Deletion Handler
+ * File: inc/notices/notice-delete.php
+ * Text Domain: ifsedu-school-management
+ */
+
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+    exit; // Exit if accessed directly.
 }
 
 /**
- * Notice & Event Deletion Handler
+ * Notice & Event Deletion Action Handler
+ *
+ * @param string $type Content type ('notice' or 'events').
  */
 function educore_notice_events_delete_action( $type = 'notice' ) {
     global $wpdb;
@@ -25,6 +33,6 @@ function educore_notice_events_delete_action( $type = 'notice' ) {
         // phpcs:enable
     }
 
-    $target_url = admin_url( 'admin.php?page=school_management_system&tab=notices&type=' . ( ( $type === 'events' || $type === 'event' ) ? 'events' : 'notice' ) . '&sub=list' );
+    $target_url = admin_url( 'admin.php?page=school_management_system&tab=notices&type=' . ( ( 'events' === $type || 'event' === $type ) ? 'events' : 'notice' ) . '&sub=list' );
     educore_safe_redirect( $target_url );
 }

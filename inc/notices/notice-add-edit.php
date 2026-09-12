@@ -6,9 +6,14 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+    exit; // Exit if accessed directly.
 }
 
+/**
+ * Render Add/Edit Notice & Event View & Handle Submission
+ *
+ * @param string $type Content type ('notice' or 'events').
+ */
 function educore_notice_events_add_edit_view( $type = 'notice' ) {
     global $wpdb;
     $table_notices = $wpdb->prefix . 'sms_notices';
@@ -17,7 +22,7 @@ function educore_notice_events_add_edit_view( $type = 'notice' ) {
         wp_die( esc_html__( 'Unauthorized access privilege level.', 'ifsedu-school-management' ) );
     }
 
-    // Enqueue WordPress Media Uploader Scripts & Styles
+    // Enqueue WordPress Media Uploader Scripts & Styles.
     wp_enqueue_media();
 
     // phpcs:disable WordPress.Security.NonceVerification.Recommended
@@ -26,7 +31,7 @@ function educore_notice_events_add_edit_view( $type = 'notice' ) {
     // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
     $item = null;
-    if ( $is_edit && $id > 0 ) {
+    if ( $is_edit && 0 < $id ) {
         // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $item = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table_notices}` WHERE id = %d", $id ) );
         // phpcs:enable
@@ -41,7 +46,7 @@ function educore_notice_events_add_edit_view( $type = 'notice' ) {
         $featured_image = isset( $_POST['featured_image'] ) ? esc_url_raw( wp_unslash( $_POST['featured_image'] ) ) : ( $item->featured_image ?? '' );
 
         $raw_notice_type  = isset( $_POST['notice_type'] ) ? sanitize_text_field( wp_unslash( $_POST['notice_type'] ) ) : 'Notice';
-        $form_type        = ( $type === 'events' || $type === 'event' ) ? 'Event' : $raw_notice_type;
+        $form_type        = ( 'events' === $type || 'event' === $type ) ? 'Event' : $raw_notice_type;
         $title            = isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : '';
         $priority_val     = isset( $_POST['priority'] ) ? sanitize_text_field( wp_unslash( $_POST['priority'] ) ) : 'Normal';
         $target_audience  = isset( $_POST['target_audience'] ) ? sanitize_text_field( wp_unslash( $_POST['target_audience'] ) ) : 'All';
@@ -60,12 +65,12 @@ function educore_notice_events_add_edit_view( $type = 'notice' ) {
             'publish_date'    => $event_date_val,
             'attachment_url'  => $attachment_url,
             'featured_image'  => $featured_image,
-            'item_type'       => ( $type === 'events' || $type === 'event' ) ? 'event' : 'notice',
+            'item_type'       => ( 'events' === $type || 'event' === $type ) ? 'event' : 'notice',
             'created_by'      => get_current_user_id(),
             'status'          => $status,
         );
 
-        if ( $is_edit && $id > 0 ) {
+        if ( $is_edit && 0 < $id ) {
             // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $wpdb->update( $table_notices, $data, array( 'id' => $id ) );
             // phpcs:enable
@@ -95,7 +100,7 @@ function educore_notice_events_add_edit_view( $type = 'notice' ) {
         }
     }
 
-    $back_url = admin_url( 'admin.php?page=school_management_system&tab=notices&type=' . ( ( $type === 'events' || $type === 'event' ) ? 'events' : 'notice' ) . '&sub=list' );
+    $back_url = admin_url( 'admin.php?page=school_management_system&tab=notices&type=' . ( ( 'events' === $type || 'event' === $type ) ? 'events' : 'notice' ) . '&sub=list' );
     ?>
 
     <style id="ifs-educore-editor-pro-styles">
@@ -103,12 +108,14 @@ function educore_notice_events_add_edit_view( $type = 'notice' ) {
             font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             color: #0f172a;
         }
+
         .ifs-educore-top-action-bar {
             margin-bottom: 20px;
             display: flex;
             align-items: center;
             justify-content: space-between;
         }
+
         .ifs-educore-btn-back {
             display: inline-flex;
             align-items: center;
@@ -124,11 +131,13 @@ function educore_notice_events_add_edit_view( $type = 'notice' ) {
             transition: all 0.2s ease;
             box-shadow: 0 2px 4px rgba(0,0,0,0.02);
         }
+
         .ifs-educore-btn-back:hover {
             background: #f8fafc;
             color: #00523c;
             border-color: #cbd5e1;
         }
+
         .ifs-educore-alert-node {
             padding: 14px 18px;
             border-radius: 10px;
@@ -140,11 +149,13 @@ function educore_notice_events_add_edit_view( $type = 'notice' ) {
             gap: 10px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.03);
         }
+
         .ifs-educore-alert-success {
             background: #ecfdf5;
             border: 1px solid #a7f3d0;
             color: #047857;
         }
+
         .ifs-educore-form-bento-card {
             background: #ffffff;
             border: 1px solid #e2e8f0;
@@ -152,11 +163,13 @@ function educore_notice_events_add_edit_view( $type = 'notice' ) {
             padding: 32px;
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
         }
+
         .ifs-educore-form-header {
             border-bottom: 1px solid #f1f5f9;
             padding-bottom: 16px;
             margin-bottom: 24px;
         }
+
         .ifs-educore-form-title {
             margin: 0;
             font-size: 17px;
@@ -166,39 +179,48 @@ function educore_notice_events_add_edit_view( $type = 'notice' ) {
             align-items: center;
             gap: 10px;
         }
+
         .ifs-educore-form-title .dashicons {
             color: #00523c;
             font-size: 20px;
             width: 20px;
             height: 20px;
         }
+
         .ifs-educore-grid-row {
             display: grid;
             gap: 20px;
             margin-bottom: 20px;
         }
+
         .ifs-educore-cols-8-4 {
             grid-template-columns: 2fr 1fr;
         }
+
         .ifs-educore-cols-3 {
             grid-template-columns: repeat(3, 1fr);
         }
+
         .ifs-educore-cols-12 {
             grid-template-columns: 1fr;
         }
+
         .ifs-educore-field-node {
             display: flex;
             flex-direction: column;
             gap: 6px;
         }
+
         .ifs-educore-field-label {
             font-size: 13px;
             font-weight: 700;
             color: #334155;
         }
+
         .ifs-educore-required {
             color: #dc2626;
         }
+
         .ifs-educore-input-control, 
         .ifs-educore-select-control {
             width: 100%;
@@ -209,8 +231,10 @@ function educore_notice_events_add_edit_view( $type = 'notice' ) {
             font-size: 14px;
             color: #0f172a;
             box-sizing: border-box;
+            outline: none;
             transition: all 0.2s ease;
         }
+
         .ifs-educore-input-control:focus, 
         .ifs-educore-select-control:focus {
             outline: none;
@@ -218,11 +242,13 @@ function educore_notice_events_add_edit_view( $type = 'notice' ) {
             background: #ffffff;
             box-shadow: 0 0 0 3px rgba(0, 82, 60, 0.12);
         }
+
         .ifs-educore-uploader-group {
             display: flex;
             flex-direction: column;
             gap: 10px;
         }
+
         .ifs-educore-media-preview-wrap {
             width: 100%;
             height: 120px;
@@ -235,20 +261,25 @@ function educore_notice_events_add_edit_view( $type = 'notice' ) {
             overflow: hidden;
             position: relative;
         }
+
         .ifs-educore-media-preview-wrap img {
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
+
         .ifs-educore-media-placeholder {
             color: #94a3b8;
             font-size: 28px;
         }
+
         .ifs-educore-media-btn-row {
             display: flex;
             gap: 8px;
         }
-        .ifs-educore-btn-media, .ifs-educore-btn-media-remove {
+
+        .ifs-educore-btn-media, 
+        .ifs-educore-btn-media-remove {
             padding: 7px 12px;
             border-radius: 8px;
             font-size: 12.5px;
@@ -260,29 +291,35 @@ function educore_notice_events_add_edit_view( $type = 'notice' ) {
             gap: 4px;
             transition: all 0.2s ease;
         }
+
         .ifs-educore-btn-media {
             background: #f1f5f9;
             color: #334155;
             border: 1px solid #cbd5e1;
         }
+
         .ifs-educore-btn-media:hover {
             background: #e2e8f0;
             color: #0f172a;
         }
+
         .ifs-educore-btn-media-remove {
             background: #fef2f2;
             color: #dc2626;
             border: 1px solid #fecaca;
         }
+
         .ifs-educore-btn-media-remove:hover {
             background: #fee2e2;
         }
+
         .ifs-educore-editor-wrapper {
             border: 1px solid #cbd5e1;
             border-radius: 10px;
             overflow: hidden;
             background: #f8fafc;
         }
+
         .ifs-educore-submit-action {
             margin-top: 30px;
             border-top: 1px solid #f1f5f9;
@@ -290,6 +327,7 @@ function educore_notice_events_add_edit_view( $type = 'notice' ) {
             display: flex;
             justify-content: flex-end;
         }
+
         .ifs-educore-btn-primary {
             background: #00523c;
             color: #ffffff;
@@ -305,12 +343,24 @@ function educore_notice_events_add_edit_view( $type = 'notice' ) {
             box-shadow: 0 4px 12px rgba(0, 82, 60, 0.25);
             transition: background 0.2s ease, transform 0.1s ease;
         }
+
         .ifs-educore-btn-primary:hover {
             background: #004030;
             transform: translateY(-1px);
         }
+
+        .ifs-educore-attachment-preview-box {
+            padding: 10px;
+            text-align: center;
+            word-break: break-all;
+            font-size: 12px;
+            font-weight: 600;
+            color: #00523c;
+        }
+
         @media screen and (max-width: 900px) {
-            .ifs-educore-cols-8-4, .ifs-educore-cols-3 {
+            .ifs-educore-cols-8-4, 
+            .ifs-educore-cols-3 {
                 grid-template-columns: 1fr;
             }
         }
@@ -342,7 +392,7 @@ function educore_notice_events_add_edit_view( $type = 'notice' ) {
             <form method="POST" action="">
                 <?php wp_nonce_field( 'save_item_action', 'educore_item_nonce' ); ?>
 
-                <div class="ifs-educore-grid-row <?php echo ( $type !== 'events' ) ? 'ifs-educore-cols-8-4' : 'ifs-educore-cols-12'; ?>">
+                <div class="ifs-educore-grid-row <?php echo ( 'events' !== $type ) ? 'ifs-educore-cols-8-4' : 'ifs-educore-cols-12'; ?>">
                     <div class="ifs-educore-field-node">
                         <label class="ifs-educore-field-label">
                             <?php esc_html_e( 'Title', 'ifsedu-school-management' ); ?> <span class="ifs-educore-required">*</span>
@@ -350,7 +400,7 @@ function educore_notice_events_add_edit_view( $type = 'notice' ) {
                         <input type="text" name="title" class="ifs-educore-input-control" value="<?php echo $item ? esc_attr( $item->title ) : ''; ?>" placeholder="Enter notice or event heading..." required>
                     </div>
 
-                    <?php if ( $type !== 'events' ) : ?>
+                    <?php if ( 'events' !== $type ) : ?>
                         <div class="ifs-educore-field-node">
                             <label class="ifs-educore-field-label"><?php esc_html_e( 'Category Type', 'ifsedu-school-management' ); ?></label>
                             <select name="notice_type" class="ifs-educore-select-control">
@@ -383,9 +433,9 @@ function educore_notice_events_add_edit_view( $type = 'notice' ) {
 
                     <div class="ifs-educore-field-node">
                         <label class="ifs-educore-field-label">
-                            <?php echo ( $type === 'events' ) ? esc_html__( 'Event Date', 'ifsedu-school-management' ) : esc_html__( 'Effective Date', 'ifsedu-school-management' ); ?>
+                            <?php echo ( 'events' === $type ) ? esc_html__( 'Event Date', 'ifsedu-school-management' ) : esc_html__( 'Effective Date', 'ifsedu-school-management' ); ?>
                         </label>
-                        <input type="date" name="event_date" class="ifs-educore-input-control" value="<?php echo $item ? esc_attr( ! empty( $item->event_date ) && $item->event_date !== '1970-01-01' ? $item->event_date : ( ! empty( $item->publish_date ) ? $item->publish_date : '' ) ) : esc_attr( current_time( 'Y-m-d' ) ); ?>">
+                        <input type="date" name="event_date" class="ifs-educore-input-control" value="<?php echo $item ? esc_attr( ! empty( $item->event_date ) && '1970-01-01' !== $item->event_date ? $item->event_date : ( ! empty( $item->publish_date ) ? $item->publish_date : '' ) ) : esc_attr( current_time( 'Y-m-d' ) ); ?>">
                     </div>
                 </div>
 
@@ -400,7 +450,7 @@ function educore_notice_events_add_edit_view( $type = 'notice' ) {
                                 array( 
                                     'textarea_rows' => 8,
                                     'quicktags'     => true,
-                                    'tinymce'       => true
+                                    'tinymce'       => true,
                                 ) 
                             ); 
                             ?>
@@ -438,7 +488,7 @@ function educore_notice_events_add_edit_view( $type = 'notice' ) {
                         <div class="ifs-educore-uploader-group">
                             <div class="ifs-educore-media-preview-wrap" id="attachment_url_preview_container" style="background: #f1f5f9;">
                                 <?php if ( $item && ! empty( $item->attachment_url ) ) : ?>
-                                    <div style="padding: 10px; text-align: center; word-break: break-all; font-size: 12px; font-weight: 600; color: #00523c;">
+                                    <div class="ifs-educore-attachment-preview-box">
                                         📄 <?php echo esc_html( basename( $item->attachment_url ) ); ?>
                                     </div>
                                 <?php else : ?>
@@ -501,7 +551,7 @@ function educore_notice_events_add_edit_view( $type = 'notice' ) {
                         $('#' + containerId).html('<img src="' + attachment.url + '" alt="Preview">');
                     } else {
                         var fileName = attachment.filename || attachment.url.split('/').pop();
-                        $('#' + containerId).html('<div style="padding: 10px; text-align: center; word-break: break-all; font-size: 12px; font-weight: 600; color: #00523c;">📄 ' + fileName + '</div>');
+                        $('#' + containerId).html('<div class="ifs-educore-attachment-preview-box">📄 ' + fileName + '</div>');
                     }
                     $('#' + removeBtnId).show();
                 });

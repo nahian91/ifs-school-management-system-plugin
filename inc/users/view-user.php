@@ -6,9 +6,14 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+    exit; // Exit if accessed directly.
 }
 
+/**
+ * Render Detailed User Profile & Associated Records View
+ *
+ * @param string $base_url Base URL for users navigation.
+ */
 function ifs_educore_render_user_view( $base_url ) {
     global $wpdb;
 
@@ -32,10 +37,10 @@ function ifs_educore_render_user_view( $base_url ) {
         return;
     }
 
-    $user_roles = (array) $target_user->roles;
+    $user_roles   = (array) $target_user->roles;
     $primary_role = ! empty( $user_roles ) ? reset( $user_roles ) : 'none';
     
-    // Format Role Label nicely
+    // Format Role Label nicely.
     $role_labels = array(
         'administrator'  => '👑 Administrator',
         'teacher'        => '👨‍🏫 Teacher',
@@ -45,25 +50,25 @@ function ifs_educore_render_user_view( $base_url ) {
     );
     $display_role_label = isset( $role_labels[ $primary_role ] ) ? $role_labels[ $primary_role ] : ucfirst( $primary_role );
 
-    // Fetch linked staff profile if exists
+    // Fetch linked staff profile if exists.
     $table_staff = $wpdb->prefix . 'sms_staff';
     $table_audit = $wpdb->prefix . 'sms_audit_logs';
 
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
     $linked_staff = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table_staff}` WHERE wp_user_id = %d LIMIT 1", $user_id ) );
     
-    // Fetch User Work History / Activity Logs
+    // Fetch User Work History / Activity Logs.
     $user_audit_logs = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM `{$table_audit}` WHERE user_id = %d ORDER BY timestamp DESC LIMIT 10", $user_id ) );
     // phpcs:enable
 
-    // Retrieve Last Login Meta (falls back if custom tracker isn't active)
-    $last_login = get_user_meta( $user_id, 'educore_last_login', true );
+    // Retrieve Last Login Meta (falls back if custom tracker isn't active).
+    $last_login           = get_user_meta( $user_id, 'educore_last_login', true );
     $last_login_formatted = ! empty( $last_login ) ? date_i18n( 'd M Y, h:i A', strtotime( $last_login ) ) : __( 'Never recorded', 'ifsedu-school-management' );
 
     $display_name_source = $target_user->display_name ? $target_user->display_name : $target_user->user_login;
-    $initial = function_exists( 'mb_substr' ) ? mb_substr( $display_name_source, 0, 1, 'UTF-8' ) : substr( $display_name_source, 0, 1 );
-    $reg_time = ! empty( $target_user->user_registered ) ? strtotime( $target_user->user_registered ) : false;
-    $reg_date = $reg_time ? date_i18n( 'd M Y, h:i A', $reg_time ) : '—';
+    $initial             = function_exists( 'mb_substr' ) ? mb_substr( $display_name_source, 0, 1, 'UTF-8' ) : substr( $display_name_source, 0, 1 );
+    $reg_time            = ! empty( $target_user->user_registered ) ? strtotime( $target_user->user_registered ) : false;
+    $reg_date            = $reg_time ? date_i18n( 'd M Y, h:i A', $reg_time ) : '—';
     ?>
 
     <div class="ifs-educore-user-form-root">

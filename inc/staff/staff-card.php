@@ -1,13 +1,14 @@
 <?php
-if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Lockdown direct access
-}
-
 /**
- * Enterprise Multi-Step Staff Profile & Management Engine
+ * Academic Staff ID Card Printing Engine
  * File: inc/staff/staff-id-cards.php
  * Target Table: sms_staff
+ * Text Domain: ifsedu-school-management
  */
+
+if ( ! defined( 'ABSPATH' ) ) {
+    exit; // Lockdown direct access.
+}
 
 /**
  * AJAX Handler: Fetch Staff Names by Staff Type
@@ -46,7 +47,7 @@ function educore_staff_id_cards_view() {
 
     $table_staff = $wpdb->prefix . 'sms_staff';
 
-    // Check Table Existence
+    // Check Table Existence.
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
     if ( $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $table_staff ) ) !== $table_staff ) {
         ?>
@@ -57,18 +58,19 @@ function educore_staff_id_cards_view() {
         return;
     }
 
-    // Trigger Parameters
+    // Trigger Parameters.
     // phpcs:disable WordPress.Security.NonceVerification.Recommended
-    $is_loaded     = isset( $_GET['load_staff'] ) && $_GET['load_staff'] === '1';
+    $is_loaded    = isset( $_GET['load_staff'] ) && '1' === $_GET['load_staff'];
     $selected_type = isset( $_GET['staff_type'] ) ? sanitize_text_field( wp_unslash( $_GET['staff_type'] ) ) : '';
     $selected_id   = isset( $_GET['staff_id'] ) ? absint( wp_unslash( $_GET['staff_id'] ) ) : 0;
     $search_query  = isset( $_GET['s'] ) ? sanitize_text_field( wp_unslash( $_GET['s'] ) ) : '';
     // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
-    // Fetch Staff Types
+    // Fetch Staff Types.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
     $staff_types = $wpdb->get_results( "SELECT DISTINCT staff_type FROM `{$table_staff}` WHERE staff_type != '' ORDER BY staff_type ASC" );
 
-    // Pre-fetch staff list for selected staff type if reloading page
+    // Pre-fetch staff list for selected staff type if reloading page.
     $type_staff_members = array();
     if ( ! empty( $selected_type ) ) {
         $type_staff_members = $wpdb->get_results(
@@ -82,19 +84,19 @@ function educore_staff_id_cards_view() {
 
     $staff_members = array();
 
-    // Query executed ONLY when requested
+    // Query executed ONLY when requested.
     if ( $is_loaded || ! empty( $selected_type ) || ! empty( $search_query ) || $selected_id > 0 ) {
         $where_clauses = array( '1=1' );
         $params        = array();
 
         if ( ! empty( $selected_type ) ) {
             $where_clauses[] = 'staff_type = %s';
-            $params        = $selected_type;
+            $params[]        = $selected_type;
         }
 
         if ( $selected_id > 0 ) {
             $where_clauses[] = 'id = %d';
-            $params        = $selected_id;
+            $params[]        = $selected_id;
         }
 
         if ( ! empty( $search_query ) ) {
@@ -119,7 +121,7 @@ function educore_staff_id_cards_view() {
         // phpcs:enable
     }
 
-    // Pull Dynamic Institutional Settings
+    // Pull Dynamic Institutional Settings.
     $school_name    = get_option( 'educore_school_name', get_bloginfo( 'name' ) );
     $school_tagline = get_option( 'educore_school_tagline', '' );
     $school_logo    = get_option( 'educore_school_logo', '' );
@@ -159,7 +161,7 @@ function educore_staff_id_cards_view() {
                         <?php foreach ( $type_staff_members as $person ) : 
                             $person_id = absint( $person->id );
                         ?>
-                            <option value="<?php absint( $person_id ); ?>" <?php selected( $selected_id, $person_id ); ?>>
+                            <option value="<?php echo absint( $person_id ); ?>" <?php selected( $selected_id, $person_id ); ?>>
                                 <?php echo esc_html( $person->full_name . ( $person->index_no ? ' (' . $person->index_no . ')' : '' ) ); ?>
                             </option>
                         <?php endforeach; ?>
@@ -172,7 +174,7 @@ function educore_staff_id_cards_view() {
                     <span class="dashicons dashicons-filter"></span> Filter & Load
                 </button>
                 
-                <?php if ( ! $is_loaded && empty( $selected_type ) && empty( $search_query ) && $selected_id === 0 ) : ?>
+                <?php if ( ! $is_loaded && empty( $selected_type ) && empty( $search_query ) && 0 === $selected_id ) : ?>
                     <a href="<?php echo esc_url( admin_url( 'admin.php?page=school_management_system&tab=staff&sub=id_card&load_staff=1' ) ); ?>" class="ifs-educore-btn-secondary">
                         <span class="dashicons dashicons-groups"></span> Load All Staff
                     </a>
@@ -203,7 +205,7 @@ function educore_staff_id_cards_view() {
                     $photo_url    = ! empty( $staff->profile_image ) ? $staff->profile_image : '';
                     $staff_code   = ! empty( $staff->index_no ) ? $staff->index_no : 'STF-' . str_pad( (string) $staff_internal_id, 4, '0', STR_PAD_LEFT );
                     
-                    $join_ts      = ( ! empty( $staff->joining_date ) && $staff->joining_date !== '1970-01-01' ) ? strtotime( $staff->joining_date ) : false;
+                    $join_ts      = ( ! empty( $staff->joining_date ) && '1970-01-01' !== $staff->joining_date ) ? strtotime( $staff->joining_date ) : false;
                     $joining_date = $join_ts ? date_i18n( 'M Y', $join_ts ) : 'N/A';
                     
                     $blood_group  = ! empty( $staff->blood_group ) ? $staff->blood_group : 'N/A';

@@ -6,9 +6,12 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+    exit; // Exit if accessed directly.
 }
 
+/**
+ * Render Add/Edit Professional Financial Ledger Entry View & Handle Submission
+ */
 function educore_accounting_add_edit_view() {
     global $wpdb;
     $current_user     = wp_get_current_user();
@@ -38,7 +41,7 @@ function educore_accounting_add_edit_view() {
 
         if ( $staff_row ) {
             $desig = strtolower( (string) ( $staff_row->designation . ' ' . $staff_row->staff_type ) );
-            if ( strpos( $desig, 'account' ) !== false || strpos( $desig, 'finance' ) !== false || strpos( $desig, 'cash' ) !== false ) {
+            if ( false !== strpos( $desig, 'account' ) || false !== strpos( $desig, 'finance' ) || false !== strpos( $desig, 'cash' ) ) {
                 $is_accountant = true;
             }
         }
@@ -68,7 +71,7 @@ function educore_accounting_add_edit_view() {
     $back_url   = add_query_arg( array( 'page' => 'school_management_system', 'tab' => 'accounting', 'sub' => 'list' ), admin_url( 'admin.php' ) );
     $current_yr = (int) current_time( 'Y' );
 
-    // Retrieve configured Voucher Prefix from Settings (fallback to VCH-)
+    // Retrieve configured Voucher Prefix from Settings (fallback to VCH-).
     $prefix_acc = get_option( 'educore_prefix_acc', 'VCH-' );
     if ( empty( $prefix_acc ) ) {
         $prefix_acc = 'VCH-';
@@ -78,7 +81,8 @@ function educore_accounting_add_edit_view() {
     // --------------------------------------------------------------------------
     // 2. FORM SUBMISSION ENGINE WITH STRICT SANITIZATION
     // --------------------------------------------------------------------------
-    if ( isset( $_POST['educore_save_accounting_entry'] ) && isset( $_POST['ifs_educore_acct_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ifs_educore_acct_nonce'] ) ), 'save_acct_action' ) ) {
+    $req_method = isset( $_SERVER['REQUEST_METHOD'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : '';
+    if ( 'POST' === $req_method && isset( $_POST['educore_save_accounting_entry'] ) && isset( $_POST['ifs_educore_acct_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ifs_educore_acct_nonce'] ) ), 'save_acct_action' ) ) {
         
         $entry_type       = isset( $_POST['entry_type'] ) ? sanitize_text_field( wp_unslash( $_POST['entry_type'] ) ) : 'Income';
         $journal_mode     = isset( $_POST['journal_mode'] ) ? sanitize_text_field( wp_unslash( $_POST['journal_mode'] ) ) : 'Single';
@@ -100,7 +104,7 @@ function educore_accounting_add_edit_view() {
         
         $attachment_url = $entry && ! empty( $entry->attachment_url ) ? $entry->attachment_url : '';
 
-        // Secure file upload handler
+        // Secure file upload handler.
         if ( ! empty( $_FILES['voucher_attachment']['name'] ) ) {
             $allowed_mimes = array(
                 'jpg|jpeg|jpe' => 'image/jpeg',
@@ -147,18 +151,18 @@ function educore_accounting_add_edit_view() {
             );
 
             $formats = array(
-                '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%f', '%f', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d'
+                '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%f', '%f', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d',
             );
 
+            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             if ( $is_edit && $entry_id > 0 ) {
-                // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
                 $result      = $wpdb->update( $table_accounting, $data, array( 'id' => $entry_id ), $formats, array( '%d' ) );
                 $status_flag = 'updated';
             } else {
-                // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery
                 $result      = $wpdb->insert( $table_accounting, $data, $formats );
                 $status_flag = 'success';
             }
+            // phpcs:enable
 
             if ( false !== $result ) {
                 if ( function_exists( 'educore_log_activity' ) ) {

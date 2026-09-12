@@ -6,11 +6,14 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Exit if accessed directly
+    exit; // Exit if accessed directly.
 }
 
-// 1. AJAX Handler to dynamically fetch Target Sections
+// 1. AJAX Handler to dynamically fetch Target Sections.
 add_action( 'wp_ajax_ifs_educore_get_target_sections_promotion', 'ifs_educore_get_target_sections_promotion_handler' );
+/**
+ * AJAX Handler: Fetch target sections by class for student promotion.
+ */
 function ifs_educore_get_target_sections_promotion_handler() {
     check_ajax_referer( 'ifs_educore_promotion_nonce', 'security' );
 
@@ -38,6 +41,9 @@ function ifs_educore_get_target_sections_promotion_handler() {
     wp_send_json_success( is_array( $sections ) ? $sections : array() );
 }
 
+/**
+ * Render Academic Student Promotion & Roll Re-assignment Workspace View & Handle Execution
+ */
 function educore_student_promotion_view() {
     global $wpdb;
     $table_students = $wpdb->prefix . 'sms_students';
@@ -154,7 +160,7 @@ function educore_student_promotion_view() {
     // --------------------------------------------------------------------------
     $display_candidates = array();
 
-    if ( $filter_exam > 0 && ! empty( $filter_class ) ) {
+    if ( 0 < $filter_exam && ! empty( $filter_class ) ) {
         // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         if ( ! empty( $filter_section ) ) {
             $class_students = $wpdb->get_results(
@@ -197,12 +203,12 @@ function educore_student_promotion_view() {
                 foreach ( $results as $res ) {
                     $total_obt += floatval( $res->obtained_marks );
                     $sum_gpa   += floatval( $res->gpa );
-                    if ( strtoupper( trim( (string) $res->grade ) ) === 'F' || floatval( $res->gpa ) <= 0 ) {
+                    if ( 'F' === strtoupper( trim( (string) $res->grade ) ) || floatval( $res->gpa ) <= 0 ) {
                         $has_fail = true;
                     }
                 }
 
-                $avg_gpa   = ( $sub_count > 0 ) ? ( $sum_gpa / $sub_count ) : 0;
+                $avg_gpa   = ( 0 < $sub_count ) ? ( $sum_gpa / $sub_count ) : 0;
                 $final_gpa = $has_fail ? 0.00 : round( $avg_gpa, 2 );
 
                 $candidate_pool[] = array(
@@ -214,7 +220,7 @@ function educore_student_promotion_view() {
                 );
             }
 
-            // Merit sort: Passed first -> GPA (DESC) -> Total Marks (DESC)
+            // Merit sort: Passed first -> GPA (DESC) -> Total Marks (DESC).
             usort( $candidate_pool, function( $a, $b ) {
                 if ( $a['failed'] !== $b['failed'] ) {
                     return $a['failed'] ? 1 : -1;
@@ -531,7 +537,7 @@ function educore_student_promotion_view() {
         </script>
 
         <!-- Step 2: Promotion Processing Matrix Table -->
-        <?php if ( $filter_exam > 0 && ! empty( $filter_class ) ) : ?>
+        <?php if ( 0 < $filter_exam && ! empty( $filter_class ) ) : ?>
             <div class="ifs-educore-bento-card">
                 <form method="POST" action="">
                     <?php wp_nonce_field( 'execute_promotion_action', 'ifs_educore_promotion_nonce' ); ?>
@@ -590,7 +596,7 @@ function educore_student_promotion_view() {
                             <tbody>
                                 <?php if ( ! empty( $display_candidates ) ) : 
                                     foreach ( $display_candidates as $item ) : 
-                                        $s      = $item['student'];
+                                        $s     = $item['student'];
                                         $failed = $item['failed'];
                                         $c_pos  = $item['class_position'];
                                         $s_pos  = $item['section_position'];
@@ -600,14 +606,14 @@ function educore_student_promotion_view() {
                                             <input type="checkbox" name="promote_student[]" value="<?php echo esc_attr( $s->id ); ?>" class="st-promote-check" <?php echo ! $failed ? 'checked' : ''; ?>>
                                         </td>
                                         <td>
-                                            <?php if ( ! $failed && $c_pos > 0 ) : ?>
-                                                <span class="ifs-educore-rank-badge <?php echo $c_pos <= 3 ? 'top' : ''; ?>">#<?php echo esc_html( $c_pos ); ?></span>
+                                            <?php if ( ! $failed && 0 < $c_pos ) : ?>
+                                                <span class="ifs-educore-rank-badge <?php echo 3 >= $c_pos ? 'top' : ''; ?>">#<?php echo esc_html( $c_pos ); ?></span>
                                             <?php else : ?>
                                                 <span style="color:#94a3b8;">—</span>
                                             <?php endif; ?>
                                         </td>
                                         <td>
-                                            <?php if ( ! $failed && $s_pos > 0 ) : ?>
+                                            <?php if ( ! $failed && 0 < $s_pos ) : ?>
                                                 <span class="ifs-educore-rank-badge">#<?php echo esc_html( $s_pos ); ?></span>
                                             <?php else : ?>
                                                 <span style="color:#94a3b8;">—</span>
@@ -627,7 +633,7 @@ function educore_student_promotion_view() {
                                             <input type="number" name="new_roll[<?php echo esc_attr( $s->id ); ?>]" 
                                                    class="ifs-educore-cell-input-sm st-new-roll" 
                                                    value="<?php echo ! $failed ? esc_attr( $c_pos ) : esc_attr( $s->roll_no ); ?>" 
-                                                   data-merit-pos="<?php echo esc_attr( $c_pos > 0 ? $c_pos : 999 ); ?>">
+                                                   data-merit-pos="<?php echo esc_attr( 0 < $c_pos ? $c_pos : 999 ); ?>">
                                         </td>
                                         <td>
                                             <input type="text" name="new_section[<?php echo esc_attr( $s->id ); ?>]" 
@@ -661,7 +667,7 @@ function educore_student_promotion_view() {
                     });
                 }
 
-                // Auto-fill rolls sequentially based on Merit Position
+                // Auto-fill rolls sequentially based on Merit Position.
                 var autoRollBtn = document.getElementById('ifs_educore_btn_autofill_rolls');
                 if (autoRollBtn) {
                     autoRollBtn.addEventListener('click', function() {
@@ -676,7 +682,7 @@ function educore_student_promotion_view() {
                     });
                 }
 
-                // Dynamic Section Loader for Target Class
+                // Dynamic Section Loader for Target Class.
                 var targetClassDropdown   = document.getElementById('ifs_educore_target_class_dropdown');
                 var targetSectionDropdown = document.getElementById('ifs_educore_bulk_target_section');
 
@@ -719,7 +725,7 @@ function educore_student_promotion_view() {
                         });
                     });
 
-                    // Sync bulk section selector across individual inputs
+                    // Sync bulk section selector across individual inputs.
                     targetSectionDropdown.addEventListener('change', function() {
                         var chosenSec = this.value;
                         if (chosenSec) {

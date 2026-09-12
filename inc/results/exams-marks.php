@@ -8,13 +8,16 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+    exit; // Exit if accessed directly.
 }
 
 // --------------------------------------------------------------------------
 // 1. AJAX HANDLERS (Filtered by Exam, Class, Section & Teacher Assignments)
 // --------------------------------------------------------------------------
 add_action( 'wp_ajax_ifs_educore_get_classes_by_exam_marks', 'ifs_educore_get_classes_by_exam_marks_handler' );
+/**
+ * AJAX Handler: Get classes filtered by exam and teacher assignment.
+ */
 function ifs_educore_get_classes_by_exam_marks_handler() {
     check_ajax_referer( 'ifs_educore_marks_nonce', 'security' );
 
@@ -27,10 +30,10 @@ function ifs_educore_get_classes_by_exam_marks_handler() {
     }
 
     global $wpdb;
-    $table_staff             = $wpdb->prefix . 'sms_staff';
-    $table_exams             = $wpdb->prefix . 'sms_exams';
-    $table_units             = $wpdb->prefix . 'sms_academic_units';
-    $table_teacher_subjects  = $wpdb->prefix . 'sms_teacher_subjects';
+    $table_staff            = $wpdb->prefix . 'sms_staff';
+    $table_exams            = $wpdb->prefix . 'sms_exams';
+    $table_units            = $wpdb->prefix . 'sms_academic_units';
+    $table_teacher_subjects = $wpdb->prefix . 'sms_teacher_subjects';
 
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     if ( ! $is_admin && ! $is_staff ) {
@@ -62,7 +65,7 @@ function ifs_educore_get_classes_by_exam_marks_handler() {
 
     $exam_classes = array_map( 'trim', explode( ',', (string) $raw_exam_classes ) );
 
-    // Fetch class sort order dictionary
+    // Fetch class sort order dictionary.
     $class_order_rows = $wpdb->get_results( "SELECT class_name, MIN(sort_order) as min_sort FROM `{$table_units}` GROUP BY class_name" );
     $class_order_map  = array();
     if ( ! empty( $class_order_rows ) ) {
@@ -71,7 +74,7 @@ function ifs_educore_get_classes_by_exam_marks_handler() {
         }
     }
 
-    // If teacher, intersect with teacher's assigned classes
+    // If teacher, intersect with teacher's assigned classes.
     if ( ! $is_admin ) {
         $teacher_id = (int) $wpdb->get_var(
             $wpdb->prepare(
@@ -98,7 +101,7 @@ function ifs_educore_get_classes_by_exam_marks_handler() {
 
     $exam_classes = array_values( array_unique( array_filter( $exam_classes ) ) );
 
-    // Sort by sort_order first, then natural case comparison
+    // Sort by sort_order first, then natural case comparison.
     usort( $exam_classes, function( $a, $b ) use ( $class_order_map ) {
         $order_a = isset( $class_order_map[ $a ] ) ? $class_order_map[ $a ] : 0;
         $order_b = isset( $class_order_map[ $b ] ) ? $class_order_map[ $b ] : 0;
@@ -113,6 +116,9 @@ function ifs_educore_get_classes_by_exam_marks_handler() {
 }
 
 add_action( 'wp_ajax_ifs_educore_get_sections_by_class_marks', 'ifs_educore_get_sections_by_class_marks_handler' );
+/**
+ * AJAX Handler: Get sections filtered by class and teacher allocation.
+ */
 function ifs_educore_get_sections_by_class_marks_handler() {
     check_ajax_referer( 'ifs_educore_marks_nonce', 'security' );
 
@@ -145,9 +151,9 @@ function ifs_educore_get_sections_by_class_marks_handler() {
         wp_send_json_error( array( 'message' => esc_html__( 'Permission denied.', 'ifsedu-school-management' ) ) );
     }
 
-    $table_units             = $wpdb->prefix . 'sms_academic_units';
-    $table_teacher_subjects  = $wpdb->prefix . 'sms_teacher_subjects';
-    $class_name              = isset( $_POST['class_name'] ) ? sanitize_text_field( wp_unslash( $_POST['class_name'] ) ) : '';
+    $table_units            = $wpdb->prefix . 'sms_academic_units';
+    $table_teacher_subjects = $wpdb->prefix . 'sms_teacher_subjects';
+    $class_name             = isset( $_POST['class_name'] ) ? sanitize_text_field( wp_unslash( $_POST['class_name'] ) ) : '';
 
     if ( empty( $class_name ) ) {
         wp_send_json_success( array() );
@@ -191,6 +197,9 @@ function ifs_educore_get_sections_by_class_marks_handler() {
 }
 
 add_action( 'wp_ajax_ifs_educore_get_subjects_for_marks_matrix', 'ifs_educore_get_subjects_for_marks_matrix_handler' );
+/**
+ * AJAX Handler: Get subjects for the marks matrix.
+ */
 function ifs_educore_get_subjects_for_marks_matrix_handler() {
     check_ajax_referer( 'ifs_educore_marks_nonce', 'security' );
 
@@ -223,11 +232,11 @@ function ifs_educore_get_subjects_for_marks_matrix_handler() {
         wp_send_json_error( array( 'message' => esc_html__( 'Permission denied.', 'ifsedu-school-management' ) ) );
     }
 
-    $table_exams             = $wpdb->prefix . 'sms_exams';
-    $table_subjects          = $wpdb->prefix . 'sms_subjects';
-    $table_units             = $wpdb->prefix . 'sms_academic_units';
-    $table_results           = $wpdb->prefix . 'sms_results';
-    $table_students          = $wpdb->prefix . 'sms_students';
+    $table_exams    = $wpdb->prefix . 'sms_exams';
+    $table_subjects = $wpdb->prefix . 'sms_subjects';
+    $table_units    = $wpdb->prefix . 'sms_academic_units';
+    $table_results  = $wpdb->prefix . 'sms_results';
+    $table_students = $wpdb->prefix . 'sms_students';
 
     $exam_id      = isset( $_POST['exam_id'] ) ? absint( $_POST['exam_id'] ) : 0;
     $class_name   = isset( $_POST['class_name'] ) ? sanitize_text_field( wp_unslash( $_POST['class_name'] ) ) : '';
@@ -282,7 +291,7 @@ function ifs_educore_get_subjects_for_marks_matrix_handler() {
         } ) );
     }
 
-    // Count total active students in this class/section
+    // Count total active students in this class/section.
     if ( ! empty( $section_name ) ) {
         $total_students = (int) $wpdb->get_var(
             $wpdb->prepare(
@@ -300,7 +309,7 @@ function ifs_educore_get_subjects_for_marks_matrix_handler() {
         );
     }
 
-    // Deduplicate subjects and calculate entry counts
+    // Deduplicate subjects and calculate entry counts.
     $unique_subjects = array();
     $seen_sub_names  = array();
     if ( ! empty( $subjects ) ) {
@@ -311,7 +320,7 @@ function ifs_educore_get_subjects_for_marks_matrix_handler() {
 
                 if ( $exam_id > 0 ) {
                     if ( ! empty( $section_name ) ) {
-                        // Fixed: Changed r.section_name to st.section_name
+                        // Fixed: Changed r.section_name to st.section_name.
                         $entered_count = (int) $wpdb->get_var(
                             $wpdb->prepare(
                                 "SELECT COUNT(r.id) FROM `{$table_results}` r INNER JOIN `{$table_students}` st ON r.student_id = st.id WHERE r.exam_id = %d AND r.class_name = %s AND st.section_name = %s AND r.subject_name = %s",
@@ -351,6 +360,13 @@ function ifs_educore_get_subjects_for_marks_matrix_handler() {
 // 2. STANDARD BD NCTB GRADING FUNCTION
 // --------------------------------------------------------------------------
 if ( ! function_exists( 'educore_calculate_grade' ) ) {
+    /**
+     * Calculate Standard Bangladeshi NCTB Grade and GPA.
+     *
+     * @param float $obtained Obtained marks.
+     * @param float $total    Total marks.
+     * @return array Grade letter and GPA.
+     */
     function educore_calculate_grade( $obtained, $total = 100 ) {
         $total = floatval( $total ) > 0 ? floatval( $total ) : 100;
         $pct   = ( floatval( $obtained ) / $total ) * 100;
@@ -376,23 +392,28 @@ if ( ! function_exists( 'educore_calculate_grade' ) ) {
 // --------------------------------------------------------------------------
 // 3. MAIN MARKS ENTRY MATRIX VIEW
 // --------------------------------------------------------------------------
+/**
+ * Render Marks Entry Matrix & Evaluation View.
+ */
 function educore_exams_marks_view() {
     global $wpdb;
     $current_user = wp_get_current_user();
 
-    $table_students          = $wpdb->prefix . 'sms_students';
-    $table_exams             = $wpdb->prefix . 'sms_exams';
-    $table_results           = $wpdb->prefix . 'sms_results';
-    $table_units             = $wpdb->prefix . 'sms_academic_units';
-    $table_subjects          = $wpdb->prefix . 'sms_subjects';
-    $table_staff             = $wpdb->prefix . 'sms_staff';
-    $table_teacher_subjects  = $wpdb->prefix . 'sms_teacher_subjects';
+    $table_students         = $wpdb->prefix . 'sms_students';
+    $table_exams            = $wpdb->prefix . 'sms_exams';
+    $table_results          = $wpdb->prefix . 'sms_results';
+    $table_units            = $wpdb->prefix . 'sms_academic_units';
+    $table_subjects         = $wpdb->prefix . 'sms_subjects';
+    $table_staff            = $wpdb->prefix . 'sms_staff';
+    $table_teacher_subjects = $wpdb->prefix . 'sms_teacher_subjects';
 
-    // Auto-migrate component_marks column in results if missing
+    // Auto-migrate component_marks column in results if missing.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     $col_check = $wpdb->get_results( "SHOW COLUMNS FROM `{$table_results}` LIKE 'component_marks'" );
     if ( empty( $col_check ) ) {
         $wpdb->query( "ALTER TABLE `{$table_results}` ADD COLUMN `component_marks` longtext DEFAULT '' NOT NULL AFTER `practical_marks`" );
     }
+    // phpcs:enable
 
     $is_admin = current_user_can( 'manage_options' ) || in_array( 'administrator', (array) $current_user->roles, true );
     $is_staff = false;
@@ -424,13 +445,13 @@ function educore_exams_marks_view() {
     $base_url    = esc_url_raw( $current_uri );
     $notice_msg  = '';
 
-    // Unified Parameter Resolution
+    // Unified Parameter Resolution.
     $filter_exam    = isset( $_REQUEST['exam_id'] ) ? absint( $_REQUEST['exam_id'] ) : 0;
     $filter_class   = isset( $_REQUEST['class_name'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['class_name'] ) ) : '';
     $filter_section = isset( $_REQUEST['section_name'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['section_name'] ) ) : '';
     $filter_subject = isset( $_REQUEST['subject_name'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['subject_name'] ) ) : '';
 
-    // Fetch Class Sort Order Dictionary
+    // Fetch Class Sort Order Dictionary.
     $class_order_rows = $wpdb->get_results( "SELECT class_name, MIN(sort_order) as min_sort FROM `{$table_units}` GROUP BY class_name" );
     $class_order_map  = array();
     if ( ! empty( $class_order_rows ) ) {
@@ -439,10 +460,10 @@ function educore_exams_marks_view() {
         }
     }
 
-    // Resolve Teacher Allocations
+    // Resolve Teacher Allocations.
     $teacher_assigned_classes = array();
     $teacher_assigned_subs    = array();
-    $teacher_id                = 0;
+    $teacher_id               = 0;
 
     if ( ! $is_admin ) {
         $teacher_id = (int) $wpdb->get_var(
@@ -482,7 +503,7 @@ function educore_exams_marks_view() {
         }
     }
 
-    // Handle Form Submission
+    // Handle Form Submission.
     $request_method = isset( $_SERVER['REQUEST_METHOD'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : '';
     if ( 'POST' === $request_method && isset( $_POST['educore_save_marks_matrix'] ) ) {
         if ( isset( $_POST['ifs_educore_marks_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ifs_educore_marks_nonce'] ) ), 'save_marks_action' ) ) {
@@ -525,10 +546,10 @@ function educore_exams_marks_view() {
                 }
 
                 foreach ( $student_ids as $s_id ) {
-                    $s_id_int = absint( $s_id );
-                    $obtained = 0.00;
+                    $s_id_int   = absint( $s_id );
+                    $obtained   = 0.00;
                     $has_failed = false;
-                    $comp_json = '';
+                    $comp_json  = '';
 
                     $cq_val  = 0.00;
                     $mcq_val = 0.00;
@@ -588,6 +609,7 @@ function educore_exams_marks_view() {
                         $gpa        = $grade_eval[1];
                     }
 
+                    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
                     $existing_id = (int) $wpdb->get_var(
                         $wpdb->prepare(
                             "SELECT id FROM `{$table_results}` WHERE exam_id = %d AND student_id = %d AND subject_name = %s LIMIT 1",
@@ -620,10 +642,12 @@ function educore_exams_marks_view() {
                     } else {
                         $wpdb->insert( $table_results, $data, $format );
                     }
+                    // phpcs:enable
                     $saved_count++;
                 }
 
                 if ( function_exists( 'educore_log_activity' ) ) {
+                    /* translators: 1: Saved student count, 2: Filter subject */
                     educore_log_activity( sprintf( __( 'Evaluated and saved marks for %1$d students in %2$s', 'ifsedu-school-management' ), $saved_count, $filter_subject ) );
                 }
 
@@ -635,10 +659,11 @@ function educore_exams_marks_view() {
         }
     }
 
-    // Fetch Examinations
+    // Fetch Examinations.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
     $exams = $wpdb->get_results( "SELECT id, exam_name, class_name, subject_ids FROM `{$table_exams}` ORDER BY id DESC" );
 
-    // Fetch Classes ONLY assigned to the active selected Exam (Ordered by sort_order)
+    // Fetch Classes ONLY assigned to the active selected Exam (Ordered by sort_order).
     $academic_classes = array();
     $exam_subject_map = array();
 
@@ -673,7 +698,7 @@ function educore_exams_marks_view() {
         }
     }
 
-    // Pre-populate Available Sections (Ordered by sort_order)
+    // Pre-populate Available Sections (Ordered by sort_order).
     $available_sections = array();
     if ( ! empty( $filter_class ) ) {
         if ( ! $is_admin && $teacher_id > 0 ) {
@@ -698,7 +723,7 @@ function educore_exams_marks_view() {
         }
     }
 
-    // Total active students in class/section for entry status calculation
+    // Total active students in class/section for entry status calculation.
     if ( ! empty( $filter_class ) ) {
         if ( ! empty( $filter_section ) ) {
             $total_class_students = (int) $wpdb->get_var(
@@ -720,7 +745,7 @@ function educore_exams_marks_view() {
         $total_class_students = 0;
     }
 
-    // Fetch Mapped Subjects with Section Context & Unique Deduplication
+    // Fetch Mapped Subjects with Section Context & Unique Deduplication.
     $available_subjects = array();
     $active_subject_obj = null;
 
@@ -743,7 +768,7 @@ function educore_exams_marks_view() {
             if ( ! $is_admin && $teacher_id > 0 ) {
                 $raw_subs = $wpdb->get_results(
                     $wpdb->prepare(
-                        "SELECT DISTINCT s.* 
+                        "SELECT DISTINCT s.id, s.subject_name, s.subject_code, s.subject_order, s.total_marks, s.pass_marks, s.cq_marks, s.cq_pass, s.mcq_marks, s.mcq_pass, s.practical_marks, s.practical_pass, s.breakdown_data, s.class_id  
                          FROM `{$table_teacher_subjects}` ts
                          INNER JOIN `{$table_subjects}` s ON ts.subject_id = s.id 
                          INNER JOIN `{$table_units}` u ON ts.class_id = u.id 
@@ -766,15 +791,15 @@ function educore_exams_marks_view() {
             }
         }
 
-        // Filter by Exam Scheme Subject Configuration if applicable
+        // Filter by Exam Scheme Subject Configuration if applicable.
         if ( ! empty( $exam_subject_map[ $filter_class ] ) && is_array( $exam_subject_map[ $filter_class ] ) ) {
             $allowed_ids = array_map( 'absint', $exam_subject_map[ $filter_class ] );
-            $raw_subs = array_values( array_filter( $raw_subs, function( $sub ) use ( $allowed_ids ) {
+            $raw_subs    = array_values( array_filter( $raw_subs, function( $sub ) use ( $allowed_ids ) {
                 return in_array( (int) $sub->id, $allowed_ids, true );
             } ) );
         }
 
-        // Deduplicate unique subject names
+        // Deduplicate unique subject names.
         $seen_names = array();
         if ( ! empty( $raw_subs ) ) {
             foreach ( $raw_subs as $s_item ) {
@@ -824,8 +849,9 @@ function educore_exams_marks_view() {
             }
         }
     }
+    // phpcs:enable
 
-    // Parse Custom Breakdown Data if configured in class-subjects.php
+    // Parse Custom Breakdown Data if configured.
     $custom_breakdown_components = array();
     if ( $active_subject_obj && ! empty( $active_subject_obj->breakdown_data ) ) {
         $parsed_bd = json_decode( $active_subject_obj->breakdown_data, true );
@@ -835,7 +861,8 @@ function educore_exams_marks_view() {
     }
     $has_custom_breakdown = ! empty( $custom_breakdown_components );
 
-    // Fetch Active Students Dataset & Pre-existing Marks
+    // Fetch Active Students Dataset & Pre-existing Marks.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
     $students_list = array();
     $saved_marks   = array();
 
@@ -1115,7 +1142,7 @@ function educore_exams_marks_view() {
         jQuery(document).ready(function($) {
             var nonce = '<?php echo esc_js( wp_create_nonce( "ifs_educore_marks_nonce" ) ); ?>';
 
-            // When Exam is changed -> Load only classes assigned to that Exam
+            // When Exam is changed -> Load only classes assigned to that Exam.
             $('#ifs_educore_marks_exam_select').on('change', function() {
                 var selectedExamId = $(this).val();
                 var $classSelect   = $('#ifs_educore_marks_class_select');
@@ -1153,7 +1180,7 @@ function educore_exams_marks_view() {
                 });
             });
 
-            // Helper function to trigger reloading of section-aware subjects with separated groups
+            // Helper function to trigger reloading of section-aware subjects with separated groups.
             function reloadSubjectsForClassAndSection() {
                 var selectedClass  = $('#ifs_educore_marks_class_select').val();
                 var selectedSection = $('#ifs_educore_marks_section_select').val();
@@ -1208,7 +1235,7 @@ function educore_exams_marks_view() {
                 });
             }
 
-            // When Class is changed -> Load corresponding sections & subjects
+            // When Class is changed -> Load corresponding sections & subjects.
             $('#ifs_educore_marks_class_select').on('change', function() {
                 var selectedClass  = $(this).val();
                 var $secSelect     = $('#ifs_educore_marks_section_select');
@@ -1222,7 +1249,7 @@ function educore_exams_marks_view() {
                     return;
                 }
 
-                // Load Sections
+                // Load Sections.
                 $.ajax({
                     url: ajaxurl,
                     type: 'POST',
@@ -1245,7 +1272,7 @@ function educore_exams_marks_view() {
                 reloadSubjectsForClassAndSection();
             });
 
-            // When Section is changed -> Reload subjects specific to this section
+            // When Section is changed -> Reload subjects specific to this section.
             $('#ifs_educore_marks_section_select').on('change', function() {
                 reloadSubjectsForClassAndSection();
             });
@@ -1357,7 +1384,7 @@ function educore_exams_marks_view() {
                                     $curr_gpa = $curr_res ? number_format( floatval( $curr_res->gpa ), 2 ) : '0.00';
                                     $is_fail  = ( 'F' === $curr_grd );
 
-                                    // Parse component marks if present
+                                    // Parse component marks if present.
                                     $student_comp_marks = array();
                                     if ( $curr_res && ! empty( $curr_res->component_marks ) ) {
                                         $decoded_cm = json_decode( $curr_res->component_marks, true );

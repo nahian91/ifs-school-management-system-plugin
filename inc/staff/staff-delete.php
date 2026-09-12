@@ -6,13 +6,16 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+    exit; // Exit if accessed directly.
 }
 
+/**
+ * Handle Staff Member Deletion & Secure Redirection
+ */
 function educore_staff_delete_action() {
     global $wpdb;
 
-    // 1. Strict Security & Capability Verification
+    // 1. Strict Security & Capability Verification.
     if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'You do not have permission to delete staff profiles.', 'ifsedu-school-management' ) );
     }
@@ -22,7 +25,7 @@ function educore_staff_delete_action() {
     $nonce    = isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) : '';
     // phpcs:enable WordPress.Security.NonceVerification.Recommended
     
-    // Security check
+    // Security check.
     if ( empty( $nonce ) || ! wp_verify_nonce( $nonce, 'delete_staff_' . $staff_id ) ) {
         wp_die( esc_html__( 'Security check failed. You do not have permission to delete this record.', 'ifsedu-school-management' ) );
     }
@@ -30,7 +33,7 @@ function educore_staff_delete_action() {
     if ( $staff_id > 0 ) {
         $table_name = $wpdb->prefix . 'sms_staff';
         
-        // Log activity before deletion
+        // Log activity before deletion.
         // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $staff = $wpdb->get_row( $wpdb->prepare( "SELECT full_name FROM `{$table_name}` WHERE id = %d LIMIT 1", $staff_id ) );
         // phpcs:enable
@@ -40,13 +43,13 @@ function educore_staff_delete_action() {
             educore_log_activity( sprintf( __( 'Deleted staff record: %s', 'ifsedu-school-management' ), $staff->full_name ) );
         }
 
-        // Execute Delete
+        // Execute Delete.
         // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $wpdb->delete( $table_name, array( 'id' => $staff_id ), array( '%d' ) );
         // phpcs:enable
     }
 
-    // Redirect safely back to the list with a status notification
+    // Redirect safely back to the list with a status notification.
     $redirect_url = add_query_arg(
         array(
             'page' => 'school_management_system',

@@ -1,14 +1,17 @@
 <?php
 /**
  * Accounting Entry Deletion Handler
- * File: accounting-delete.php
+ * File: inc/accounting/accounting-delete.php
  * Text Domain: ifsedu-school-management
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Direct access safety buffer
+    exit; // Direct access safety buffer.
 }
 
+/**
+ * Handle Accounting Ledger Entry Deletion & Secure Redirection
+ */
 function educore_accounting_delete_handler() {
     global $wpdb;
 
@@ -31,9 +34,10 @@ function educore_accounting_delete_handler() {
 
     if ( $delete_id > 0 && ! empty( $nonce ) && wp_verify_nonce( $nonce, 'delete_acct_' . $delete_id ) ) {
         
-        // Fetch record title & voucher for audit trail
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // Fetch record title & voucher for audit trail.
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $entry = $wpdb->get_row( $wpdb->prepare( "SELECT voucher_no, title, amount FROM `{$table_accounting}` WHERE id = %d LIMIT 1", $delete_id ) );
+        // phpcs:enable
 
         if ( $entry ) {
             if ( function_exists( 'educore_log_activity' ) ) {

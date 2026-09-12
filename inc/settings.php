@@ -6,12 +6,12 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+    exit; // Exit if accessed directly.
 }
 
-// --------------------------------------------------------------------------
-// 1. Load All Settings Sub-Modules Securely
-// --------------------------------------------------------------------------
+/**
+ * 1. Load All Settings Sub-Modules Securely
+ */
 $educore_settings_submodules = array(
     'general',
     'prefixes',
@@ -24,18 +24,21 @@ foreach ( $educore_settings_submodules as $submodule ) {
     $submodule_file = EDUCORE_PATH . 'inc/settings/' . $submodule . '.php';
     if ( file_exists( $submodule_file ) ) {
         require_once $submodule_file;
+    } else {
+        // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+        error_log( 'EduCore Settings Error: Missing submodule file ' . $submodule_file );
     }
 }
 
-// --------------------------------------------------------------------------
-// 2. Main Tab Router Interface
-// --------------------------------------------------------------------------
+/**
+ * 2. Main Tab Router Interface
+ */
 function educore_settings_tab() {
     if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'You do not have sufficient permissions to access institutional settings.', 'ifsedu-school-management' ) );
     }
 
-    // Media uploader dependencies
+    // Media uploader dependencies.
     wp_enqueue_media();
 
     $allowed_sub_tabs = array( 'general', 'prefixes', 'academics', 'fees', 'permissions' );

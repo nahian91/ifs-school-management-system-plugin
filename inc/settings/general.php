@@ -6,9 +6,14 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+    exit; // Exit if accessed directly.
 }
 
+/**
+ * Render General Settings View & Handle Form Submission
+ *
+ * @param string $base_url Base URL for settings subtabs.
+ */
 function educore_render_settings_general_view( $base_url ) {
     $settings_updated = false;
     $req_method       = isset( $_SERVER['REQUEST_METHOD'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : '';

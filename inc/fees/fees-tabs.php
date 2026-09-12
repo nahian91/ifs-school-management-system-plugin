@@ -6,14 +6,17 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Immediate access layer lockdown
+    exit; // Immediate access layer lockdown.
 }
 
+/**
+ * Render Fees Sub-Navigation and Route Viewports
+ */
 function educore_fees_tab() {
     $current_user = wp_get_current_user();
     $roles        = (array) $current_user->roles;
 
-    // 1. Multi-Role Capability Security Matrix (Admins & Accountants)
+    // 1. Multi-Role Capability Security Matrix (Admins & Accountants).
     $is_admin      = current_user_can( 'manage_options' );
     $is_accountant = in_array( 'accountant', $roles, true ) || current_user_can( 'edit_posts' );
 
@@ -29,7 +32,7 @@ function educore_fees_tab() {
 
     $sub_tab = in_array( $raw_sub_tab, $allowed_sub_tabs, true ) ? $raw_sub_tab : 'list';
 
-    // Construct URLs for top submenu links
+    // Construct URLs for top submenu links.
     $base_admin_url = admin_url( 'admin.php' );
     $all_fees_url   = add_query_arg( array( 'page' => 'school_management_system', 'tab' => 'fees', 'sub' => 'list' ), $base_admin_url );
     $collect_url    = add_query_arg( array( 'page' => 'school_management_system', 'tab' => 'fees', 'sub' => 'collect' ), $base_admin_url );

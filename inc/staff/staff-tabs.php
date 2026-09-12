@@ -7,10 +7,10 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Immediate access layer lockdown
+    exit; // Immediate access layer lockdown.
 }
 
-// Load Modular Dependency Sub-Files if segregated
+// Load Modular Dependency Sub-Files if segregated.
 $educore_staff_dir = defined( 'EDUCORE_PATH' ) ? EDUCORE_PATH . 'inc/staff/' : plugin_dir_path( __FILE__ ) . 'staff/';
 
 if ( file_exists( $educore_staff_dir . 'staff-list.php' ) ) {
@@ -29,6 +29,9 @@ if ( file_exists( $educore_staff_dir . 'staff-id-cards.php' ) ) {
     require_once $educore_staff_dir . 'staff-id-cards.php';
 }
 
+/**
+ * Main Staff Tab Router & Execution Controller
+ */
 function educore_staff_tab() {
     if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'You do not have sufficient permissions to access the staff module.', 'ifsedu-school-management' ) );
@@ -42,7 +45,7 @@ function educore_staff_tab() {
 
     $sub_tab = in_array( $raw_sub_tab, $allowed_sub_tabs, true ) ? $raw_sub_tab : 'list';
 
-    // Construct URLs for top submenu links using add_query_arg()
+    // Construct URLs for top submenu links using add_query_arg().
     $base_admin_url = admin_url( 'admin.php' );
     $all_staff_url  = add_query_arg( array( 'page' => 'school_management_system', 'tab' => 'staff', 'sub' => 'list' ), $base_admin_url );
     $add_staff_url  = add_query_arg( array( 'page' => 'school_management_system', 'tab' => 'staff', 'sub' => 'add' ), $base_admin_url );

@@ -7,14 +7,17 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Immediate access layer lockdown
+    exit; // Immediate access layer lockdown.
 }
 
+/**
+ * Render Multi-Step Staff Add/Edit Form View & Handle Processing
+ */
 function educore_staff_add_edit_view() {
     global $wpdb;
     $table_staff = $wpdb->prefix . 'sms_staff';
 
-    // 1. Security & Capability Verification
+    // 1. Security & Capability Verification.
     if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'You do not have permission to manage staff profiles.', 'ifsedu-school-management' ) );
     }
@@ -36,14 +39,14 @@ function educore_staff_add_edit_view() {
         }
     }
 
-    // 2. Fetch Configured ID Prefixes from Settings
+    // 2. Fetch Configured ID Prefixes from Settings.
     $prefix_teacher = get_option( 'educore_prefix_teacher', 'TCH-' );
     $prefix_staff   = get_option( 'educore_prefix_staff', 'STF-' );
     $prefix_officer = get_option( 'educore_prefix_officer', 'OFC-' );
 
-    // Determine Prefix according to staff type or default to Teacher
+    // Determine Prefix according to staff type or default to Teacher.
     $initial_staff_type = $staff ? $staff->staff_type : 'Teacher (School)';
-    $selected_prefix = $prefix_teacher;
+    $selected_prefix    = $prefix_teacher;
 
     if ( 'Officer' === $initial_staff_type ) {
         $selected_prefix = $prefix_officer;
@@ -51,7 +54,7 @@ function educore_staff_add_edit_view() {
         $selected_prefix = $prefix_staff;
     }
 
-    // Generate Auto-Sequential ID based on prefix
+    // Generate Auto-Sequential ID based on prefix.
     if ( ! $is_edit || empty( $staff->staff_id ) ) {
         $escaped_like = $wpdb->esc_like( $selected_prefix ) . '%';
         // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
@@ -70,20 +73,20 @@ function educore_staff_add_edit_view() {
                 }
             }
         }
-        $next_num = $max_num + 1;
+        $next_num           = $max_num + 1;
         $generated_staff_id = $selected_prefix . str_pad( (string) $next_num, 4, '0', STR_PAD_LEFT );
     } else {
         $generated_staff_id = $staff->staff_id;
     }
 
-    // 3. Handle Form Submission
+    // 3. Handle Form Submission.
     $req_method = isset( $_SERVER['REQUEST_METHOD'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : '';
     if ( 'POST' === $req_method && isset( $_POST['educore_staff_action'] ) && 'save_staff' === $_POST['educore_staff_action'] && isset( $_POST['ifs_educore_staff_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ifs_educore_staff_nonce'] ) ), 'save_staff_action' ) ) {
 
         $profile_image   = ( $staff && isset( $staff->profile_image ) ) ? $staff->profile_image : '';
         $posted_staff_id = isset( $_POST['staff_id'] ) ? strtoupper( sanitize_text_field( wp_unslash( $_POST['staff_id'] ) ) ) : $generated_staff_id;
 
-        // Check if Staff ID is already registered for another profile
+        // Check if Staff ID is already registered for another profile.
         // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         if ( $is_edit && $staff_id > 0 ) {
             $exists = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM `{$table_staff}` WHERE staff_id = %s AND id != %d LIMIT 1", $posted_staff_id, $staff_id ) );
@@ -95,7 +98,7 @@ function educore_staff_add_edit_view() {
         if ( $exists > 0 ) {
             $db_error = esc_html__( 'Error: This Staff ID is already registered. Please use a unique identifier.', 'ifsedu-school-management' );
         } else {
-            // Handle Portrait Image Upload with MIME Check
+            // Handle Portrait Image Upload with MIME Check.
             if ( ! empty( $_FILES['staff_photo']['name'] ) ) {
                 $allowed_mimes = array(
                     'jpg|jpeg|jpe' => 'image/jpeg',
@@ -165,7 +168,7 @@ function educore_staff_add_edit_view() {
             );
 
             $formats = array(
-                '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%f', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s'
+                '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%f', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s',
             );
 
             // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -515,7 +518,7 @@ function educore_staff_add_edit_view() {
                 'Staff': '<?php echo esc_js( $prefix_staff ); ?>'
             };
 
-            // Dynamic Prefix Switcher based on Employment Type (New Records Only)
+            // Dynamic Prefix Switcher based on Employment Type (New Records Only).
             $('#educore_staff_type_select').on('change', function() {
                 if (isEditMode) return;
                 var staffType = $(this).val();
@@ -525,20 +528,20 @@ function educore_staff_add_edit_view() {
                 $('#educore_staff_id_input').val(prefix + numPart);
             });
 
-            // Enforce capitalize conversion on Staff ID input field
+            // Enforce uppercase conversion on Staff ID input field.
             $('input[name="staff_id"]').on('input', function() {
-                this.value = this.value.tocapitalize();
+                this.value = this.value.toUpperCase();
             });
 
             function updateStepVisibility() {
                 $('.educore-step-content').removeClass('active');
                 $('#educore-step-' + currentStep).addClass('active');
 
-                // Update Tab Indicator Highlights
+                // Update Tab Indicator Highlights.
                 $('#educoreStaffTabs .nav-link').removeClass('active');
                 $('#step-' + currentStep + '-tab').addClass('active');
 
-                // Control Dynamic Action Buttons
+                // Control Dynamic Action Buttons.
                 if (currentStep === 1) {
                     $('#educorePrevBtn').hide();
                 } else {
@@ -578,7 +581,7 @@ function educore_staff_add_edit_view() {
                 return isValid;
             }
 
-            // Step Forward Mechanics with Validation Check
+            // Step Forward Mechanics with Validation Check.
             $('#educoreNextBtn').on('click', function() {
                 if (validateStep(currentStep)) {
                     $('#step-' + currentStep + '-tab').addClass('completed');
@@ -589,7 +592,7 @@ function educore_staff_add_edit_view() {
                 }
             });
 
-            // Step Backward Mechanics
+            // Step Backward Mechanics.
             $('#educorePrevBtn').on('click', function() {
                 if (currentStep > 1) {
                     currentStep--;
@@ -597,7 +600,7 @@ function educore_staff_add_edit_view() {
                 }
             });
 
-            // Direct Tab Click Navigation
+            // Direct Tab Click Navigation.
             $('#educoreStaffTabs .nav-link').on('click', function() {
                 var targetStep = parseInt($(this).data('step'), 10);
                 if (targetStep < currentStep || validateStep(currentStep)) {
@@ -606,7 +609,7 @@ function educore_staff_add_edit_view() {
                 }
             });
 
-            // Final Form Submit Validation
+            // Final Form Submit Validation.
             $('#educoreStaffForm').on('submit', function(e) {
                 for (var i = 1; i <= totalSteps; i++) {
                     if (!validateStep(i)) {

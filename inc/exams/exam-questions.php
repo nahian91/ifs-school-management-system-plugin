@@ -6,15 +6,17 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+    exit; // Exit if accessed directly.
 }
 
 // --------------------------------------------------------------------------
 // 1. AJAX HANDLERS
 // --------------------------------------------------------------------------
 
-// Handler A: Auto-load subjects and marks setup for chosen Class
 add_action( 'wp_ajax_ifs_educore_get_subjects_for_qp', 'ifs_educore_get_subjects_for_qp_handler' );
+/**
+ * AJAX Handler: Auto-load subjects and marks setup for chosen Class
+ */
 function ifs_educore_get_subjects_for_qp_handler() {
     check_ajax_referer( 'ifs_educore_qp_ajax_nonce', 'security' );
     global $wpdb;
@@ -47,8 +49,10 @@ function ifs_educore_get_subjects_for_qp_handler() {
     wp_send_json_success( is_array( $subjects ) ? $subjects : array() );
 }
 
-// Handler B: Load full question data for editing/re-printing
 add_action( 'wp_ajax_ifs_educore_load_saved_question_paper', 'ifs_educore_load_saved_question_paper_handler' );
+/**
+ * AJAX Handler: Load full question data for editing/re-printing
+ */
 function ifs_educore_load_saved_question_paper_handler() {
     check_ajax_referer( 'ifs_educore_qp_ajax_nonce', 'security' );
     global $wpdb;
@@ -80,6 +84,10 @@ function ifs_educore_load_saved_question_paper_handler() {
 // --------------------------------------------------------------------------
 // 2. MAIN VIEW ENGINE
 // --------------------------------------------------------------------------
+
+/**
+ * Render Question Paper Generator & Bank Engine View
+ */
 function educore_exam_questions_view() {
     global $wpdb;
 
@@ -91,7 +99,8 @@ function educore_exam_questions_view() {
     $table_exams     = $wpdb->prefix . 'sms_exams';
     $table_units     = $wpdb->prefix . 'sms_academic_units';
 
-    // Auto-create questions table if not exists
+    // Auto-create questions table if not exists.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     $table_check = $wpdb->get_var( "SHOW TABLES LIKE '{$table_questions}'" );
     if ( empty( $table_check ) ) {
         $charset_collate = $wpdb->get_charset_collate();
@@ -115,8 +124,9 @@ function educore_exam_questions_view() {
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         dbDelta( $sql );
     }
+    // phpcs:enable
 
-    // Dynamic Institutional Identity Settings
+    // Dynamic Institutional Identity Settings.
     $school_name    = get_option( 'educore_school_name', get_bloginfo( 'name' ) );
     $school_tagline = get_option( 'educore_school_tagline', '' );
     $school_logo    = get_option( 'educore_school_logo', '' );
@@ -131,7 +141,7 @@ function educore_exam_questions_view() {
         wp_enqueue_media();
     }
 
-    // Handle Delete Action
+    // Handle Delete Action.
     // phpcs:disable WordPress.Security.NonceVerification.Recommended
     if ( isset( $_GET['action'] ) && 'delete_paper' === $_GET['action'] && isset( $_GET['id'] ) ) {
         $del_id = absint( $_GET['id'] );
@@ -148,7 +158,7 @@ function educore_exam_questions_view() {
     }
     // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
-    // Handle Form Submission (Save & Update)
+    // Handle Form Submission (Save & Update).
     $request_method = isset( $_SERVER['REQUEST_METHOD'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : '';
     if ( 'POST' === $request_method && isset( $_POST['educore_save_question_paper'] ) ) {
         if ( isset( $_POST['ifs_educore_question_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ifs_educore_question_nonce'] ) ), 'save_question_paper_action' ) ) {
@@ -163,7 +173,7 @@ function educore_exam_questions_view() {
             $total_marks   = isset( $_POST['total_marks'] ) ? floatval( wp_unslash( $_POST['total_marks'] ) ) : 70.00;
             $instructions  = isset( $_POST['instructions'] ) ? sanitize_textarea_field( wp_unslash( $_POST['instructions'] ) ) : '';
 
-            // Process CQ Payload
+            // Process CQ Payload.
             $cq_sections = ( isset( $_POST['cq_section'] ) && is_array( $_POST['cq_section'] ) ) ? array_map( 'sanitize_text_field', wp_unslash( $_POST['cq_section'] ) ) : array();
             $cq_stems    = ( isset( $_POST['cq_stem'] ) && is_array( $_POST['cq_stem'] ) ) ? array_map( 'sanitize_textarea_field', wp_unslash( $_POST['cq_stem'] ) ) : array();
             $cq_images   = ( isset( $_POST['cq_image_url'] ) && is_array( $_POST['cq_image_url'] ) ) ? array_map( 'esc_url_raw', wp_unslash( $_POST['cq_image_url'] ) ) : array();
@@ -198,7 +208,7 @@ function educore_exam_questions_view() {
                 }
             }
 
-            // Process MCQ Payload
+            // Process MCQ Payload.
             $mcq_q     = ( isset( $_POST['mcq_question'] ) && is_array( $_POST['mcq_question'] ) ) ? array_map( 'sanitize_text_field', wp_unslash( $_POST['mcq_question'] ) ) : array();
             $mcq_cols  = ( isset( $_POST['mcq_columns'] ) && is_array( $_POST['mcq_columns'] ) ) ? array_map( 'absint', wp_unslash( $_POST['mcq_columns'] ) ) : array();
             $mcq_marks = ( isset( $_POST['mcq_mark'] ) && is_array( $_POST['mcq_mark'] ) ) ? array_map( 'floatval', wp_unslash( $_POST['mcq_mark'] ) ) : array();
@@ -866,7 +876,7 @@ function educore_exam_questions_view() {
 
         var loadedSubjectsMap = {};
 
-        // Type Segmented Toggle Handlers
+        // Type Segmented Toggle Handlers.
         var typeTabs = document.querySelectorAll('.ifs-segmented-opt');
         typeTabs.forEach(function(tab) {
             tab.addEventListener('click', function() {
@@ -901,7 +911,7 @@ function educore_exam_questions_view() {
             });
         });
 
-        // Dynamic Subject Loading
+        // Dynamic Subject Loading.
         if (classSelect) {
             classSelect.addEventListener('change', function() {
                 var selectedClass = this.value;
@@ -956,95 +966,93 @@ function educore_exam_questions_view() {
             });
         }
 
-        // CQ Card Element Creator
+        // CQ Card Element Creator.
         function createCQCard(data, num) {
             data = data || {};
             num  = num || 1;
             var div = document.createElement('div');
             div.className = 'ifs-educore-q-card cq-item';
-            div.innerHTML = `
-                <div class="ifs-educore-q-card-header">
-                    <strong class="cq-item-num" style="color:#00523c; font-size:13.5px;"><?php echo esc_js( __( 'Question No.', 'ifsedu-school-management' ) ); ?> ${toBn(num)}</strong>
-                    <div style="display:flex; align-items:center; gap:8px;" onclick="event.stopPropagation();">
-                        <input type="text" name="cq_section[]" class="ifs-educore-input cq-inp-sec" style="width:130px; height:28px; font-size:12px;" placeholder="<?php esc_attr_e( "Section (e.g. 'ক-বিভাগ')", 'ifsedu-school-management' ); ?>" value="${data.section || ''}">
-                        <button type="button" class="btn-remove-cq" style="background:#fee2e2; color:#dc2626; border:1px solid #fecaca; border-radius:5px; padding:3px 8px; cursor:pointer; font-weight:800;">&times;</button>
-                    </div>
-                </div>
-                <div>
-                    <div style="margin-bottom:8px;">
-                        <textarea name="cq_stem[]" class="ifs-educore-textarea cq-inp-stem" rows="2" style="width:100%; font-size:13px;" placeholder="<?php esc_attr_e( 'Write the stimulus / stem text here...', 'ifsedu-school-management' ); ?>">${data.stem || ''}</textarea>
-                    </div>
-                    <div class="ifs-educore-image-attach-box" style="margin-bottom:8px; display:flex; align-items:center; gap:8px;">
-                        <img src="${data.image || ''}" class="cq-img-preview" alt="Diagram" style="max-height:40px; border:1px solid #cbd5e1; border-radius:4px; ${data.image ? 'display:block;' : 'display:none;'}">
-                        <input type="hidden" name="cq_image_url[]" class="cq-inp-img-url" value="${data.image || ''}">
-                        <button type="button" class="btn-choose-diagram" style="background:#f1f5f9; border:1px solid #cbd5e1; padding:4px 10px; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer;">
-                            <span class="dashicons dashicons-format-image" style="font-size:13px; width:13px; height:13px; vertical-align:middle;"></span> <?php echo esc_js( __( 'Attach Diagram', 'ifsedu-school-management' ) ); ?>
-                        </button>
-                        <button type="button" class="btn-remove-diagram" style="background:#fee2e2; color:#dc2626; border:none; padding:4px 8px; border-radius:4px; font-size:11px; font-weight:700; cursor:pointer; ${data.image ? 'display:inline-flex;' : 'display:none;'}"><?php echo esc_js( __( 'Remove', 'ifsedu-school-management' ) ); ?></button>
-                    </div>
-                    <div class="ifs-sub-q-builder-grid">
-                        <div class="ifs-sub-q-row-item">
-                            <input type="text" name="cq_a[]" class="ifs-educore-input cq-inp-a" placeholder="ক. জ্ঞানমূলক প্রশ্ন লিখুন" value="${data.a || ''}" style="flex:1; height:32px;">
-                            <input type="number" step="0.5" name="cq_mark_a[]" class="ifs-educore-input cq-mark-a" value="${data.mark_a || 1}" style="width:50px; height:32px; font-weight:800; text-align:center;">
-                        </div>
-                        <div class="ifs-sub-q-row-item">
-                            <input type="text" name="cq_b[]" class="ifs-educore-input cq-inp-b" placeholder="খ. অনুধাবনমূলক প্রশ্ন লিখুন" value="${data.b || ''}" style="flex:1; height:32px;">
-                            <input type="number" step="0.5" name="cq_mark_b[]" class="ifs-educore-input cq-mark-b" value="${data.mark_b || 2}" style="width:50px; height:32px; font-weight:800; text-align:center;">
-                        </div>
-                        <div class="ifs-sub-q-row-item">
-                            <input type="text" name="cq_c[]" class="ifs-educore-input cq-inp-c" placeholder="গ. প্রয়োগমূলক প্রশ্ন লিখুন" value="${data.c || ''}" style="flex:1; height:32px;">
-                            <input type="number" step="0.5" name="cq_mark_c[]" class="ifs-educore-input cq-mark-c" value="${data.mark_c || 3}" style="width:50px; height:32px; font-weight:800; text-align:center;">
-                        </div>
-                        <div class="ifs-sub-q-row-item">
-                            <input type="text" name="cq_d[]" class="ifs-educore-input cq-inp-d" placeholder="ঘ. উচ্চতর দক্ষতামূলক প্রশ্ন লিখুন" value="${data.d || ''}" style="flex:1; height:32px;">
-                            <input type="number" step="0.5" name="cq_mark_d[]" class="ifs-educore-input cq-mark-d" value="${data.mark_d || 4}" style="width:50px; height:32px; font-weight:800; text-align:center;">
-                        </div>
-                    </div>
-                </div>
-            `;
+            div.innerHTML = 
+                '<div class="ifs-educore-q-card-header">' +
+                    '<strong class="cq-item-num" style="color:#00523c; font-size:13.5px;"><?php echo esc_js( __( 'Question No.', 'ifsedu-school-management' ); ?> ' + toBn(num) + '</strong>' +
+                    '<div style="display:flex; align-items:center; gap:8px;" onclick="event.stopPropagation();">' +
+                        '<input type="text" name="cq_section[]" class="ifs-educore-input cq-inp-sec" style="width:130px; height:28px; font-size:12px;" placeholder="<?php esc_attr_e( "Section (e.g. 'ক-বিভাগ')", 'ifsedu-school-management' ); ?>" value="' + (data.section || '') + '">' +
+                        '<button type="button" class="btn-remove-cq" style="background:#fee2e2; color:#dc2626; border:1px solid #fecaca; border-radius:5px; padding:3px 8px; cursor:pointer; font-weight:800;">&times;</button>' +
+                    '</div>' +
+                '</div>' +
+                '<div>' +
+                    '<div style="margin-bottom:8px;">' +
+                        '<textarea name="cq_stem[]" class="ifs-educore-textarea cq-inp-stem" rows="2" style="width:100%; font-size:13px;" placeholder="<?php esc_attr_e( 'Write the stimulus / stem text here...', 'ifsedu-school-management' ); ?>">' + (data.stem || '') + '</textarea>' +
+                    '</div>' +
+                    '<div class="ifs-educore-image-attach-box" style="margin-bottom:8px; display:flex; align-items:center; gap:8px;">' +
+                        '<img src="' + (data.image || '') + '" class="cq-img-preview" alt="Diagram" style="max-height:40px; border:1px solid #cbd5e1; border-radius:4px; ' + (data.image ? 'display:block;' : 'display:none;') + '">' +
+                        '<input type="hidden" name="cq_image_url[]" class="cq-inp-img-url" value="' + (data.image || '') + '">' +
+                        '<button type="button" class="btn-choose-diagram" style="background:#f1f5f9; border:1px solid #cbd5e1; padding:4px 10px; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer;">' +
+                            '<span class="dashicons dashicons-format-image" style="font-size:13px; width:13px; height:13px; vertical-align:middle;"></span> <?php echo esc_js( __( 'Attach Diagram', 'ifsedu-school-management' ); ?>' +
+                        '</button>' +
+                        '<button type="button" class="btn-remove-diagram" style="background:#fee2e2; color:#dc2626; border:none; padding:4px 8px; border-radius:4px; font-size:11px; font-weight:700; cursor:pointer; ' + (data.image ? 'display:inline-flex;' : 'display:none;') + '"><?php echo esc_js( __( 'Remove', 'ifsedu-school-management' ); ?></button>' +
+                    '</div>' +
+                    '<div class="ifs-sub-q-builder-grid">' +
+                        '<div class="ifs-sub-q-row-item">' +
+                            '<input type="text" name="cq_a[]" class="ifs-educore-input cq-inp-a" placeholder="ক. জ্ঞানমূলক প্রশ্ন লিখুন" value="' + (data.a || '') + '" style="flex:1; height:32px;">' +
+                            '<input type="number" step="0.5" name="cq_mark_a[]" class="ifs-educore-input cq-mark-a" value="' + (data.mark_a || 1) + '" style="width:50px; height:32px; font-weight:800; text-align:center;">' +
+                        '</div>' +
+                        '<div class="ifs-sub-q-row-item">' +
+                            '<input type="text" name="cq_b[]" class="ifs-educore-input cq-inp-b" placeholder="খ. অনুধাবনমূলক প্রশ্ন লিখুন" value="' + (data.b || '') + '" style="flex:1; height:32px;">' +
+                            '<input type="number" step="0.5" name="cq_mark_b[]" class="ifs-educore-input cq-mark-b" value="' + (data.mark_b || 2) + '" style="width:50px; height:32px; font-weight:800; text-align:center;">' +
+                        '</div>' +
+                        '<div class="ifs-sub-q-row-item">' +
+                            '<input type="text" name="cq_c[]" class="ifs-educore-input cq-inp-c" placeholder="গ. প্রয়োগমূলক প্রশ্ন লিখুন" value="' + (data.c || '') + '" style="flex:1; height:32px;">' +
+                            '<input type="number" step="0.5" name="cq_mark_c[]" class="ifs-educore-input cq-mark-c" value="' + (data.mark_c || 3) + '" style="width:50px; height:32px; font-weight:800; text-align:center;">' +
+                        '</div>' +
+                        '<div class="ifs-sub-q-row-item">' +
+                            '<input type="text" name="cq_d[]" class="ifs-educore-input cq-inp-d" placeholder="ঘ. উচ্চতর দক্ষতামূলক প্রশ্ন লিখুন" value="' + (data.d || '') + '" style="flex:1; height:32px;">' +
+                            '<input type="number" step="0.5" name="cq_mark_d[]" class="ifs-educore-input cq-mark-d" value="' + (data.mark_d || 4) + '" style="width:50px; height:32px; font-weight:800; text-align:center;">' +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
             return div;
         }
 
-        // MCQ Card Element Creator
+        // MCQ Card Element Creator.
         function createMCQCard(data, num) {
             data = data || {};
             num  = num || 1;
             var currentCols = parseInt(data.columns, 10) || 2;
             var div = document.createElement('div');
             div.className = 'ifs-educore-q-card mcq-item';
-            div.innerHTML = `
-                <div class="ifs-educore-q-card-header">
-                    <strong class="mcq-item-num" style="color:#00523c; font-size:13.5px;">MCQ ${toBn(num)}</strong>
-                    <div style="display:flex; align-items:center; gap:8px;" onclick="event.stopPropagation();">
-                        <select name="mcq_columns[]" class="mcq-inp-cols" style="height:26px; font-size:11.5px; border:1px solid #cbd5e1; border-radius:4px;">
-                            <option value="1" ${currentCols === 1 ? 'selected' : ''}>১ কলাম</option>
-                            <option value="2" ${currentCols === 2 ? 'selected' : ''}>২ কলাম</option>
-                            <option value="4" ${currentCols === 4 ? 'selected' : ''}>৪ কলাম</option>
-                        </select>
-                        <select name="mcq_answer[]" class="mcq-inp-ans" style="height:26px; font-size:11.5px; border:1px solid #cbd5e1; border-radius:4px; font-weight:700; color:#00523c;">
-                            <option value="opt1" ${data.ans === 'opt1' ? 'selected' : ''}>উ: (ক)</option>
-                            <option value="opt2" ${data.ans === 'opt2' ? 'selected' : ''}>উ: (খ)</option>
-                            <option value="opt3" ${data.ans === 'opt3' ? 'selected' : ''}>উ: (গ)</option>
-                            <option value="opt4" ${data.ans === 'opt4' ? 'selected' : ''}>উ: (ঘ)</option>
-                        </select>
-                        <input type="number" step="0.5" name="mcq_mark[]" class="mcq-inp-mark" style="width:45px; height:26px; font-size:12px; font-weight:800; text-align:center; border:1px solid #cbd5e1; border-radius:4px;" value="${data.mark || 1}">
-                        <button type="button" class="btn-remove-mcq" style="background:#fee2e2; color:#dc2626; border:1px solid #fecaca; border-radius:5px; padding:3px 8px; cursor:pointer; font-weight:800;">&times;</button>
-                    </div>
-                </div>
-                <div>
-                    <input type="text" name="mcq_question[]" class="ifs-educore-input mcq-inp-q" placeholder="<?php esc_attr_e( 'Enter MCQ question title...', 'ifsedu-school-management' ); ?>" value="${data.q || ''}" style="width:100%; height:32px; margin-bottom:6px; font-weight:600;">
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
-                        <input type="text" name="mcq_opt_1[]" class="ifs-educore-input mcq-inp-o1" placeholder="(ক) প্রথম বিকল্প" value="${data.opt1 || ''}" style="height:30px; font-size:12.5px;">
-                        <input type="text" name="mcq_opt_2[]" class="ifs-educore-input mcq-inp-o2" placeholder="(খ) দ্বিতীয় বিকল্প" value="${data.opt2 || ''}" style="height:30px; font-size:12.5px;">
-                        <input type="text" name="mcq_opt_3[]" class="ifs-educore-input mcq-inp-o3" placeholder="(গ) তৃতীয় বিকল্প" value="${data.opt3 || ''}" style="height:30px; font-size:12.5px;">
-                        <input type="text" name="mcq_opt_4[]" class="ifs-educore-input mcq-inp-o4" placeholder="(ঘ) চতুর্থ বিকল্প" value="${data.opt4 || ''}" style="height:30px; font-size:12.5px;">
-                    </div>
-                </div>
-            `;
+            div.innerHTML = 
+                '<div class="ifs-educore-q-card-header">' +
+                    '<strong class="mcq-item-num" style="color:#00523c; font-size:13.5px;">MCQ ' + toBn(num) + '</strong>' +
+                    '<div style="display:flex; align-items:center; gap:8px;" onclick="event.stopPropagation();">' +
+                        '<select name="mcq_columns[]" class="mcq-inp-cols" style="height:26px; font-size:11.5px; border:1px solid #cbd5e1; border-radius:4px;">' +
+                            '<option value="1" ' + (currentCols === 1 ? 'selected' : '') + '>১ কলাম</option>' +
+                            '<option value="2" ' + (currentCols === 2 ? 'selected' : '') + '>২ কলাম</option>' +
+                            '<option value="4" ' + (currentCols === 4 ? 'selected' : '') + '>৪ কলাম</option>' +
+                        '</select>' +
+                        '<select name="mcq_answer[]" class="mcq-inp-ans" style="height:26px; font-size:11.5px; border:1px solid #cbd5e1; border-radius:4px; font-weight:700; color:#00523c;">' +
+                            '<option value="opt1" ' + (data.ans === 'opt1' ? 'selected' : '') + '>উ: (ক)</option>' +
+                            '<option value="opt2" ' + (data.ans === 'opt2' ? 'selected' : '') + '>উ: (খ)</option>' +
+                            '<option value="opt3" ' + (data.ans === 'opt3' ? 'selected' : '') + '>উ: (গ)</option>' +
+                            '<option value="opt4" ' + (data.ans === 'opt4' ? 'selected' : '') + '>উ: (ঘ)</option>' +
+                        '</select>' +
+                        '<input type="number" step="0.5" name="mcq_mark[]" class="mcq-inp-mark" style="width:45px; height:26px; font-size:12px; font-weight:800; text-align:center; border:1px solid #cbd5e1; border-radius:4px;" value="' + (data.mark || 1) + '">' +
+                        '<button type="button" class="btn-remove-mcq" style="background:#fee2e2; color:#dc2626; border:1px solid #fecaca; border-radius:5px; padding:3px 8px; cursor:pointer; font-weight:800;">&times;</button>' +
+                    '</div>' +
+                '</div>' +
+                '<div>' +
+                    '<input type="text" name="mcq_question[]" class="ifs-educore-input mcq-inp-q" placeholder="<?php esc_attr_e( 'Enter MCQ question title...', 'ifsedu-school-management' ); ?>" value="' + (data.q || '') + '" style="width:100%; height:32px; margin-bottom:6px; font-weight:600;">' +
+                    '<div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">' +
+                        '<input type="text" name="mcq_opt_1[]" class="ifs-educore-input mcq-inp-o1" placeholder="(ক) প্রথম বিকল্প" value="' + (data.opt1 || '') + '" style="height:30px; font-size:12.5px;">' +
+                        '<input type="text" name="mcq_opt_2[]" class="ifs-educore-input mcq-inp-o2" placeholder="(খ) দ্বিতীয় বিকল্প" value="' + (data.opt2 || '') + '" style="height:30px; font-size:12.5px;">' +
+                        '<input type="text" name="mcq_opt_3[]" class="ifs-educore-input mcq-inp-o3" placeholder="(গ) তৃতীয় বিকল্প" value="' + (data.opt3 || '') + '" style="height:30px; font-size:12.5px;">' +
+                        '<input type="text" name="mcq_opt_4[]" class="ifs-educore-input mcq-inp-o4" placeholder="(ঘ) চতুর্থ বিকল্প" value="' + (data.opt4 || '') + '" style="height:30px; font-size:12.5px;">' +
+                    '</div>' +
+                '</div>';
             return div;
         }
 
-        // Live Paper Preview Compiler
+        // Live Paper Preview Compiler.
         function updateLivePreview() {
             var examSelect = document.getElementById('inp_exam_id');
             var qType      = qTypeHidden.value;
@@ -1100,21 +1108,20 @@ function educore_exam_questions_view() {
                             cqHtml += '<div class="nctb-section-header">' + section + '</div>';
                             lastSection = section;
                         }
-                        cqHtml += `
-                            <div class="nctb-cq-item">
-                                <div class="nctb-cq-stem-wrapper">
-                                    <span style="font-weight:900;">${qNum}.</span>
-                                    <div style="flex:1;">${stem.replace(/\n/g, '<br>')}</div>
-                                </div>
-                                ${img ? `<div class="nctb-cq-figure"><img src="${img}" alt="চিত্র"></div>` : ''}
-                                <div class="nctb-sub-questions-list">
-                                    ${a ? `<div class="nctb-sub-q-row"><span class="nctb-sub-q-text">ক. ${a}</span><span class="nctb-sub-q-mark">${toBn(ma)}</span></div>` : ''}
-                                    ${b ? `<div class="nctb-sub-q-row"><span class="nctb-sub-q-text">খ. ${b}</span><span class="nctb-sub-q-mark">${toBn(mb)}</span></div>` : ''}
-                                    ${c ? `<div class="nctb-sub-q-row"><span class="nctb-sub-q-text">গ. ${c}</span><span class="nctb-sub-q-mark">${toBn(mc)}</span></div>` : ''}
-                                    ${d ? `<div class="nctb-sub-q-row"><span class="nctb-sub-q-text">ঘ. ${d}</span><span class="nctb-sub-q-mark">${toBn(md)}</span></div>` : ''}
-                                </div>
-                            </div>
-                        `;
+                        cqHtml += 
+                            '<div class="nctb-cq-item">' +
+                                '<div class="nctb-cq-stem-wrapper">' +
+                                    '<span style="font-weight:900;">' + qNum + '.</span>' +
+                                    '<div style="flex:1;">' + stem.replace(/\n/g, '<br>') + '</div>' +
+                                '</div>' +
+                                (img ? '<div class="nctb-cq-figure"><img src="' + img + '" alt="চিত্র"></div>' : '') +
+                                '<div class="nctb-sub-questions-list">' +
+                                    (a ? '<div class="nctb-sub-q-row"><span class="nctb-sub-q-text">ক. ' + a + '</span><span class="nctb-sub-q-mark">' + toBn(ma) + '</span></div>' : '') +
+                                    (b ? '<div class="nctb-sub-q-row"><span class="nctb-sub-q-text">খ. ' + b + '</span><span class="nctb-sub-q-mark">' + toBn(mb) + '</span></div>' : '') +
+                                    (c ? '<div class="nctb-sub-q-row"><span class="nctb-sub-q-text">গ. ' + c + '</span><span class="nctb-sub-q-mark">' + toBn(mc) + '</span></div>' : '') +
+                                    (d ? '<div class="nctb-sub-q-row"><span class="nctb-sub-q-text">ঘ. ' + d + '</span><span class="nctb-sub-q-mark">' + toBn(md) + '</span></div>' : '') +
+                                '</div>' +
+                            '</div>';
                     }
                 });
                 pvCqList.innerHTML = cqHtml;
@@ -1153,21 +1160,20 @@ function educore_exam_questions_view() {
 
                     if (q) {
                         totalMarks += mark;
-                        mcqHtml += `
-                            <div class="bd-mcq-item">
-                                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                                    <strong>${qNum}. ${q}</strong>
-                                    <span style="font-weight:700; font-size:11.5px; color:#64748b;">[${toBn(mark)}]</span>
-                                </div>
-                                <div class="bd-mcq-options ${colClass}">
-                                    <span>(ক) ${o1}</span>
-                                    <span>(খ) ${o2}</span>
-                                    <span>(গ) ${o3}</span>
-                                    <span>(ঘ) ${o4}</span>
-                                </div>
-                                ${showAns ? `<div class="print-hide-ans" style="margin-top:3px;"><span class="bd-ans-key-tag">সঠিক উত্তর: ${ansMap[ans] || ''}</span></div>` : ''}
-                            </div>
-                        `;
+                        mcqHtml += 
+                            '<div class="bd-mcq-item">' +
+                                '<div style="display:flex; justify-content:space-between; align-items:flex-start;">' +
+                                    '<strong>' + qNum + '. ' + q + '</strong>' +
+                                    '<span style="font-weight:700; font-size:11.5px; color:#64748b;">[' + toBn(mark) + ']</span>' +
+                                '</div>' +
+                                '<div class="bd-mcq-options ' + colClass + '">' +
+                                    '<span>(ক) ' + o1 + '</span>' +
+                                    '<span>(খ) ' + o2 + '</span>' +
+                                    '<span>(গ) ' + o3 + '</span>' +
+                                    '<span>(ঘ) ' + o4 + '</span>' +
+                                '</div>' +
+                                (showAns ? '<div class="print-hide-ans" style="margin-top:3px;"><span class="bd-ans-key-tag">সঠিক উত্তর: ' + (ansMap[ans] || '') + '</span></div>' : '') +
+                            '</div>';
                     }
                 });
                 pvMcqList.innerHTML = mcqHtml;
@@ -1183,7 +1189,7 @@ function educore_exam_questions_view() {
             selPageLayout.addEventListener('change', updateLivePreview);
         }
 
-        // Add / Remove Questions Handlers
+        // Add / Remove Questions Handlers.
         document.getElementById('btnAddCQ').addEventListener('click', function() {
             var count = cqContainer.querySelectorAll('.cq-item').length + 1;
             cqContainer.appendChild(createCQCard({}, count));
@@ -1216,7 +1222,7 @@ function educore_exam_questions_view() {
             }
         });
 
-        // Media Library Diagram Uploader
+        // Media Library Diagram Uploader.
         var currentMediaBox = null;
         cqContainer.addEventListener('click', function(e) {
             var chooseBtn = e.target.closest('.btn-choose-diagram');
@@ -1255,7 +1261,7 @@ function educore_exam_questions_view() {
             }
         });
 
-        // Search & Filter Repository
+        // Search & Filter Repository.
         var kFilter   = document.getElementById('filter_keyword');
         var cFilter   = document.getElementById('filter_class_search');
         var tFilter   = document.getElementById('filter_type_search');
@@ -1283,7 +1289,7 @@ function educore_exam_questions_view() {
         if (cFilter) cFilter.addEventListener('change', filterSavedPapers);
         if (tFilter) tFilter.addEventListener('change', filterSavedPapers);
 
-        // Load Saved Question Paper Handler
+        // Load Saved Question Paper Handler.
         document.querySelectorAll('.btn-load-paper').forEach(function(btn) {
             btn.addEventListener('click', function() {
                 var paperId  = this.getAttribute('data-id');
@@ -1307,7 +1313,7 @@ function educore_exam_questions_view() {
                         marksInput.value = p.total_marks;
                         document.getElementById('inp_instructions').value = p.instructions;
 
-                        // Switch segmented tab styling
+                        // Switch segmented tab styling.
                         typeTabs.forEach(function(tab) {
                             if (tab.getAttribute('data-type') === p.question_type) {
                                 tab.classList.add('is-active');
@@ -1347,7 +1353,7 @@ function educore_exam_questions_view() {
             });
         });
 
-        // Reset Button
+        // Reset Button.
         document.getElementById('btnResetForm').addEventListener('click', function() {
             document.getElementById('inp_paper_id').value = '0';
             document.getElementById('dptQuestionForm').reset();
@@ -1358,7 +1364,7 @@ function educore_exam_questions_view() {
             updateLivePreview();
         });
 
-        // Initialize Defaults
+        // Initialize Defaults.
         cqContainer.appendChild(createCQCard({
             stem: "অনুপম উচ্চশিক্ষিত হলেও ব্যক্তিত্বহীন ও আত্মমর্যাদাহীন এক যুবক। মামার অভিভাবকত্বে সে বড় হয়েছে।",
             a: "অনুপমের ভাষায় সুপুরুষ কাকে বলা হয়েছে?",

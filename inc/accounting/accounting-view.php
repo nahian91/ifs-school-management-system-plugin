@@ -6,9 +6,12 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+    exit; // Exit if accessed directly.
 }
 
+/**
+ * Render Standalone Single Financial Voucher Ledger Details View
+ */
 function educore_accounting_single_view() {
     global $wpdb;
 
@@ -43,7 +46,7 @@ function educore_accounting_single_view() {
         admin_url( 'admin.php' )
     );
 
-    // Fetch Ledger Record with Staff Mapping
+    // Fetch Ledger Record with Staff Mapping.
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     $entry = $wpdb->get_row(
         $wpdb->prepare(

@@ -6,11 +6,14 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Direct access safety buffer
+    exit; // Direct access safety buffer.
 }
 
-// 1. AJAX Handler for Dynamic Subject Loading in Reports
+// 1. AJAX Handler for Dynamic Subject Loading in Reports.
 add_action( 'wp_ajax_ifs_educore_get_subjects_by_class_report', 'ifs_educore_get_subjects_by_class_report_handler' );
+/**
+ * AJAX Handler: Dynamic Subject Loading in Reports
+ */
 function ifs_educore_get_subjects_by_class_report_handler() {
     check_ajax_referer( 'ifs_educore_report_nonce', 'security' );
 
@@ -28,6 +31,7 @@ function ifs_educore_get_subjects_by_class_report_handler() {
 
     $clean_class = trim( str_ireplace( 'Class ', '', $class_name ) );
 
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
     if ( ! empty( $section_name ) ) {
         $unit_ids = $wpdb->get_col(
             $wpdb->prepare(
@@ -58,14 +62,20 @@ function ifs_educore_get_subjects_by_class_report_handler() {
     if ( empty( $subjects ) ) {
         $subjects = $wpdb->get_results( "SELECT DISTINCT id, subject_name, subject_code FROM `{$wpdb->prefix}sms_subjects` ORDER BY subject_name ASC" );
     }
+    // phpcs:enable
 
     wp_send_json_success( ! empty( $subjects ) ? $subjects : array() );
 }
 
+/**
+ * Render Attendance Reports, Live Matrix, & Audit Log Workspace View
+ *
+ * @param array $classes Available classes list.
+ */
 function educore_student_attendance_log_view( $classes ) {
     global $wpdb;
 
-    // Database Tables
+    // Database Tables.
     $table_students   = $wpdb->prefix . 'sms_students';
     $table_units      = $wpdb->prefix . 'sms_academic_units';
     $table_subjects   = $wpdb->prefix . 'sms_subjects';
@@ -78,7 +88,8 @@ function educore_student_attendance_log_view( $classes ) {
     // --------------------------------------------------------------------------
     // 1. DYNAMIC GLOBAL DATASETS FETCHING
     // --------------------------------------------------------------------------
-    // Academic Units
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+    // Academic Units.
     $all_units = $wpdb->get_results(
         "SELECT id, class_name, section_name, dept_name, sort_order 
          FROM `{$table_units}` 
@@ -86,7 +97,7 @@ function educore_student_attendance_log_view( $classes ) {
          ORDER BY sort_order ASC, CAST(class_name AS UNSIGNED) ASC, class_name ASC, section_name ASC"
     );
 
-    // Dynamic Classes List fallback if empty
+    // Dynamic Classes List fallback if empty.
     if ( empty( $classes ) && ! empty( $all_units ) ) {
         $classes = array();
         foreach ( $all_units as $u ) {
@@ -100,7 +111,7 @@ function educore_student_attendance_log_view( $classes ) {
         usort( $classes, 'strnatcasecmp' );
     }
 
-    // Active Students
+    // Active Students.
     $all_students = $wpdb->get_results(
         "SELECT id, student_id, full_name, class_name, section_name, roll_no 
          FROM `{$table_students}` 
@@ -108,7 +119,7 @@ function educore_student_attendance_log_view( $classes ) {
          ORDER BY CAST(roll_no AS UNSIGNED) ASC, roll_no ASC"
     );
 
-    // Active Staff & Faculty
+    // Active Staff & Faculty.
     $all_staff = $wpdb->get_results(
         "SELECT id, staff_id, full_name, name_bn, designation, staff_type, phone 
          FROM `{$table_staff}` 
@@ -116,7 +127,7 @@ function educore_student_attendance_log_view( $classes ) {
          ORDER BY full_name ASC"
     );
 
-    // Distinct Staff Types
+    // Distinct Staff Types.
     $all_staff_types = $wpdb->get_col(
         "SELECT DISTINCT staff_type 
          FROM `{$table_staff}` 
@@ -127,23 +138,24 @@ function educore_student_attendance_log_view( $classes ) {
         $all_staff_types = array( 'Faculty / Teacher', 'Office Executive', 'Administrative Staff', 'Support Staff' );
     }
 
-    // Available Exams
+    // Available Exams.
     $all_exams = $wpdb->get_results(
         "SELECT id, exam_name, class_name, start_date, end_date, status 
          FROM `{$table_exams}` 
          ORDER BY id DESC"
     );
 
-    // Available Subjects
+    // Available Subjects.
     $available_subjects = $wpdb->get_results(
         "SELECT DISTINCT id, subject_name, subject_code 
          FROM `{$table_subjects}` 
          ORDER BY subject_name ASC"
     );
+    // phpcs:enable
 
     $today_date = current_time( 'Y-m-d' );
 
-    // Request Parameters
+    // Request Parameters.
     // phpcs:disable WordPress.Security.NonceVerification.Recommended
     $active_tab        = isset( $_GET['view_tab'] ) ? sanitize_key( wp_unslash( $_GET['view_tab'] ) ) : 'today';
     $report_mode       = isset( $_GET['report_mode'] ) ? sanitize_key( wp_unslash( $_GET['report_mode'] ) ) : 'student';
@@ -175,12 +187,14 @@ function educore_student_attendance_log_view( $classes ) {
     // --------------------------------------------------------------------------
     // 2. QUERY TODAY'S STRUCTURED DATASETS (FOR LIVE SUMMARY SHEET)
     // --------------------------------------------------------------------------
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
     $today_att_logs = $wpdb->get_results(
         $wpdb->prepare(
             "SELECT student_id, status FROM `{$table_attendance}` WHERE attendance_date = %s",
             $today_date
         )
     );
+    // phpcs:enable
 
     $att_status_map = array();
     foreach ( $today_att_logs as $log_row ) {
@@ -205,12 +219,12 @@ function educore_student_attendance_log_view( $classes ) {
             $c_num = ! empty( $matches ) ? intval( $matches[0] ) : 0;
             $lower_cname = strtolower( $c_name );
 
-            // Morning shift detection
-            $is_morning = in_array( $c_num, array( 1, 2, 3, 4 ), true ) || strpos( $lower_cname, 'play' ) !== false || strpos( $lower_cname, 'kg' ) !== false || strpos( $lower_cname, 'nursery' ) !== false;
+            // Morning shift detection.
+            $is_morning = in_array( $c_num, array( 1, 2, 3, 4 ), true ) || false !== strpos( $lower_cname, 'play' ) || false !== strpos( $lower_cname, 'kg' ) || false !== strpos( $lower_cname, 'nursery' );
 
             $unit_students = array_filter( $all_students, function( $stu ) use ( $c_name, $s_name ) {
-                $match_cls = strcasecmp( trim( (string) $stu->class_name ), $c_name ) === 0;
-                $match_sec = empty( $s_name ) || ( strcasecmp( trim( (string) $stu->section_name ), $s_name ) === 0 );
+                $match_cls = 0 === strcasecmp( trim( (string) $stu->class_name ), $c_name );
+                $match_sec = empty( $s_name ) || ( 0 === strcasecmp( trim( (string) $stu->section_name ), $s_name ) );
                 return $match_cls && $match_sec;
             } );
 
@@ -269,6 +283,7 @@ function educore_student_attendance_log_view( $classes ) {
     $exam_meta      = null;
 
     if ( 'historical' === $active_tab ) {
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         if ( 'student' === $report_mode && $filter_student_id > 0 ) {
             $subject_person = $wpdb->get_row(
                 $wpdb->prepare(
@@ -344,9 +359,10 @@ function educore_student_attendance_log_view( $classes ) {
                 }
             }
         }
+        // phpcs:enable
     }
 
-    // Dynamic School Settings (Pulled dynamically from settings options)
+    // Dynamic School Settings.
     $school_name    = get_option( 'educore_school_name', get_bloginfo( 'name' ) );
     $school_tagline = get_option( 'educore_school_tagline', get_bloginfo( 'description' ) );
     $school_logo    = get_option( 'educore_school_logo', '' );
@@ -998,7 +1014,7 @@ function educore_student_attendance_log_view( $classes ) {
                             </thead>
                             <tbody>
                                 <?php if ( ! empty( $logs ) ) : foreach ( $logs as $l ) : 
-                                    $status   = isset( $l->status ) ? $l->status : 'Present';
+                                    $status  = isset( $l->status ) ? $l->status : 'Present';
                                     $log_time = ! empty( $l->attendance_date ) ? strtotime( $l->attendance_date ) : false;
                                 ?>
                                     <tr style="border-bottom:1px solid #f1f5f9;">
@@ -1061,7 +1077,7 @@ function educore_student_attendance_log_view( $classes ) {
                 var wrapperDate    = document.getElementById('ifs_educore_wrapper_date_range');
                 var wrapperExSub   = document.getElementById('ifs_educore_wrapper_exam_submit');
 
-                var classSelect  = document.getElementById('ifs_educore_rpt_class_select');
+                var classSelect = document.getElementById('ifs_educore_rpt_class_select');
                 var sectionSelect = document.getElementById('ifs_educore_rpt_section_select');
                 var subjectSelect = document.getElementById('ifs_educore_rpt_subject_select');
                 var studentSelect = document.getElementById('ifs_educore_report_student_id');

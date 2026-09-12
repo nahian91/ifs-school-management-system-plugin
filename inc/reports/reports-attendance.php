@@ -6,9 +6,12 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Direct access safety buffer
+    exit; // Direct access safety buffer.
 }
 
+/**
+ * Render Attendance Analytics & Audit Report View
+ */
 function educore_reports_attendance_view() {
     global $wpdb;
     $table_students   = $wpdb->prefix . 'sms_students';
@@ -17,35 +20,35 @@ function educore_reports_attendance_view() {
     $table_staff_att  = $wpdb->prefix . 'sms_staff_attendance';
     $table_units      = $wpdb->prefix . 'sms_academic_units';
 
-    // Strict Capability Check
+    // Strict Capability Check.
     if ( ! current_user_can( 'manage_options' ) && ! current_user_can( 'edit_posts' ) ) {
         wp_die( esc_html__( 'You do not have sufficient permissions to view attendance audit reports.', 'ifsedu-school-management' ) );
     }
 
-    // Audit Target Mode Switcher (Student vs Employee)
+    // Audit Target Mode Switcher (Student vs Employee).
     // phpcs:disable WordPress.Security.NonceVerification.Recommended
     $report_target = isset( $_GET['report_target'] ) ? sanitize_key( wp_unslash( $_GET['report_target'] ) ) : 'student';
 
-    // Student Filters
+    // Student Filters.
     $filter_class   = isset( $_GET['class_name'] ) ? sanitize_text_field( wp_unslash( $_GET['class_name'] ) ) : '';
     $filter_section = isset( $_GET['section_name'] ) ? sanitize_text_field( wp_unslash( $_GET['section_name'] ) ) : '';
 
-    // Employee Filters
+    // Employee Filters.
     $filter_staff_type = isset( $_GET['staff_type'] ) ? sanitize_text_field( wp_unslash( $_GET['staff_type'] ) ) : '';
 
-    // Date Filters
+    // Date Filters.
     $filter_selected_month = isset( $_GET['report_month'] ) ? sanitize_key( wp_unslash( $_GET['report_month'] ) ) : current_time( 'm' );
     $filter_year           = isset( $_GET['report_year'] ) ? absint( wp_unslash( $_GET['report_year'] ) ) : intval( current_time( 'Y' ) );
     // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
     $filter_month = $filter_year . '-' . sprintf( '%02d', absint( $filter_selected_month ) );
 
-    // Fetch classes and units
+    // Fetch classes and units.
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
     $class_rows = $wpdb->get_results( "SELECT DISTINCT class_name FROM `{$table_units}` WHERE class_name != '' AND class_name IS NOT NULL ORDER BY CAST(class_name AS UNSIGNED) ASC, class_name ASC" );
     // phpcs:enable
     
-    $classes    = ! empty( $class_rows ) ? wp_list_pluck( $class_rows, 'class_name' ) : array();
+    $classes = ! empty( $class_rows ) ? wp_list_pluck( $class_rows, 'class_name' ) : array();
 
     if ( ! empty( $classes ) && is_array( $classes ) ) {
         usort( $classes, function( $a, $b ) {
@@ -56,7 +59,7 @@ function educore_reports_attendance_view() {
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
     $all_units = $wpdb->get_results( "SELECT id, class_name, section_name FROM `{$table_units}` WHERE section_name != '' AND section_name IS NOT NULL ORDER BY section_name ASC" );
 
-    // Fetch unique Staff Types for the Employee mode filter
+    // Fetch unique Staff Types for the Employee mode filter.
     $db_staff_types   = $wpdb->get_col( "SELECT DISTINCT staff_type FROM `{$table_staff}` WHERE status = 'Active' AND staff_type != '' ORDER BY staff_type ASC" );
     // phpcs:enable
     
@@ -78,9 +81,353 @@ function educore_reports_attendance_view() {
         '12' => __( 'December', 'ifsedu-school-management' ),
     );
 
-     $current_yr_int = intval( current_time( 'Y' ) );
-     $years          = array( strval( $current_yr_int - 1 ), strval( $current_yr_int ), strval( $current_yr_int + 1 ) );
+    $current_yr_int = intval( current_time( 'Y' ) );
+    $years          = array( strval( $current_yr_int - 1 ), strval( $current_yr_int ), strval( $current_yr_int + 1 ) );
     ?>
+
+    <style id="ifs-educore-attendance-styles">
+        .ifs-educore-attendance-root {
+            font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #0f172a;
+        }
+
+        .ifs-educore-header-frame {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.03);
+            margin-bottom: 24px;
+        }
+
+        .ifs-educore-header-content h2 {
+            margin: 0 0 4px 0;
+            font-size: 18px;
+            font-weight: 800;
+            color: #00523c;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ifs-educore-header-content p {
+            margin: 0;
+            font-size: 13.5px;
+            color: #64748b;
+        }
+
+        .ifs-educore-filter-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.03);
+            margin-bottom: 24px;
+        }
+
+        .ifs-educore-scope-row {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .ifs-educore-scope-label {
+            font-size: 13px;
+            font-weight: 700;
+            color: #475569;
+        }
+
+        /* Segmented Mode Switcher Style */
+        .ifs-educore-report-mode-segmented {
+            display: inline-flex;
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            padding: 4px;
+            gap: 4px;
+        }
+
+        .ifs-educore-report-mode-input {
+            display: none;
+        }
+
+        .ifs-educore-report-mode-pill {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #475569;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .ifs-educore-report-mode-input:checked + .ifs-educore-report-mode-pill {
+            background: #ffffff;
+            color: #00523c;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+        }
+
+        .ifs-educore-filter-row-flex {
+            display: flex;
+            gap: 14px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .ifs-educore-filter-student-wrap {
+            display: flex;
+            gap: 14px;
+            flex: 2;
+            flex-wrap: wrap;
+        }
+
+        .ifs-educore-filter-staff-wrap {
+            display: flex;
+            gap: 14px;
+            flex: 2;
+            flex-wrap: wrap;
+        }
+
+        .ifs-educore-field-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .ifs-educore-label {
+            font-size: 12.5px;
+            font-weight: 700;
+            color: #334155;
+            letter-spacing: -0.1px;
+        }
+
+        .ifs-educore-select {
+            width: 100%;
+            height: 40px;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 0 12px;
+            font-size: 13.5px;
+            color: #0f172a;
+            background: #ffffff;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .ifs-educore-select:focus {
+            border-color: #00523c;
+            box-shadow: 0 0 0 3px rgba(0, 82, 60, 0.12);
+        }
+
+        .ifs-educore-btn-generate {
+            height: 40px;
+            padding: 0 24px;
+            background: #00523c;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 13.5px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 82, 60, 0.18);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: background 0.2s;
+        }
+
+        .ifs-educore-btn-generate:hover {
+            background: #047857;
+        }
+
+        .ifs-educore-print-header-area {
+            display: none;
+            text-align: center;
+            margin-bottom: 24px;
+            border-bottom: 2px solid #0f172a;
+            padding-bottom: 12px;
+        }
+
+        .ifs-educore-print-header-area h1 {
+            margin: 0 0 4px 0;
+            font-size: 22px;
+            font-weight: 900;
+            color: #0f172a;
+        }
+
+        .ifs-educore-print-header-area h3 {
+            margin: 0 0 12px 0;
+            font-size: 15px;
+            color: #475569;
+        }
+
+        .ifs-educore-print-meta-grid {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            font-weight: 600;
+            color: #334155;
+            text-align: left;
+        }
+
+        .ifs-educore-summary-bento {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+        }
+
+        .ifs-educore-summary-title {
+            margin: 0;
+            font-size: 15px;
+            font-weight: 800;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ifs-educore-badge-days {
+            background: #f0fdf4;
+            color: #047857;
+            border: 1px solid #bbf7d0;
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 800;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .ifs-educore-badge-days .dashicons {
+            font-size: 16px;
+            width: 16px;
+            height: 16px;
+        }
+
+        .ifs-educore-table-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
+            margin-bottom: 30px;
+        }
+
+        .ifs-educore-table-wrapper {
+            overflow-x: auto;
+        }
+
+        .ifs-educore-data-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 13.5px;
+        }
+
+        .ifs-educore-data-table th {
+            padding: 14px 18px;
+            color: #475569;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 11.5px;
+            text-transform: capitalize;
+            font-weight: 800;
+            text-align: center;
+        }
+
+        .ifs-educore-data-table th:nth-child(2) {
+            text-align: left;
+        }
+
+        .ifs-educore-data-table td {
+            padding: 12px 18px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: middle;
+            text-align: center;
+        }
+
+        .ifs-educore-data-table td:nth-child(2) {
+            text-align: left;
+        }
+
+        .ifs-educore-progress-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .ifs-educore-progress-bar-bg {
+            flex: 1;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+            max-width: 100px;
+        }
+
+        .ifs-educore-progress-bar-fill {
+            height: 100%;
+            border-radius: 4px;
+        }
+
+        .ifs-educore-fill-success { background-color: #059669; }
+        .ifs-educore-text-success { color: #059669; font-weight: 800; }
+
+        .ifs-educore-fill-warning { background-color: #d97706; }
+        .ifs-educore-text-warning { color: #d97706; font-weight: 800; }
+
+        .ifs-educore-fill-danger { background-color: #dc2626; }
+        .ifs-educore-text-danger { color: #dc2626; font-weight: 800; }
+
+        .ifs-educore-fallback-card {
+            background: #ffffff;
+            border: 1px dashed #cbd5e1;
+            border-radius: 16px;
+            padding: 50px;
+            text-align: center;
+            color: #64748b;
+            font-weight: 700;
+        }
+
+        .ifs-educore-fallback-card .dashicons {
+            font-size: 36px;
+            width: 36px;
+            height: 36px;
+            color: #94a3b8;
+            margin-bottom: 10px;
+        }
+
+        .ifs-educore-fallback-card p {
+            margin: 0;
+            font-size: 14px;
+        }
+
+        @media print {
+            .no-print { display: none !important; }
+            .ifs-educore-print-header-area { display: block !important; }
+            body, .ifs-educore-attendance-root { background: #ffffff !important; padding: 0 !important; }
+            .ifs-educore-table-card { border: none !important; box-shadow: none !important; }
+        }
+    </style>
+
     <div class="ifs-educore-attendance-root">
         
         <!-- Header Banner -->
@@ -101,28 +448,28 @@ function educore_reports_attendance_view() {
                 <input type="hidden" name="sub" value="attendance">
                 
                 <!-- Target Scope Switcher -->
-                <div style="margin-bottom:20px; display:flex; gap:16px; align-items:center; flex-wrap:wrap;">
-                    <span style="font-size:13px; font-weight:700; color:#475569;"><?php esc_html_e( 'Audit Target Scope:', 'ifsedu-school-management' ); ?></span>
+                <div class="ifs-educore-scope-row">
+                    <span class="ifs-educore-scope-label"><?php esc_html_e( 'Audit Target Scope:', 'ifsedu-school-management' ); ?></span>
                     
-                    <div class="report-mode-segmented">
-                        <input type="radio" class="report-mode-input" id="target_student" name="report_target" value="student" <?php checked( $report_target, 'student' ); ?>>
-                        <label class="report-mode-pill" for="target_student">
+                    <div class="ifs-educore-report-mode-segmented">
+                        <input type="radio" class="ifs-educore-report-mode-input" id="target_student" name="report_target" value="student" <?php checked( $report_target, 'student' ); ?>>
+                        <label class="ifs-educore-report-mode-pill" for="target_student">
                             <span class="dashicons dashicons-welcome-learn-more"></span>
                             <?php esc_html_e( 'Students Audit', 'ifsedu-school-management' ); ?>
                         </label>
 
-                        <input type="radio" class="report-mode-input" id="target_staff" name="report_target" value="staff" <?php checked( $report_target, 'staff' ); ?>>
-                        <label class="report-mode-pill" for="target_staff">
+                        <input type="radio" class="ifs-educore-report-mode-input" id="target_staff" name="report_target" value="staff" <?php checked( $report_target, 'staff' ); ?>>
+                        <label class="ifs-educore-report-mode-pill" for="target_staff">
                             <span class="dashicons dashicons-businessman"></span>
                             <?php esc_html_e( 'Employees (Staff / Faculty) Audit', 'ifsedu-school-management' ); ?>
                         </label>
                     </div>
                 </div>
 
-                <div style="display:flex; gap:14px; align-items:flex-end; flex-wrap:wrap;">
+                <div class="ifs-educore-filter-row-flex">
                     
                     <!-- STUDENT FILTERS -->
-                    <div id="wrapper_student_filters" style="display: <?php echo ( 'student' === $report_target ) ? 'flex' : 'none'; ?>; gap:14px; flex:2; flex-wrap:wrap;">
+                    <div id="wrapper_student_filters" class="ifs-educore-filter-student-wrap" style="display: <?php echo ( 'student' === $report_target ) ? 'flex' : 'none'; ?>;">
                         <div class="ifs-educore-field-group" style="flex:1; min-width:160px;">
                             <label class="ifs-educore-label"><?php esc_html_e( 'Select Class', 'ifsedu-school-management' ); ?> *</label>
                             <select name="class_name" id="afdp_class_select" class="ifs-educore-select">
@@ -142,7 +489,7 @@ function educore_reports_attendance_view() {
                     </div>
 
                     <!-- EMPLOYEE FILTERS -->
-                    <div id="wrapper_staff_filters" style="display: <?php echo ( 'staff' === $report_target ) ? 'flex' : 'none'; ?>; gap:14px; flex:2; flex-wrap:wrap;">
+                    <div id="wrapper_staff_filters" class="ifs-educore-filter-staff-wrap" style="display: <?php echo ( 'staff' === $report_target ) ? 'flex' : 'none'; ?>;">
                         <div class="ifs-educore-field-group" style="flex:1; min-width:220px;">
                             <label class="ifs-educore-label"><?php esc_html_e( 'Filter by Employment Type', 'ifsedu-school-management' ); ?></label>
                             <select name="staff_type" id="afdp_staff_type_select" class="ifs-educore-select">
@@ -301,14 +648,14 @@ function educore_reports_attendance_view() {
                                 $late_count    = absint( $student->late_count );
 
                                 $total_attended = $present_count + $late_count;
-                                $percentage     = ( $total_working_days > 0 ) ? round( ( $total_attended / $total_working_days ) * 100, 1 ) : 0;
+                                $percentage     = ( 0 < $total_working_days ) ? round( ( $total_attended / $total_working_days ) * 100, 1 ) : 0;
                                 
                                 $fill_class = 'ifs-educore-fill-danger';
                                 $text_class = 'ifs-educore-text-danger';
-                                if ( $percentage >= 80 ) {
+                                if ( 80 <= $percentage ) {
                                     $fill_class = 'ifs-educore-fill-success';
                                     $text_class = 'ifs-educore-text-success';
-                                } elseif ( $percentage >= 50 ) {
+                                } elseif ( 50 <= $percentage ) {
                                     $fill_class = 'ifs-educore-fill-warning';
                                     $text_class = 'ifs-educore-text-warning';
                                 }
@@ -445,14 +792,14 @@ function educore_reports_attendance_view() {
                                 $late_count        = absint( $st->late_count );
 
                                 $total_attended = $present_count + $late_count;
-                                $percentage     = ( $total_working_days > 0 ) ? round( ( $total_attended / $total_working_days ) * 100, 1 ) : 0;
+                                $percentage     = ( 0 < $total_working_days ) ? round( ( $total_attended / $total_working_days ) * 100, 1 ) : 0;
                                 
                                 $fill_class = 'ifs-educore-fill-danger';
                                 $text_class = 'ifs-educore-text-danger';
-                                if ( $percentage >= 80 ) {
+                                if ( 80 <= $percentage ) {
                                     $fill_class = 'ifs-educore-fill-success';
                                     $text_class = 'ifs-educore-text-success';
-                                } elseif ( $percentage >= 50 ) {
+                                } elseif ( 50 <= $percentage ) {
                                     $fill_class = 'ifs-educore-fill-warning';
                                     $text_class = 'ifs-educore-text-warning';
                                 }
@@ -503,7 +850,7 @@ function educore_reports_attendance_view() {
         var wrapperStudents = document.getElementById('wrapper_student_filters');
         var wrapperStaff   = document.getElementById('wrapper_staff_filters');
 
-        // Target Switcher Listener
+        // Target Switcher Listener.
         targetRadios.forEach(function(radio) {
             radio.addEventListener('change', function() {
                 if (this.value === 'student') {
@@ -516,7 +863,7 @@ function educore_reports_attendance_view() {
             });
         });
 
-        // Section Chaining
+        // Section Chaining.
         function populateSections(selectedClass, selectedSecName) {
             selectedSecName = selectedSecName || '';
             if (!sectionSelect) return;

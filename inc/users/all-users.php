@@ -6,9 +6,12 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+    exit; // Exit if accessed directly.
 }
 
+/**
+ * Render Users Directory Table View
+ */
 function educore_users_list_view() {
     if ( ! current_user_can( 'manage_options' ) && ! current_user_can( 'list_users' ) ) {
         wp_die( esc_html__( 'You do not have sufficient permissions to view system users.', 'ifsedu-school-management' ) );
