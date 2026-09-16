@@ -50,6 +50,12 @@ function ifs_educore_render_user_view( $base_url ) {
     );
     $display_role_label = isset( $role_labels[ $primary_role ] ) ? $role_labels[ $primary_role ] : ucfirst( $primary_role );
 
+    // Additional User Meta Info
+    $user_nickname   = get_user_meta( $user_id, 'nickname', true );
+    $user_desc       = get_user_meta( $user_id, 'description', true );
+    $user_locale     = get_user_meta( $user_id, 'locale', true );
+    $user_website    = $target_user->user_url;
+
     // Fetch linked staff profile if exists.
     $table_staff = $wpdb->prefix . 'sms_staff';
     $table_audit = $wpdb->prefix . 'sms_audit_logs';
@@ -61,7 +67,7 @@ function ifs_educore_render_user_view( $base_url ) {
     $user_audit_logs = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM `{$table_audit}` WHERE user_id = %d ORDER BY timestamp DESC LIMIT 10", $user_id ) );
     // phpcs:enable
 
-    // Retrieve Last Login Meta (falls back if custom tracker isn't active).
+    // Retrieve Last Login Meta.
     $last_login           = get_user_meta( $user_id, 'educore_last_login', true );
     $last_login_formatted = ! empty( $last_login ) ? date_i18n( 'd M Y, h:i A', strtotime( $last_login ) ) : __( 'Never recorded', 'ifsedu-school-management' );
 
@@ -139,6 +145,28 @@ function ifs_educore_render_user_view( $base_url ) {
                     </div>
                 </div>
 
+                <!-- Nickname -->
+                <div class="ifs-educore-field-group">
+                    <label class="ifs-educore-field-label"><?php esc_html_e( 'Nickname', 'ifsedu-school-management' ); ?></label>
+                    <div style="padding: 10px 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; font-weight: 600; color: #0f172a;">
+                        <?php echo esc_html( $user_nickname ?: '—' ); ?>
+                    </div>
+                </div>
+
+                <!-- Website -->
+                <div class="ifs-educore-field-group">
+                    <label class="ifs-educore-field-label"><?php esc_html_e( 'Website / Profile URL', 'ifsedu-school-management' ); ?></label>
+                    <div style="padding: 10px 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; font-weight: 600; color: #0f172a; word-break: break-all;">
+                        <?php if ( ! empty( $user_website ) ) : ?>
+                            <a href="<?php echo esc_url( $user_website ); ?>" target="_blank" style="color: #00523c; text-decoration: none;">
+                                <?php echo esc_html( $user_website ); ?>
+                            </a>
+                        <?php else : ?>
+                            —
+                        <?php endif; ?>
+                    </div>
+                </div>
+
                 <!-- Last Login -->
                 <div class="ifs-educore-field-group">
                     <label class="ifs-educore-field-label"><?php esc_html_e( 'Last System Login', 'ifsedu-school-management' ); ?></label>
@@ -156,6 +184,16 @@ function ifs_educore_render_user_view( $base_url ) {
                 </div>
 
             </div>
+
+            <!-- Biographical Info / Notes -->
+            <?php if ( ! empty( $user_desc ) ) : ?>
+                <div style="margin-top: 20px;">
+                    <label class="ifs-educore-field-label"><?php esc_html_e( 'Biographical Info / Notes', 'ifsedu-school-management' ); ?></label>
+                    <div style="padding: 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; font-weight: 500; color: #334155; line-height: 1.5;">
+                        <?php echo esc_html( $user_desc ); ?>
+                    </div>
+                </div>
+            <?php endif; ?>
 
             <?php if ( $linked_staff ) : ?>
                 <div style="margin-top: 30px; border-top: 1px solid #f1f5f9; padding-top: 24px;">
@@ -197,38 +235,65 @@ function ifs_educore_render_user_view( $base_url ) {
 
             <!-- Work History & IP Audit Trail Section -->
             <div style="margin-top: 30px; border-top: 1px solid #f1f5f9; padding-top: 24px;">
-                <h4 style="margin: 0 0 16px 0; font-size: 15px; font-weight: 700; color: #0f172a;">
-                    <?php esc_html_e( 'User Activity Work History & IP Logs', 'ifsedu-school-management' ); ?>
-                </h4>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+                    <h4 style="margin: 0; font-size: 15px; font-weight: 700; color: #0f172a;">
+                        <?php esc_html_e( 'User Activity Work History & IP Audit Trail', 'ifsedu-school-management' ); ?>
+                    </h4>
+                    <span style="font-size: 12px; font-weight: 600; color: #64748b; background: #f8fafc; border: 1px solid #e2e8f0; padding: 4px 10px; border-radius: 6px;">
+                        <?php printf( esc_html__( 'Total Recorded Actions: %d', 'ifsedu-school-management' ), count( $user_audit_logs ) ); ?>
+                    </span>
+                </div>
 
                 <div class="ifs-educore-table-responsive" style="border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden;">
                     <table class="ifs-educore-users-table" style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
                         <thead>
                             <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; color: #475569;">
-                                <th style="padding: 12px 16px; font-weight: 700;"><?php esc_html_e( 'Action Performed', 'ifsedu-school-management' ); ?></th>
-                                <th style="padding: 12px 16px; font-weight: 700; width: 160px;"><?php esc_html_e( 'IP Address', 'ifsedu-school-management' ); ?></th>
-                                <th style="padding: 12px 16px; font-weight: 700; width: 180px;"><?php esc_html_e( 'Timestamp', 'ifsedu-school-management' ); ?></th>
+                                <th style="padding: 12px 16px; font-weight: 700; width: 45%;"><?php esc_html_e( 'Action Performed & Details', 'ifsedu-school-management' ); ?></th>
+                                <th style="padding: 12px 16px; font-weight: 700; width: 25%;"><?php esc_html_e( 'Source IP Address', 'ifsedu-school-management' ); ?></th>
+                                <th style="padding: 12px 16px; font-weight: 700; width: 30%;"><?php esc_html_e( 'Timestamp', 'ifsedu-school-management' ); ?></th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php if ( ! empty( $user_audit_logs ) ) : ?>
-                                <?php foreach ( $user_audit_logs as $log ) : ?>
+                                <?php foreach ( $user_audit_logs as $log ) : 
+                                    $action_text = isset( $log->action_performed ) ? $log->action_performed : __( 'System Action', 'ifsedu-school-management' );
+                                    $ip_address  = isset( $log->ip_address ) ? $log->ip_address : '127.0.0.1';
+                                    $timestamp   = isset( $log->timestamp ) ? $log->timestamp : current_time( 'mysql' );
+                                    
+                                    // Categorize action type for subtle badge coloring
+                                    $badge_bg = '#f1f5f9';
+                                    $badge_color = '#475569';
+                                    if ( false !== stripos( $action_text, 'login' ) || false !== stripos( $action_text, 'auth' ) ) {
+                                        $badge_bg = '#ecfdf5'; $badge_color = '#047857';
+                                    } elseif ( false !== stripos( $action_text, 'update' ) || false !== stripos( $action_text, 'edit' ) ) {
+                                        $badge_bg = '#eff6ff'; $badge_color = '#1d4ed8';
+                                    } elseif ( false !== stripos( $action_text, 'delete' ) || false !== stripos( $action_text, 'remove' ) ) {
+                                        $badge_bg = '#fef2f2'; $badge_color = '#b91c1c';
+                                    }
+                                ?>
                                     <tr style="border-bottom: 1px solid #f1f5f9;">
-                                        <td style="padding: 12px 16px; color: #0f172a; font-weight: 500;">
-                                            <?php echo esc_html( $log->action_performed ); ?>
+                                        <td style="padding: 14px 16px; color: #0f172a; font-weight: 500;">
+                                            <div style="display: flex; align-items: flex-start; gap: 8px;">
+                                                <span style="display: inline-block; background: <?php echo esc_attr( $badge_bg ); ?>; color: <?php echo esc_attr( $badge_color ); ?>; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; margin-top: 2px;">
+                                                    <?php esc_html_e( 'Audit Log', 'ifsedu-school-management' ); ?>
+                                                </span>
+                                                <span><?php echo esc_html( $action_text ); ?></span>
+                                            </div>
                                         </td>
-                                        <td style="padding: 12px 16px; color: #64748b; font-family: monospace;">
-                                            <code><?php echo esc_html( $log->ip_address ); ?></code>
+                                        <td style="padding: 14px 16px; color: #64748b; font-family: monospace; font-size: 12.5px;">
+                                            <code><?php echo esc_html( $ip_address ); ?></code>
                                         </td>
-                                        <td style="padding: 12px 16px; color: #64748b; font-size: 12.5px;">
-                                            <?php echo esc_html( date_i18n( 'd M Y, h:i A', strtotime( $log->timestamp ) ) ); ?>
+                                        <td style="padding: 14px 16px; color: #64748b; font-size: 12.5px;">
+                                            <div style="font-weight: 600; color: #334155;"><?php echo esc_html( date_i18n( 'd M Y, h:i A', strtotime( $timestamp ) ) ); ?></div>
+                                            <div style="font-size: 11px; color: #94a3b8;"><?php echo esc_html( human_time_diff( strtotime( $timestamp ), current_time( 'timestamp' ) ) . ' ' . __( 'ago', 'ifsedu-school-management' ) ); ?></div>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else : ?>
                                 <tr>
-                                    <td colspan="3" style="padding: 24px; text-align: center; color: #64748b;">
-                                        <?php esc_html_e( 'No recorded work history or activity logs found for this user.', 'ifsedu-school-management' ); ?>
+                                    <td colspan="3" style="padding: 30px; text-align: center; color: #64748b;">
+                                        <span class="dashicons dashicons-clipboard" style="font-size: 28px; width: 28px; height: 28px; color: #cbd5e1; margin-bottom: 8px; display: block; margin-left: auto; margin-right: auto;"></span>
+                                        <?php esc_html_e( 'No recorded work history or activity logs found for this user account.', 'ifsedu-school-management' ); ?>
                                     </td>
                                 </tr>
                             <?php endif; ?>

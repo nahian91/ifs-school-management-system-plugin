@@ -2,21 +2,25 @@
 /**
  * Academic Results & Evaluation Matrix Module Router
  * File: inc/results.php
- * Subtabs: Marks Entry Matrix, Progress & Tabulation Sheet, Merit List & Positions
+ * Subtabs: Marks Entry Matrix, Mark Report, Progress & Tabulation Sheet, Merit List & Positions
  * Custom Prefixes Applied: dpt-, afdp-
  * Text Domain: ifsedu-school-management
  */
+
+declare(strict_types=1);
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit; // Exit if accessed directly.
 }
 
 // Load Modular Dependency Sub-Files.
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
 $educore_results_dir = defined( 'EDUCORE_PATH' ) ? EDUCORE_PATH . 'inc/results/' : plugin_dir_path( __FILE__ ) . 'results/';
 
 if ( file_exists( $educore_results_dir . 'exams-marks.php' ) ) {
     require_once $educore_results_dir . 'exams-marks.php';
+}
+if ( file_exists( $educore_results_dir . 'exams-mark-report.php' ) ) {
+    require_once $educore_results_dir . 'exams-mark-report.php';
 }
 if ( file_exists( $educore_results_dir . 'exams-report.php' ) ) {
     require_once $educore_results_dir . 'exams-report.php';
@@ -28,7 +32,7 @@ if ( file_exists( $educore_results_dir . 'exams-merit.php' ) ) {
 /**
  * Main Results Tab View Router
  */
-function educore_results_tab() {
+function educore_results_tab(): void {
     global $wpdb;
 
     $current_user = wp_get_current_user();
@@ -42,11 +46,11 @@ function educore_results_tab() {
         $is_staff = educore_has_access( array( 'teacher', 'staff', 'operator', 'instructor', 'editor', 'author', 'contributor', 'subscriber' ) );
     }
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
     if ( ! $is_staff && ! $is_admin ) {
         $staff_exists = $wpdb->get_var(
             $wpdb->prepare(
-                "SELECT id FROM {$table_staff} WHERE wp_user_id = %d OR email = %s LIMIT 1",
+                'SELECT id FROM %i WHERE wp_user_id = %d OR email = %s LIMIT 1',
+                $table_staff,
                 $current_user->ID,
                 $current_user->user_email
             )
@@ -55,18 +59,17 @@ function educore_results_tab() {
             $is_staff = true;
         }
     }
-    // phpcs:enable
 
     if ( ! $is_admin && ! $is_staff ) {
         wp_die( esc_html__( 'You do not have sufficient permissions to access examination marks & results.', 'ifsedu-school-management' ) );
     }
 
     // phpcs:disable WordPress.Security.NonceVerification.Recommended
-    $sub_tab = isset( $_GET['sub'] ) ? sanitize_key( $_GET['sub'] ) : 'marks';
+    $sub_tab = isset( $_GET['sub'] ) ? sanitize_key( wp_unslash( $_GET['sub'] ) ) : 'marks';
     // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
-    // 2. Role Boundary: Allow Teachers/Staff access to 'marks' and 'report' (Tabulation & Marksheet).
-    $allowed_teacher_tabs = array( 'marks', 'report' );
+    // 2. Role Boundary: Allow Teachers/Staff access to 'marks', 'mark-report', and 'report'.
+    $allowed_teacher_tabs = array( 'marks', 'mark-report', 'report' );
     if ( ! $is_admin && ! in_array( $sub_tab, $allowed_teacher_tabs, true ) ) {
         $sub_tab = 'marks';
     }
@@ -78,10 +81,10 @@ function educore_results_tab() {
         $table_subjects         = $wpdb->prefix . 'sms_subjects';
         $table_units            = $wpdb->prefix . 'sms_academic_units';
 
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $teacher_id = $wpdb->get_var(
             $wpdb->prepare(
-                "SELECT id FROM {$table_staff} WHERE wp_user_id = %d OR email = %s OR full_name = %s LIMIT 1",
+                'SELECT id FROM %i WHERE wp_user_id = %d OR email = %s OR full_name = %s LIMIT 1',
+                $table_staff,
                 $current_user->ID,
                 $current_user->user_email,
                 $current_user->display_name
@@ -91,23 +94,27 @@ function educore_results_tab() {
         if ( $teacher_id ) {
             $assigned_teacher_info = $wpdb->get_results(
                 $wpdb->prepare(
-                    "SELECT DISTINCT u.class_name, u.section_name, s.subject_name, s.subject_code 
-                     FROM {$table_teacher_subjects} ts
-                     INNER JOIN {$table_units} u ON ts.class_id = u.id
-                     INNER JOIN {$table_subjects} s ON ts.subject_id = s.id
-                     WHERE ts.teacher_id = %d AND u.class_name != ''
-                     ORDER BY CAST(u.class_name AS UNSIGNED) ASC, u.class_name ASC, s.subject_name ASC",
-                    $teacher_id
+                    'SELECT DISTINCT u.class_name, u.section_name, s.subject_name, s.subject_code 
+                     FROM %i ts
+                     INNER JOIN %i u ON ts.class_id = u.id
+                     INNER JOIN %i s ON ts.subject_id = s.id
+                     WHERE ts.teacher_id = %d AND u.class_name != %s
+                     ORDER BY CAST(u.class_name AS UNSIGNED) ASC, u.class_name ASC, s.subject_name ASC',
+                    $table_teacher_subjects,
+                    $table_units,
+                    $table_subjects,
+                    $teacher_id,
+                    ''
                 )
             );
         }
-        // phpcs:enable
     }
 
     // Construct URLs for Submenu Tabs.
-    $marks_url  = admin_url( 'admin.php?page=school_management_system&tab=results&sub=marks' );
-    $report_url = admin_url( 'admin.php?page=school_management_system&tab=results&sub=report' );
-    $merit_url  = admin_url( 'admin.php?page=school_management_system&tab=results&sub=merit' );
+    $marks_url       = admin_url( 'admin.php?page=school_management_system&tab=results&sub=marks' );
+    $mark_report_url = admin_url( 'admin.php?page=school_management_system&tab=results&sub=mark-report' );
+    $report_url      = admin_url( 'admin.php?page=school_management_system&tab=results&sub=report' );
+    $merit_url       = admin_url( 'admin.php?page=school_management_system&tab=results&sub=merit' );
     ?>
 
     <style id="dpt-results-nav-styles">
@@ -243,21 +250,28 @@ function educore_results_tab() {
         <!-- Top Sub-Navigation Menu Bar -->
         <div class="afdp-results-nav-bar no-print">
             <div class="dpt-nav-button-group">
-                <!-- 1. Marks Entry Matrix (Accessible by Teachers and Admins) -->
+                <!-- 1. Marks Entry Matrix -->
                 <a href="<?php echo esc_url( $marks_url ); ?>" 
                    class="dpt-nav-link <?php echo ( $sub_tab === 'marks' ) ? 'dpt-nav-link-active' : 'dpt-nav-link-inactive'; ?>">
                     <span class="dashicons dashicons-edit"></span>
                     <?php esc_html_e( 'Marks Entry Matrix', 'ifsedu-school-management' ); ?>
                 </a>
+
+                <!-- 2. Mark Report (New Subtab) -->
+                <a href="<?php echo esc_url( $mark_report_url ); ?>" 
+                   class="dpt-nav-link <?php echo ( $sub_tab === 'mark-report' ) ? 'dpt-nav-link-active' : 'dpt-nav-link-inactive'; ?>">
+                    <span class="dashicons dashicons-media-document"></span>
+                    <?php esc_html_e( 'Mark Report', 'ifsedu-school-management' ); ?>
+                </a>
                 
-                <!-- 2. Progress & Tabulation Sheet (Accessible by Teachers and Admins) -->
+                <!-- 3. Progress & Tabulation Sheet -->
                 <a href="<?php echo esc_url( $report_url ); ?>" 
                    class="dpt-nav-link <?php echo ( $sub_tab === 'report' ) ? 'dpt-nav-link-active' : 'dpt-nav-link-inactive'; ?>">
                     <span class="dashicons dashicons-clipboard"></span>
                     <?php esc_html_e( 'Progress & Tabulation Sheet', 'ifsedu-school-management' ); ?>
                 </a>
 
-                <!-- 3. Merit List & Positions (Admin Only) -->
+                <!-- 4. Merit List & Positions (Admin Only) -->
                 <?php if ( $is_admin ) : ?>
                     <a href="<?php echo esc_url( $merit_url ); ?>" 
                        class="dpt-nav-link <?php echo ( $sub_tab === 'merit' ) ? 'dpt-nav-link-active' : 'dpt-nav-link-inactive'; ?>">
@@ -279,19 +293,6 @@ function educore_results_tab() {
                         );
                         ?>
                     </span>
-                <?php else : ?>
-                    <span class="dpt-status-context-pill">
-                        <span class="dashicons dashicons-analytics"></span>
-                        <?php 
-                            if ( $sub_tab === 'report' ) {
-                                esc_html_e( 'Academic Tabulation View', 'ifsedu-school-management' );
-                            } elseif ( $sub_tab === 'merit' ) {
-                                esc_html_e( 'Position Ranking & Merit List', 'ifsedu-school-management' );
-                            } else {
-                                esc_html_e( 'Subject Marks Evaluation', 'ifsedu-school-management' );
-                            }
-                        ?>
-                    </span>
                 <?php endif; ?>
             </div>
         </div>
@@ -300,6 +301,14 @@ function educore_results_tab() {
         <div class="dpt-module-viewport-container">
             <?php
             switch ( $sub_tab ) {
+                case 'mark-report':
+                    if ( function_exists( 'educore_exam_mark_report_view' ) ) {
+                        educore_exam_mark_report_view();
+                    } else {
+                        echo '<div class="afdp-notice-card">' . esc_html__( 'Mark Report module is initializing.', 'ifsedu-school-management' ) . '</div>';
+                    }
+                    break;
+
                 case 'report':
                     if ( function_exists( 'educore_exams_report_view' ) ) {
                         educore_exams_report_view();

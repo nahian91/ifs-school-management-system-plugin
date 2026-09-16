@@ -974,7 +974,7 @@ function educore_exam_questions_view() {
             div.className = 'ifs-educore-q-card cq-item';
             div.innerHTML = 
                 '<div class="ifs-educore-q-card-header">' +
-                    '<strong class="cq-item-num" style="color:#00523c; font-size:13.5px;"><?php echo esc_js( __( 'Question No.', 'ifsedu-school-management' ); ?> ' + toBn(num) + '</strong>' +
+                    '<strong class="cq-item-num" style="color:#00523c; font-size:13.5px;"><?php echo esc_js( __( 'Question No.', 'ifsedu-school-management' ) ); ?> ' + toBn(num) + '</strong>' +
                     '<div style="display:flex; align-items:center; gap:8px;" onclick="event.stopPropagation();">' +
                         '<input type="text" name="cq_section[]" class="ifs-educore-input cq-inp-sec" style="width:130px; height:28px; font-size:12px;" placeholder="<?php esc_attr_e( "Section (e.g. 'ক-বিভাগ')", 'ifsedu-school-management' ); ?>" value="' + (data.section || '') + '">' +
                         '<button type="button" class="btn-remove-cq" style="background:#fee2e2; color:#dc2626; border:1px solid #fecaca; border-radius:5px; padding:3px 8px; cursor:pointer; font-weight:800;">&times;</button>' +
@@ -988,9 +988,9 @@ function educore_exam_questions_view() {
                         '<img src="' + (data.image || '') + '" class="cq-img-preview" alt="Diagram" style="max-height:40px; border:1px solid #cbd5e1; border-radius:4px; ' + (data.image ? 'display:block;' : 'display:none;') + '">' +
                         '<input type="hidden" name="cq_image_url[]" class="cq-inp-img-url" value="' + (data.image || '') + '">' +
                         '<button type="button" class="btn-choose-diagram" style="background:#f1f5f9; border:1px solid #cbd5e1; padding:4px 10px; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer;">' +
-                            '<span class="dashicons dashicons-format-image" style="font-size:13px; width:13px; height:13px; vertical-align:middle;"></span> <?php echo esc_js( __( 'Attach Diagram', 'ifsedu-school-management' ); ?>' +
+                            '<span class="dashicons dashicons-format-image" style="font-size:13px; width:13px; height:13px; vertical-align:middle;"></span> <?php echo esc_js( __( 'Attach Diagram', 'ifsedu-school-management' ) ); ?>' +
                         '</button>' +
-                        '<button type="button" class="btn-remove-diagram" style="background:#fee2e2; color:#dc2626; border:none; padding:4px 8px; border-radius:4px; font-size:11px; font-weight:700; cursor:pointer; ' + (data.image ? 'display:inline-flex;' : 'display:none;') + '"><?php echo esc_js( __( 'Remove', 'ifsedu-school-management' ); ?></button>' +
+                        '<button type="button" class="btn-remove-diagram" style="background:#fee2e2; color:#dc2626; border:none; padding:4px 8px; border-radius:4px; font-size:11px; font-weight:700; cursor:pointer; ' + (data.image ? 'display:inline-flex;' : 'display:none;') + '"><?php echo esc_js( __( 'Remove', 'ifsedu-school-management' ) ); ?></button>' +
                     '</div>' +
                     '<div class="ifs-sub-q-builder-grid">' +
                         '<div class="ifs-sub-q-row-item">' +
@@ -1171,7 +1171,7 @@ function educore_exam_questions_view() {
                                     '<span>(খ) ' + o2 + '</span>' +
                                     '<span>(গ) ' + o3 + '</span>' +
                                     '<span>(ঘ) ' + o4 + '</span>' +
-                                '</div>' +
+                                    '</div>' +
                                 (showAns ? '<div class="print-hide-ans" style="margin-top:3px;"><span class="bd-ans-key-tag">সঠিক উত্তর: ' + (ansMap[ans] || '') + '</span></div>' : '') +
                             '</div>';
                     }
@@ -1200,7 +1200,7 @@ function educore_exam_questions_view() {
             if (e.target.closest('.btn-remove-cq')) {
                 e.target.closest('.cq-item').remove();
                 cqContainer.querySelectorAll('.cq-item').forEach(function(item, idx) {
-                    item.querySelector('.cq-item-num').textContent = '<?php echo esc_js( __( "Question No.", "ifsedu-school-management" ) ); ?> ' + toBn(idx + 1);
+                    item.querySelector('.cq-item-num').textContent = '<?php echo esc_js( __( 'Question No.', 'ifsedu-school-management' ) ); ?> ' + toBn(idx + 1);
                 });
                 updateLivePreview();
             }
@@ -1231,8 +1231,8 @@ function educore_exam_questions_view() {
             if (chooseBtn) {
                 currentMediaBox = chooseBtn.closest('.ifs-educore-image-attach-box');
                 var frame = wp.media({
-                    title: '<?php echo esc_js( __( "Choose Image / Diagram", "ifsedu-school-management" ) ); ?>',
-                    button: { text: '<?php echo esc_js( __( "Insert Image", "ifsedu-school-management" ) ); ?>' },
+                    title: '<?php echo esc_js( __( 'Choose Image / Diagram', 'ifsedu-school-management' ) ); ?>',
+                    button: { text: '<?php echo esc_js( __( 'Insert Image', 'ifsedu-school-management' ) ); ?>' },
                     multiple: false
                 });
 
@@ -1298,7 +1298,7 @@ function educore_exam_questions_view() {
                 formData.append('security', ajaxNonce);
                 formData.append('paper_id', paperId);
 
-                fetch('<?php echo esc_url( admin_url( "admin-ajax.php" ) ); ?>', { method: 'POST', body: formData })
+                fetch('<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>', { method: 'POST', body: formData })
                 .then(function(res) { return res.json(); })
                 .then(function(res) {
                     if (res.success && res.data) {

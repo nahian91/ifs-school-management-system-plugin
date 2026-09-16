@@ -4,40 +4,58 @@
  * File: inc/attendance/attendance-exam.php
  * Text Domain: ifsedu-school-management
  * Teacher Scope: Restricts Class/Section/Subject dropdowns to `sms_teacher_subjects` for logged-in Teachers.
+ * Updated: Removed manual date filter; auto-resolves Exam Date from exam routine and fixes cache group constants.
  */
 
+declare(strict_types=1);
+
 if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Exit if accessed directly.
+    exit;
+}
+
+/**
+ * Helper: Defensive table name resolver
+ */
+function educore_exam_att_get_table( string $key ): string {
+    global $wpdb;
+    if ( function_exists( 'educore_get_table_name' ) ) {
+        $tbl = educore_get_table_name( $key );
+        if ( ! empty( $tbl ) ) {
+            return $tbl;
+        }
+    }
+    return $wpdb->prefix . 'sms_' . $key;
 }
 
 /**
  * Render Examination Hall Attendance Roster & Handle Form Submission
  */
-function educore_exam_attendance_view() {
+function educore_exam_attendance_view(): void {
     global $wpdb;
     $current_user = wp_get_current_user();
 
-    $table_students         = $wpdb->prefix . 'sms_students';
-    $table_exams            = $wpdb->prefix . 'sms_exams';
-    $table_units            = $wpdb->prefix . 'sms_academic_units';
-    $table_subjects         = $wpdb->prefix . 'sms_subjects';
-    $table_exam_att         = $wpdb->prefix . 'sms_exam_attendance';
-    $table_staff            = $wpdb->prefix . 'sms_staff';
-    $table_teacher_subjects = $wpdb->prefix . 'sms_teacher_subjects';
+    $table_students         = educore_exam_att_get_table( 'students' );
+    $table_exams            = educore_exam_att_get_table( 'exams' );
+    $table_units            = educore_exam_att_get_table( 'academic_units' );
+    $table_subjects         = educore_exam_att_get_table( 'subjects' );
+    $table_exam_att         = educore_exam_att_get_table( 'exam_attendance' );
+    $table_staff            = educore_exam_att_get_table( 'staff' );
+    $table_teacher_subjects = educore_exam_att_get_table( 'teacher_subjects' );
+    $table_routine          = educore_exam_att_get_table( 'exam_routine' );
 
     // 1. Procedural Role & Capability Validation.
     $is_admin = current_user_can( 'manage_options' ) || in_array( 'administrator', (array) $current_user->roles, true );
     
     $is_staff = false;
     if ( function_exists( 'educore_has_access' ) ) {
-        $is_staff = educore_has_access( array( 'teacher', 'staff', 'operator', 'instructor', 'editor', 'author', 'contributor', 'subscriber' ) );
+        $is_staff = educore_has_access( 'educore_manage_attendance' ) || educore_has_access( 'educore_manage_academics' );
     }
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
     if ( ! $is_staff && ! $is_admin ) {
         $staff_exists = $wpdb->get_var(
             $wpdb->prepare(
-                "SELECT id FROM `{$table_staff}` WHERE wp_user_id = %d OR email = %s LIMIT 1",
+                'SELECT id FROM %i WHERE wp_user_id = %d OR email = %s LIMIT 1',
+                $table_staff,
                 $current_user->ID,
                 $current_user->user_email
             )
@@ -46,10 +64,12 @@ function educore_exam_attendance_view() {
             $is_staff = true;
         }
     }
-    // phpcs:enable
 
     if ( ! $is_admin && ! $is_staff ) {
-        wp_die( esc_html__( 'You do not have sufficient permissions to view examination hall attendance.', 'ifsedu-school-management' ) );
+        wp_die(
+            esc_html__( 'You do not have sufficient permissions to view examination hall attendance.', 'ifsedu-school-management' ),
+            403
+        );
     }
 
     $saved_notice = '';
@@ -60,8 +80,34 @@ function educore_exam_attendance_view() {
     $filter_class   = isset( $_GET['class_name'] ) ? sanitize_text_field( wp_unslash( $_GET['class_name'] ) ) : '';
     $filter_section = isset( $_GET['section_name'] ) ? sanitize_text_field( wp_unslash( $_GET['section_name'] ) ) : '';
     $filter_subject = isset( $_GET['subject_name'] ) ? sanitize_text_field( wp_unslash( $_GET['subject_name'] ) ) : '';
-    $filter_date    = isset( $_GET['attendance_date'] ) ? sanitize_text_field( wp_unslash( $_GET['attendance_date'] ) ) : current_time( 'Y-m-d' );
     // phpcs:enable WordPress.Security.NonceVerification.Recommended
+
+    // --------------------------------------------------------------------------
+    // RESOLVE EXAM DATE DYNAMICALLY FROM ROUTINE
+    // --------------------------------------------------------------------------
+    $filter_date = current_time( 'Y-m-d' );
+    if ( $filter_exam > 0 && ! empty( $filter_class ) && ! empty( $filter_subject ) ) {
+        $routine_date = $wpdb->get_var(
+            $wpdb->prepare(
+                'SELECT er.exam_date 
+                 FROM %i er
+                 INNER JOIN %i u ON er.class_id = u.id
+                 INNER JOIN %i s ON er.subject_id = s.id
+                 WHERE er.exam_id = %d AND u.class_name = %s AND s.subject_name = %s
+                 LIMIT 1',
+                $table_routine,
+                $table_units,
+                $table_subjects,
+                $filter_exam,
+                $filter_class,
+                $filter_subject
+            )
+        );
+
+        if ( ! empty( $routine_date ) ) {
+            $filter_date = (string) $routine_date;
+        }
+    }
 
     // --------------------------------------------------------------------------
     // RESOLVE TEACHER SUBJECT & CLASS ALLOCATIONS
@@ -70,11 +116,11 @@ function educore_exam_attendance_view() {
     $teacher_assigned_subs    = array();
     $teacher_id               = 0;
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
     if ( ! $is_admin ) {
         $teacher_id = (int) $wpdb->get_var(
             $wpdb->prepare(
-                "SELECT id FROM `{$table_staff}` WHERE wp_user_id = %d OR email = %s OR full_name = %s LIMIT 1",
+                'SELECT id FROM %i WHERE wp_user_id = %d OR email = %s OR full_name = %s LIMIT 1',
+                $table_staff,
                 $current_user->ID,
                 $current_user->user_email,
                 $current_user->display_name
@@ -84,12 +130,15 @@ function educore_exam_attendance_view() {
         if ( 0 < $teacher_id ) {
             $allocations = $wpdb->get_results(
                 $wpdb->prepare(
-                    "SELECT DISTINCT u.class_name, u.section_name, u.sort_order, s.subject_name 
-                     FROM `{$table_teacher_subjects}` ts
-                     INNER JOIN `{$table_units}` u ON ts.class_id = u.id
-                     INNER JOIN `{$table_subjects}` s ON ts.subject_id = s.id
+                    'SELECT DISTINCT u.class_name, u.section_name, u.sort_order, s.subject_name 
+                     FROM %i ts
+                     INNER JOIN %i u ON ts.class_id = u.id
+                     INNER JOIN %i s ON ts.subject_id = s.id
                      WHERE ts.teacher_id = %d
-                     ORDER BY u.sort_order ASC, CAST(u.class_name AS UNSIGNED) ASC, u.class_name ASC, s.subject_order ASC",
+                     ORDER BY u.sort_order ASC, CAST(u.class_name AS UNSIGNED) ASC, u.class_name ASC, s.subject_order ASC',
+                    $table_teacher_subjects,
+                    $table_units,
+                    $table_subjects,
                     $teacher_id
                 )
             );
@@ -108,30 +157,36 @@ function educore_exam_attendance_view() {
             }
         }
     }
-    // phpcs:enable
 
     // --------------------------------------------------------------------------
     // 1. SAVE EXAM ATTENDANCE FORM SUBMISSION
     // --------------------------------------------------------------------------
     $req_method = isset( $_SERVER['REQUEST_METHOD'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : '';
     if ( 'POST' === $req_method && isset( $_POST['educore_save_exam_attendance'] ) ) {
-        if ( isset( $_POST['ifs_educore_exam_att_nonce_field'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ifs_educore_exam_att_nonce_field'] ) ), 'save_exam_attendance_action' ) ) {
+        $nonce_field = isset( $_POST['ifs_educore_exam_att_nonce_field'] ) ? sanitize_text_field( wp_unslash( $_POST['ifs_educore_exam_att_nonce_field'] ) ) : '';
+
+        if ( wp_verify_nonce( $nonce_field, 'save_exam_attendance_action' ) ) {
             
-            // Boundary check: Non-admin teacher can only submit for their assigned class and subject if allocations exist.
+            // Boundary check: Non-admin teacher authorization guard
             if ( ! $is_admin && ! empty( $teacher_assigned_classes ) && ( ! in_array( $filter_class, $teacher_assigned_classes, true ) || ! in_array( $filter_subject, (array) ( $teacher_assigned_subs[ $filter_class ] ?? array() ), true ) ) ) {
-                wp_die( esc_html__( 'Security Check: You are not authorized to submit examination attendance for this allocation.', 'ifsedu-school-management' ) );
+                wp_die(
+                    esc_html__( 'Security Check: You are not authorized to submit examination attendance for this allocation.', 'ifsedu-school-management' ),
+                    403
+                );
             }
 
-            $exam_id         = isset( $_POST['exam_id'] ) ? absint( wp_unslash( $_POST['exam_id'] ) ) : 0;
-            $class_name      = isset( $_POST['class_name'] ) ? sanitize_text_field( wp_unslash( $_POST['class_name'] ) ) : '';
-            $section_name    = isset( $_POST['section_name'] ) ? sanitize_text_field( wp_unslash( $_POST['section_name'] ) ) : '';
-            $subject_name    = isset( $_POST['subject_name'] ) ? sanitize_text_field( wp_unslash( $_POST['subject_name'] ) ) : '';
-            $attendance_date = isset( $_POST['attendance_date'] ) ? sanitize_text_field( wp_unslash( $_POST['attendance_date'] ) ) : current_time( 'Y-m-d' );
+            $exam_id      = isset( $_POST['exam_id'] ) ? absint( wp_unslash( $_POST['exam_id'] ) ) : 0;
+            $class_name   = isset( $_POST['class_name'] ) ? sanitize_text_field( wp_unslash( $_POST['class_name'] ) ) : '';
+            $section_name = isset( $_POST['section_name'] ) ? sanitize_text_field( wp_unslash( $_POST['section_name'] ) ) : '';
+            $subject_name = isset( $_POST['subject_name'] ) ? sanitize_text_field( wp_unslash( $_POST['subject_name'] ) ) : '';
+            
+            // Re-resolve attendance date securely from posted hidden input
+            $attendance_date = isset( $_POST['attendance_date'] ) ? sanitize_text_field( wp_unslash( $_POST['attendance_date'] ) ) : $filter_date;
             
             // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-            $raw_att         = ( isset( $_POST['att_status'] ) && is_array( $_POST['att_status'] ) ) ? wp_unslash( $_POST['att_status'] ) : array();
+            $raw_att     = ( isset( $_POST['att_status'] ) && is_array( $_POST['att_status'] ) ) ? wp_unslash( $_POST['att_status'] ) : array();
             // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-            $raw_remarks     = ( isset( $_POST['invigilator_remarks'] ) && is_array( $_POST['invigilator_remarks'] ) ) ? wp_unslash( $_POST['invigilator_remarks'] ) : array();
+            $raw_remarks = ( isset( $_POST['invigilator_remarks'] ) && is_array( $_POST['invigilator_remarks'] ) ) ? wp_unslash( $_POST['invigilator_remarks'] ) : array();
 
             $allowed_statuses = array( 'Present', 'Absent', 'Late' );
             $saved_count      = 0;
@@ -146,10 +201,10 @@ function educore_exam_attendance_view() {
 
                     $remarks = isset( $raw_remarks[ $student_id ] ) ? sanitize_text_field( (string) $raw_remarks[ $student_id ] ) : '';
 
-                    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
                     $existing_id = (int) $wpdb->get_var(
                         $wpdb->prepare(
-                            "SELECT id FROM `{$table_exam_att}` WHERE exam_id = %d AND student_id = %d AND subject_name = %s AND attendance_date = %s",
+                            'SELECT id FROM %i WHERE exam_id = %d AND student_id = %d AND subject_name = %s AND attendance_date = %s',
+                            $table_exam_att,
                             $exam_id,
                             $st_id,
                             $subject_name,
@@ -176,9 +231,11 @@ function educore_exam_attendance_view() {
                     } else {
                         $wpdb->insert( $table_exam_att, $data, $formats );
                     }
-                    // phpcs:enable
                     $saved_count++;
                 }
+
+                $cache_group = defined( 'EDUCORE_CACHE_GROUP' ) ? EDUCORE_CACHE_GROUP : 'educore_school_management';
+                wp_cache_delete( 'educore_exam_att_' . $exam_id . '_' . $class_name, $cache_group );
 
                 $saved_notice = sprintf(
                     /* translators: %d: Number of candidates */
@@ -189,17 +246,23 @@ function educore_exam_attendance_view() {
         }
     }
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-    $exams = $wpdb->get_results( "SELECT id, exam_name FROM `{$table_exams}` ORDER BY id DESC" );
-
-    // Fetch Unique Classes and build section maps prioritizing sort_order.
-    $raw_units = $wpdb->get_results( 
-        "SELECT id, class_name, section_name, dept_name, sort_order 
-         FROM `{$table_units}` 
-         WHERE class_name != '' 
-         ORDER BY sort_order ASC, CAST(class_name AS UNSIGNED) ASC, class_name ASC, section_name ASC" 
+    $exams = $wpdb->get_results(
+        $wpdb->prepare(
+            'SELECT id, exam_name FROM %i ORDER BY id DESC',
+            $table_exams
+        )
     );
-    // phpcs:enable
+
+    $raw_units = $wpdb->get_results(
+        $wpdb->prepare(
+            'SELECT id, class_name, section_name, dept_name, sort_order 
+             FROM %i 
+             WHERE class_name != %s 
+             ORDER BY sort_order ASC, CAST(class_name AS UNSIGNED) ASC, class_name ASC, section_name ASC',
+            $table_units,
+            ''
+        )
+    );
 
     $academic_classes   = array();
     $class_order_map    = array();
@@ -215,15 +278,14 @@ function educore_exam_attendance_view() {
                 $class_order_map[ $c_name ] = $s_ord;
             }
 
-            // If teacher mode and has assigned classes, filter dropdowns accordingly.
             if ( ! $is_admin && ! empty( $teacher_assigned_classes ) && ! in_array( $c_name, $teacher_assigned_classes, true ) ) {
                 continue;
             }
 
             if ( ! isset( $class_section_map[ $c_name ] ) ) {
-                $class_section_map[ $c_name ] = array();
-                $class_subject_map[ $c_name ] = array();
-                $academic_classes[] = $c_name;
+                $class_section_map[ $c_name ]  = array();
+                $class_subject_map[ $c_name ]  = array();
+                $academic_classes[]            = $c_name;
             }
             if ( ! empty( $unit->section_name ) ) {
                 $class_section_map[ $c_name ][] = trim( (string) $unit->section_name );
@@ -232,45 +294,46 @@ function educore_exam_attendance_view() {
                 $class_section_map[ $c_name ][] = trim( (string) $unit->dept_name );
             }
 
-            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             if ( ! $is_admin && 0 < $teacher_id ) {
                 $subs = $wpdb->get_results(
                     $wpdb->prepare( 
-                        "SELECT DISTINCT s.subject_name, s.subject_code, s.subject_order, s.total_marks, s.pass_marks, s.cq_marks, s.cq_pass, s.mcq_marks, s.mcq_pass, s.practical_marks, s.practical_pass 
-                         FROM `{$table_teacher_subjects}` ts
-                         INNER JOIN `{$table_subjects}` s ON ts.subject_id = s.id
+                        'SELECT DISTINCT s.subject_name, s.subject_code, s.subject_order, s.total_marks, s.pass_marks, s.cq_marks, s.cq_pass, s.mcq_marks, s.mcq_pass, s.practical_marks, s.practical_pass 
+                         FROM %i ts
+                         INNER JOIN %i s ON ts.subject_id = s.id
                          WHERE ts.teacher_id = %d AND ts.class_id = %d
-                         ORDER BY s.subject_order ASC, s.subject_name ASC", 
+                         ORDER BY s.subject_order ASC, s.subject_name ASC', 
+                        $table_teacher_subjects,
+                        $table_subjects,
                         $teacher_id,
-                        intval( $unit->id )
+                        (int) $unit->id
                     )
                 );
             } else {
                 $subs = $wpdb->get_results(
                     $wpdb->prepare( 
-                        "SELECT subject_name, subject_code, subject_order, total_marks, pass_marks, cq_marks, cq_pass, mcq_marks, mcq_pass, practical_marks, practical_pass 
-                         FROM `{$table_subjects}` 
+                        'SELECT subject_name, subject_code, subject_order, total_marks, pass_marks, cq_marks, cq_pass, mcq_marks, mcq_pass, practical_marks, practical_pass 
+                         FROM %i 
                          WHERE class_id = %d
-                         ORDER BY subject_order ASC, subject_name ASC", 
-                        intval( $unit->id )
+                         ORDER BY subject_order ASC, subject_name ASC', 
+                        $table_subjects,
+                        (int) $unit->id
                     )
                 );
             }
-            // phpcs:enable
 
             if ( ! empty( $subs ) ) {
                 foreach ( $subs as $sub ) {
                     $class_subject_map[ $c_name ][] = array(
-                        'name'            => $sub->subject_name,
-                        'code'            => $sub->subject_code ? ' (' . $sub->subject_code . ')' : '',
-                        'total_marks'     => $sub->total_marks,
-                        'pass_marks'      => $sub->pass_marks,
-                        'cq_marks'        => $sub->cq_marks,
-                        'cq_pass'         => $sub->cq_pass,
-                        'mcq_marks'       => $sub->mcq_marks,
-                        'mcq_pass'        => $sub->mcq_pass,
-                        'practical_marks' => $sub->practical_marks,
-                        'practical_pass'  => $sub->practical_pass,
+                        'name'            => (string) $sub->subject_name,
+                        'code'            => ! empty( $sub->subject_code ) ? ' (' . (string) $sub->subject_code . ')' : '',
+                        'total_marks'     => (float) $sub->total_marks,
+                        'pass_marks'      => (float) $sub->pass_marks,
+                        'cq_marks'        => (float) $sub->cq_marks,
+                        'cq_pass'         => (float) $sub->cq_pass,
+                        'mcq_marks'       => (float) $sub->mcq_marks,
+                        'mcq_pass'        => (float) $sub->mcq_pass,
+                        'practical_marks' => (float) $sub->practical_marks,
+                        'practical_pass'  => (float) $sub->practical_pass,
                     );
                 }
             }
@@ -290,40 +353,45 @@ function educore_exam_attendance_view() {
         }
 
         if ( $is_admin || empty( $teacher_assigned_classes ) ) {
-            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-            $all_global_subs = $wpdb->get_results( "SELECT subject_name, subject_code, subject_order, total_marks, pass_marks, cq_marks, cq_pass, mcq_marks, mcq_pass, practical_marks, practical_pass FROM `{$table_subjects}` ORDER BY subject_order ASC, subject_name ASC" );
-            // phpcs:enable
+            $all_global_subs = $wpdb->get_results(
+                $wpdb->prepare(
+                    'SELECT subject_name, subject_code, subject_order, total_marks, pass_marks, cq_marks, cq_pass, mcq_marks, mcq_pass, practical_marks, practical_pass FROM %i ORDER BY subject_order ASC, subject_name ASC',
+                    $table_subjects
+                )
+            );
             
             foreach ( $academic_classes as $c_name ) {
                 if ( empty( $class_subject_map[ $c_name ] ) && ! empty( $all_global_subs ) ) {
                     foreach ( $all_global_subs as $gs ) {
                         $class_subject_map[ $c_name ][] = array(
-                            'name'            => $gs->subject_name,
-                            'code'            => $gs->subject_code ? ' (' . $gs->subject_code . ')' : '',
-                            'total_marks'     => $gs->total_marks,
-                            'pass_marks'      => $gs->pass_marks,
-                            'cq_marks'        => $gs->cq_marks,
-                            'cq_pass'         => $gs->cq_pass,
-                            'mcq_marks'       => $gs->mcq_marks,
-                            'mcq_pass'        => $gs->mcq_pass,
-                            'practical_marks' => $gs->practical_marks,
-                            'practical_pass'  => $gs->practical_pass,
+                            'name'            => (string) $gs->subject_name,
+                            'code'            => ! empty( $gs->subject_code ) ? ' (' . (string) $gs->subject_code . ')' : '',
+                            'total_marks'     => (float) $gs->total_marks,
+                            'pass_marks'      => (float) $gs->pass_marks,
+                            'cq_marks'        => (float) $gs->cq_marks,
+                            'cq_pass'         => (float) $gs->cq_pass,
+                            'mcq_marks'       => (float) $gs->mcq_marks,
+                            'mcq_pass'        => (float) $gs->mcq_pass,
+                            'practical_marks' => (float) $gs->practical_marks,
+                            'practical_pass'  => (float) $gs->practical_pass,
                         );
                     }
                 }
             }
         }
 
-        // Apply sort_order then Natural Numeric Sorting to Classes.
         $academic_classes = array_values( array_unique( $academic_classes ) );
-        usort( $academic_classes, function( $a, $b ) use ( $class_order_map ) {
-            $order_a = isset( $class_order_map[ $a ] ) ? $class_order_map[ $a ] : 0;
-            $order_b = isset( $class_order_map[ $b ] ) ? $class_order_map[ $b ] : 0;
-            if ( $order_a !== $order_b ) {
-                return $order_a - $order_b;
+        usort(
+            $academic_classes,
+            static function( $a, $b ) use ( $class_order_map ): int {
+                $order_a = $class_order_map[ $a ] ?? 0;
+                $order_b = $class_order_map[ $b ] ?? 0;
+                if ( $order_a !== $order_b ) {
+                    return $order_a <=> $order_b;
+                }
+                return strnatcasecmp( $a, $b );
             }
-            return strnatcasecmp( $a, $b );
-        } );
+        );
     }
 
     $available_sections = array();
@@ -341,24 +409,24 @@ function educore_exam_attendance_view() {
     $saved_logs    = array();
 
     if ( $filter_exam > 0 && ! empty( $filter_class ) && ! empty( $filter_subject ) ) {
-        $st_sql = "SELECT id, full_name, student_id, roll_no, class_name, section_name, shift, photo_url FROM `{$table_students}` WHERE status = 'Active' AND class_name = %s";
-        $st_params = array( $filter_class );
+        $st_sql    = 'SELECT id, full_name, student_id, roll_no, class_name, section_name, shift, photo_url FROM %i WHERE status = %s AND class_name = %s';
+        $st_params = array( $table_students, 'Active', $filter_class );
 
         if ( ! empty( $filter_section ) ) {
-            $st_sql    .= ' AND section_name = %s';
+            $st_sql   .= ' AND section_name = %s';
             $st_params[] = $filter_section;
         }
 
         $st_sql .= ' ORDER BY CAST(roll_no AS UNSIGNED) ASC, roll_no ASC';
         
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $students_list = $wpdb->get_results( $wpdb->prepare( $st_sql, ...$st_params ) );
 
         $existing_logs = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT student_id, status, invigilator_remarks 
-                 FROM `{$table_exam_att}` 
-                 WHERE exam_id = %d AND class_name = %s AND subject_name = %s AND attendance_date = %s",
+                'SELECT student_id, status, invigilator_remarks 
+                 FROM %i 
+                 WHERE exam_id = %d AND class_name = %s AND subject_name = %s AND attendance_date = %s',
+                $table_exam_att,
                 $filter_exam,
                 $filter_class,
                 $filter_subject,
@@ -366,7 +434,6 @@ function educore_exam_attendance_view() {
             ),
             OBJECT_K
         );
-        // phpcs:enable
 
         if ( ! empty( $existing_logs ) ) {
             $saved_logs = $existing_logs;
@@ -387,21 +454,20 @@ function educore_exam_attendance_view() {
 
         <!-- Exam Attendance Filter Console -->
         <div class="ifs-educore-bento-card no-print">
-
             <form method="GET" action="<?php echo esc_url( $admin_page_url ); ?>">
                 <input type="hidden" name="page" value="school_management_system">
                 <input type="hidden" name="tab" value="attendance">
                 <input type="hidden" name="sub" value="exam">
 
-                <div class="ifs-educore-filter-grid-5">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) 130px; gap: 16px; align-items: end;">
                     <!-- 1. Select Exam -->
                     <div class="ifs-educore-form-group">
-                        <label class="ifs-educore-form-label"><?php esc_html_e( '1. Select Exam', 'ifsedu-school-management' ); ?> <span style="color:#ef4444;">*</span></label>
+                        <label class="ifs-educore-form-label" for="ifs_educore_exam_att_exam_select"><?php esc_html_e( '1. Select Exam', 'ifsedu-school-management' ); ?> <span style="color:#ef4444;">*</span></label>
                         <select name="exam_id" id="ifs_educore_exam_att_exam_select" class="ifs-educore-select-field" required>
                             <option value=""><?php esc_html_e( '-- Choose Exam --', 'ifsedu-school-management' ); ?></option>
                             <?php foreach ( $exams as $ex ) : ?>
-                                <option value="<?php echo intval( $ex->id ); ?>" <?php selected( $filter_exam, $ex->id ); ?>>
-                                    <?php echo esc_html( $ex->exam_name ); ?>
+                                <option value="<?php echo (int) $ex->id; ?>" <?php selected( $filter_exam, (int) $ex->id ); ?>>
+                                    <?php echo esc_html( (string) $ex->exam_name ); ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -409,7 +475,7 @@ function educore_exam_attendance_view() {
 
                     <!-- 2. Class Selection -->
                     <div class="ifs-educore-form-group">
-                        <label class="ifs-educore-form-label"><?php esc_html_e( '2. Class Name', 'ifsedu-school-management' ); ?> <span style="color:#ef4444;">*</span></label>
+                        <label class="ifs-educore-form-label" for="ifs_educore_exam_att_class_select"><?php esc_html_e( '2. Class Name', 'ifsedu-school-management' ); ?> <span style="color:#ef4444;">*</span></label>
                         <select name="class_name" id="ifs_educore_exam_att_class_select" class="ifs-educore-select-field" required>
                             <option value=""><?php esc_html_e( '-- Choose Class --', 'ifsedu-school-management' ); ?></option>
                             <?php foreach ( $academic_classes as $cls_name ) : ?>
@@ -422,7 +488,7 @@ function educore_exam_attendance_view() {
 
                     <!-- 3. Section Selection -->
                     <div class="ifs-educore-form-group">
-                        <label class="ifs-educore-form-label"><?php esc_html_e( '3. Section (Optional)', 'ifsedu-school-management' ); ?></label>
+                        <label class="ifs-educore-form-label" for="ifs_educore_exam_att_section_select"><?php esc_html_e( '3. Section (Optional)', 'ifsedu-school-management' ); ?></label>
                         <select name="section_name" id="ifs_educore_exam_att_section_select" class="ifs-educore-select-field">
                             <option value=""><?php esc_html_e( '-- All Sections --', 'ifsedu-school-management' ); ?></option>
                             <?php foreach ( $available_sections as $sec_name ) : ?>
@@ -435,7 +501,7 @@ function educore_exam_attendance_view() {
 
                     <!-- 4. Subject Selection -->
                     <div class="ifs-educore-form-group">
-                        <label class="ifs-educore-form-label"><?php esc_html_e( '4. Exam Subject', 'ifsedu-school-management' ); ?> <span style="color:#ef4444;">*</span></label>
+                        <label class="ifs-educore-form-label" for="ifs_educore_exam_att_subject_select"><?php esc_html_e( '4. Exam Subject', 'ifsedu-school-management' ); ?> <span style="color:#ef4444;">*</span></label>
                         <select name="subject_name" id="ifs_educore_exam_att_subject_select" class="ifs-educore-select-field" required>
                             <option value=""><?php esc_html_e( '-- Choose Subject --', 'ifsedu-school-management' ); ?></option>
                             <?php if ( ! empty( $available_subjects ) ) : ?>
@@ -446,12 +512,6 @@ function educore_exam_attendance_view() {
                                 <?php endforeach; ?>
                             <?php endif; ?>
                         </select>
-                    </div>
-
-                    <!-- 5. Exam Date -->
-                    <div class="ifs-educore-form-group">
-                        <label class="ifs-educore-form-label"><?php esc_html_e( '5. Exam Date', 'ifsedu-school-management' ); ?></label>
-                        <input type="date" name="attendance_date" class="ifs-educore-input-field" value="<?php echo esc_attr( $filter_date ); ?>">
                     </div>
 
                     <!-- Submit Trigger -->
@@ -482,7 +542,6 @@ function educore_exam_attendance_view() {
 
                 if (!className) return;
 
-                // Populate Sections.
                 if (classSectionMap[className] && classSectionMap[className].length > 0) {
                     $.each(classSectionMap[className], function(i, sec) {
                         var isSelected = (sec === currentSelectedSection) ? 'selected' : '';
@@ -490,7 +549,6 @@ function educore_exam_attendance_view() {
                     });
                 }
 
-                // Populate Class-Related Subjects.
                 if (classSubjectMap[className] && classSubjectMap[className].length > 0) {
                     $.each(classSubjectMap[className], function(i, sub) {
                         var isSelected = (sub.name === currentSelectedSubject) ? 'selected' : '';
@@ -515,7 +573,7 @@ function educore_exam_attendance_view() {
             <div class="ifs-educore-bento-card" style="padding: 0; overflow: hidden;">
                 <form method="POST" action="">
                     <?php wp_nonce_field( 'save_exam_attendance_action', 'ifs_educore_exam_att_nonce_field' ); ?>
-                    <input type="hidden" name="exam_id" value="<?php echo esc_attr( $filter_exam ); ?>">
+                    <input type="hidden" name="exam_id" value="<?php echo esc_attr( (string) $filter_exam ); ?>">
                     <input type="hidden" name="class_name" value="<?php echo esc_attr( $filter_class ); ?>">
                     <input type="hidden" name="section_name" value="<?php echo esc_attr( $filter_section ); ?>">
                     <input type="hidden" name="subject_name" value="<?php echo esc_attr( $filter_subject ); ?>">
@@ -528,7 +586,7 @@ function educore_exam_attendance_view() {
                             <span style="font-size:13px; color:#475569; margin-left:8px;">
                                 &mdash; Class <?php echo esc_html( $filter_class ); ?> 
                                 <?php echo ! empty( $filter_section ) ? '(' . esc_html( $filter_section ) . ')' : ''; ?> 
-                                | Date: <?php 
+                                | Routine Date: <?php 
                                     $ex_timestamp = strtotime( $filter_date );
                                     echo esc_html( $ex_timestamp ? date_i18n( 'd M, Y', $ex_timestamp ) : '—' ); 
                                 ?>
@@ -572,52 +630,49 @@ function educore_exam_attendance_view() {
                             </thead>
                             <tbody>
                                 <?php if ( ! empty( $students_list ) ) : foreach ( $students_list as $s ) : 
-                                    $student_internal_id = absint( $s->id );
-                                    $saved_status  = isset( $saved_logs[ $student_internal_id ] ) ? $saved_logs[ $student_internal_id ]->status : 'Present';
-                                    $saved_remarks = isset( $saved_logs[ $student_internal_id ] ) ? $saved_logs[ $student_internal_id ]->invigilator_remarks : '';
-                                    $first_letter  = function_exists( 'mb_substr' ) ? mb_substr( $s->full_name, 0, 1, 'utf-8' ) : substr( $s->full_name, 0, 1 );
+                                    $student_internal_id = absint( (int) $s->id );
+                                    $saved_status  = isset( $saved_logs[ $student_internal_id ] ) ? (string) $saved_logs[ $student_internal_id ]->status : 'Present';
+                                    $saved_remarks = isset( $saved_logs[ $student_internal_id ] ) ? (string) $saved_logs[ $student_internal_id ]->invigilator_remarks : '';
+                                    $first_letter  = function_exists( 'mb_substr' ) ? mb_substr( (string) $s->full_name, 0, 1, 'utf-8' ) : substr( (string) $s->full_name, 0, 1 );
                                 ?>
                                     <tr>
-                                        <td><strong>#<?php echo esc_html( $s->roll_no ); ?></strong></td>
+                                        <td><strong>#<?php echo esc_html( (string) $s->roll_no ); ?></strong></td>
                                         <td><span class="ifs-educore-exam-card-badge"><?php echo esc_html( strtoupper( (string) $s->student_id ) ); ?></span></td>
                                         <td>
                                             <div class="ifs-educore-avatar-cell">
                                                 <?php if ( ! empty( $s->photo_url ) ) : ?>
-                                                    <img src="<?php echo esc_url( $s->photo_url ); ?>" class="ifs-educore-avatar-mini" alt="<?php echo esc_attr( $s->full_name ); ?>">
+                                                    <img src="<?php echo esc_url( (string) $s->photo_url ); ?>" class="ifs-educore-avatar-mini" alt="<?php echo esc_attr( (string) $s->full_name ); ?>">
                                                 <?php else : ?>
                                                     <div class="ifs-educore-avatar-fallback-mini"><?php echo esc_html( strtoupper( $first_letter ) ); ?></div>
                                                 <?php endif; ?>
                                                 <div>
-                                                    <strong style="color:#0f172a;"><?php echo esc_html( $s->full_name ); ?></strong>
+                                                    <strong style="color:#0f172a;"><?php echo esc_html( (string) $s->full_name ); ?></strong>
                                                 </div>
                                             </div>
                                         </td>
                                         <td style="text-align: center;">
-                                            
-                                            <!-- Segmented Pill Control -->
                                             <div class="ifs-educore-checkbox-group">
-                                                <input type="radio" class="ifs-educore-checkbox-item exam-att-radio" name="att_status[<?php echo esc_attr( $student_internal_id ); ?>]" id="att_present_<?php echo esc_attr( $student_internal_id ); ?>" value="Present" <?php checked( $saved_status, 'Present' ); ?>>
-                                                <label class="ifs-educore-checkbox-label" for="att_present_<?php echo esc_attr( $student_internal_id ); ?>">
+                                                <input type="radio" class="ifs-educore-checkbox-item exam-att-radio" name="att_status[<?php echo esc_attr( (string) $student_internal_id ); ?>]" id="att_present_<?php echo esc_attr( (string) $student_internal_id ); ?>" value="Present" <?php checked( $saved_status, 'Present' ); ?>>
+                                                <label class="ifs-educore-checkbox-label" for="att_present_<?php echo esc_attr( (string) $student_internal_id ); ?>">
                                                     <span class="dashicons dashicons-yes" style="font-size:13px; width:13px; height:13px;"></span>
                                                     <?php esc_html_e( 'Present', 'ifsedu-school-management' ); ?>
                                                 </label>
 
-                                                <input type="radio" class="ifs-educore-checkbox-item exam-att-radio" name="att_status[<?php echo esc_attr( $student_internal_id ); ?>]" id="att_absent_<?php echo esc_attr( $student_internal_id ); ?>" value="Absent" <?php checked( $saved_status, 'Absent' ); ?>>
-                                                <label class="ifs-educore-checkbox-label" for="att_absent_<?php echo esc_attr( $student_internal_id ); ?>">
+                                                <input type="radio" class="ifs-educore-checkbox-item exam-att-radio" name="att_status[<?php echo esc_attr( (string) $student_internal_id ); ?>]" id="att_absent_<?php echo esc_attr( (string) $student_internal_id ); ?>" value="Absent" <?php checked( $saved_status, 'Absent' ); ?>>
+                                                <label class="ifs-educore-checkbox-label" for="att_absent_<?php echo esc_attr( (string) $student_internal_id ); ?>">
                                                     <span class="dashicons dashicons-no" style="font-size:13px; width:13px; height:13px;"></span>
                                                     <?php esc_html_e( 'Absent', 'ifsedu-school-management' ); ?>
                                                 </label>
 
-                                                <input type="radio" class="ifs-educore-checkbox-item exam-att-radio" name="att_status[<?php echo esc_attr( $student_internal_id ); ?>]" id="att_late_<?php echo esc_attr( $student_internal_id ); ?>" value="Late" <?php checked( $saved_status, 'Late' ); ?>>
-                                                <label class="ifs-educore-checkbox-label" for="att_late_<?php echo esc_attr( $student_internal_id ); ?>">
+                                                <input type="radio" class="ifs-educore-checkbox-item exam-att-radio" name="att_status[<?php echo esc_attr( (string) $student_internal_id ); ?>]" id="att_late_<?php echo esc_attr( (string) $student_internal_id ); ?>" value="Late" <?php checked( $saved_status, 'Late' ); ?>>
+                                                <label class="ifs-educore-checkbox-label" for="att_late_<?php echo esc_attr( (string) $student_internal_id ); ?>">
                                                     <span class="dashicons dashicons-warning" style="font-size:13px; width:13px; height:13px;"></span>
                                                     <?php esc_html_e( 'Late / Expelled', 'ifsedu-school-management' ); ?>
                                                 </label>
                                             </div>
-
                                         </td>
                                         <td>
-                                            <input type="text" name="invigilator_remarks[<?php echo esc_attr( $student_internal_id ); ?>]" class="ifs-educore-remarks-input" placeholder="<?php esc_attr_e( 'e.g. Expelled, 15m Late, Seat No. 4', 'ifsedu-school-management' ); ?>" value="<?php echo esc_attr( $saved_remarks ); ?>">
+                                            <input type="text" name="invigilator_remarks[<?php echo esc_attr( (string) $student_internal_id ); ?>]" class="ifs-educore-remarks-input" placeholder="<?php esc_attr_e( 'e.g. Expelled, 15m Late, Seat No. 4', 'ifsedu-school-management' ); ?>" value="<?php echo esc_attr( $saved_remarks ); ?>">
                                         </td>
                                     </tr>
                                 <?php endforeach; else : ?>

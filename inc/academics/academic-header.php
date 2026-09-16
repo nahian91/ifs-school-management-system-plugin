@@ -204,12 +204,21 @@ $educore_base_url       = add_query_arg( array( 'page' => 'school_management_sys
 
             case 'available_teachers':
                 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
-                $educore_file = $educore_academics_dir . 'available-teachers.php';
+                $educore_file = $educore_academics_dir . 'academic-available-teachers.php';
+                
+                // Fallback check in case the file is named 'available-teachers.php' instead
+                if ( ! file_exists( $educore_file ) && file_exists( $educore_academics_dir . 'available-teachers.php' ) ) {
+                    $educore_file = $educore_academics_dir . 'available-teachers.php';
+                }
+
                 if ( file_exists( $educore_file ) ) {
                     require_once $educore_file;
                 }
+                
                 if ( function_exists( 'educore_academics_available_teachers_view' ) ) {
                     educore_academics_available_teachers_view();
+                } else {
+                    echo '<div style="padding:20px; color:red; border:1px solid red; background:#fff;">Error: The function educore_academics_available_teachers_view() could not be found. Please ensure the file was saved correctly.</div>';
                 }
                 break;
 

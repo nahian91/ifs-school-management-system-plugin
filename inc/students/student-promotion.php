@@ -5,16 +5,36 @@
  * Text Domain: ifsedu-school-management
  */
 
+declare(strict_types=1);
+
 if ( ! defined( 'ABSPATH' ) ) {
     exit; // Exit if accessed directly.
 }
 
-// 1. AJAX Handler to dynamically fetch Target Sections.
+if ( ! function_exists( 'educore_promotion_get_table' ) ) {
+    /**
+     * Helper: Defensive table name resolver for promotion module
+     */
+    function educore_promotion_get_table( string $key ): string {
+        global $wpdb;
+        if ( function_exists( 'educore_get_table_name' ) ) {
+            $tbl = educore_get_table_name( $key );
+            if ( ! empty( $tbl ) ) {
+                return $tbl;
+            }
+        }
+        return $wpdb->prefix . 'sms_' . $key;
+    }
+}
+
+// --------------------------------------------------------------------------
+// 1. AJAX HANDLERS FOR DYNAMIC SELECTORS
+// --------------------------------------------------------------------------
 add_action( 'wp_ajax_ifs_educore_get_target_sections_promotion', 'ifs_educore_get_target_sections_promotion_handler' );
 /**
  * AJAX Handler: Fetch target sections by class for student promotion.
  */
-function ifs_educore_get_target_sections_promotion_handler() {
+function ifs_educore_get_target_sections_promotion_handler(): void {
     check_ajax_referer( 'ifs_educore_promotion_nonce', 'security' );
 
     if ( ! current_user_can( 'manage_options' ) ) {
@@ -22,21 +42,24 @@ function ifs_educore_get_target_sections_promotion_handler() {
     }
 
     global $wpdb;
-    $table_units = $wpdb->prefix . 'sms_academic_units';
+    $table_units = educore_promotion_get_table( 'academic_units' );
     $class_name  = isset( $_POST['class_name'] ) ? sanitize_text_field( wp_unslash( $_POST['class_name'] ) ) : '';
 
     if ( empty( $class_name ) ) {
         wp_send_json_success( array() );
     }
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+    $clean_class = trim( str_ireplace( 'Class ', '', $class_name ) );
+
     $sections = $wpdb->get_col(
         $wpdb->prepare(
-            "SELECT DISTINCT section_name FROM `{$table_units}` WHERE class_name = %s AND section_name != '' ORDER BY sort_order ASC, section_name ASC",
-            $class_name
+            'SELECT DISTINCT section_name FROM %i WHERE (class_name = %s OR class_name = %s) AND section_name != %s ORDER BY sort_order ASC, section_name ASC',
+            $table_units,
+            $class_name,
+            $clean_class,
+            ''
         )
     );
-    // phpcs:enable
 
     wp_send_json_success( is_array( $sections ) ? $sections : array() );
 }
@@ -44,15 +67,15 @@ function ifs_educore_get_target_sections_promotion_handler() {
 /**
  * Render Academic Student Promotion & Roll Re-assignment Workspace View & Handle Execution
  */
-function educore_student_promotion_view() {
+function educore_student_promotion_view(): void {
     global $wpdb;
-    $table_students = $wpdb->prefix . 'sms_students';
-    $table_exams    = $wpdb->prefix . 'sms_exams';
-    $table_results  = $wpdb->prefix . 'sms_results';
-    $table_units    = $wpdb->prefix . 'sms_academic_units';
+    $table_students = educore_promotion_get_table( 'students' );
+    $table_exams    = educore_promotion_get_table( 'exams' );
+    $table_results  = educore_promotion_get_table( 'results' );
+    $table_units    = educore_promotion_get_table( 'academic_units' );
 
     if ( ! current_user_can( 'manage_options' ) ) {
-        wp_die( esc_html__( 'You do not have sufficient permissions to promote students.', 'ifsedu-school-management' ) );
+        wp_die( esc_html__( 'You do not have sufficient permissions to promote students.', 'ifsedu-school-management' ), 403 );
     }
 
     $raw_req_uri = isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
@@ -61,7 +84,7 @@ function educore_student_promotion_view() {
     $notice_msg  = '';
 
     // --------------------------------------------------------------------------
-    // 1. BULK PROMOTION EXECUTION ENGINE
+    // 2. BULK PROMOTION EXECUTION ENGINE
     // --------------------------------------------------------------------------
     $req_method = isset( $_SERVER['REQUEST_METHOD'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : '';
     if ( 'POST' === $req_method && isset( $_POST['educore_execute_promotion'] ) ) {
@@ -75,10 +98,9 @@ function educore_student_promotion_view() {
                 $promoted_count = 0;
 
                 foreach ( $selected_stids as $st_id ) {
-                    $roll_val    = isset( $new_rolls[ $st_id ] ) ? intval( $new_rolls[ $st_id ] ) : 0;
+                    $roll_val    = isset( $new_rolls[ $st_id ] ) ? (int) $new_rolls[ $st_id ] : 0;
                     $section_val = isset( $new_sections[ $st_id ] ) ? sanitize_text_field( $new_sections[ $st_id ] ) : '';
 
-                    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
                     $updated = $wpdb->update(
                         $table_students,
                         array(
@@ -90,7 +112,6 @@ function educore_student_promotion_view() {
                         array( '%s', '%s', '%d' ),
                         array( '%d' )
                     );
-                    // phpcs:enable
 
                     if ( false !== $updated ) {
                         $promoted_count++;
@@ -98,8 +119,14 @@ function educore_student_promotion_view() {
                 }
 
                 if ( function_exists( 'educore_log_activity' ) ) {
-                    /* translators: 1: Number of promoted students, 2: Target class name */
-                    educore_log_activity( sprintf( __( 'Promoted %1$d students to Class %2$s', 'ifsedu-school-management' ), $promoted_count, $target_class ) );
+                    educore_log_activity(
+                        sprintf(
+                            /* translators: 1: Number of promoted students, 2: Target class name */
+                            __( 'Promoted %1$d students to Class %2$s', 'ifsedu-school-management' ),
+                            $promoted_count,
+                            $target_class
+                        )
+                    );
                 }
 
                 $notice_msg = sprintf(
@@ -113,7 +140,7 @@ function educore_student_promotion_view() {
     }
 
     // --------------------------------------------------------------------------
-    // 2. QUERY CONTEXT & FILTERS
+    // 3. QUERY CONTEXT & FILTERS
     // --------------------------------------------------------------------------
     // phpcs:disable WordPress.Security.NonceVerification.Recommended
     $filter_exam    = isset( $_GET['exam_id'] ) ? absint( $_GET['exam_id'] ) : 0;
@@ -121,17 +148,24 @@ function educore_student_promotion_view() {
     $filter_section = isset( $_GET['section_name'] ) ? sanitize_text_field( wp_unslash( $_GET['section_name'] ) ) : '';
     // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-    $exams = $wpdb->get_results( "SELECT id, exam_name FROM `{$table_exams}` ORDER BY id DESC" );
+    $exams = $wpdb->get_results(
+        $wpdb->prepare(
+            'SELECT id, exam_name, start_date, att_start_date FROM %i ORDER BY id DESC',
+            $table_exams
+        )
+    );
 
     $raw_classes_data = $wpdb->get_results( 
-        "SELECT class_name, MIN(sort_order) as min_sort 
-         FROM `{$table_units}` 
-         WHERE class_name IS NOT NULL AND class_name != '' 
-         GROUP BY class_name 
-         ORDER BY min_sort ASC, CAST(class_name AS UNSIGNED) ASC, class_name ASC" 
+        $wpdb->prepare(
+            'SELECT class_name, MIN(sort_order) as min_sort 
+             FROM %i 
+             WHERE class_name IS NOT NULL AND class_name != %s 
+             GROUP BY class_name 
+             ORDER BY min_sort ASC, CAST(class_name AS UNSIGNED) ASC, class_name ASC',
+            $table_units,
+            ''
+        )
     );
-    // phpcs:enable
 
     $academic_classes = array();
     if ( ! empty( $raw_classes_data ) && is_array( $raw_classes_data ) ) {
@@ -145,36 +179,45 @@ function educore_student_promotion_view() {
 
     $available_sections = array();
     if ( ! empty( $filter_class ) ) {
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        $clean_class = trim( str_ireplace( 'Class ', '', $filter_class ) );
         $available_sections = $wpdb->get_col(
             $wpdb->prepare(
-                "SELECT DISTINCT section_name FROM `{$table_units}` WHERE class_name = %s AND section_name != '' ORDER BY sort_order ASC, section_name ASC",
-                $filter_class
+                'SELECT DISTINCT section_name FROM %i WHERE (class_name = %s OR class_name = %s) AND section_name != %s ORDER BY sort_order ASC, section_name ASC',
+                $table_units,
+                $filter_class,
+                $clean_class,
+                ''
             )
         );
-        // phpcs:enable
     }
 
     // --------------------------------------------------------------------------
-    // 3. COMPUTE MERIT POSITIONS & PASS/FAIL FOR CANDIDATES
+    // 4. COMPUTE MERIT POSITIONS & PASS/FAIL FOR CANDIDATES
     // --------------------------------------------------------------------------
     $display_candidates = array();
 
     if ( 0 < $filter_exam && ! empty( $filter_class ) ) {
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        $clean_class = trim( str_ireplace( 'Class ', '', $filter_class ) );
+
         if ( ! empty( $filter_section ) ) {
             $class_students = $wpdb->get_results(
                 $wpdb->prepare(
-                    "SELECT id, full_name, student_id, roll_no, class_name, section_name FROM `{$table_students}` WHERE status = 'Active' AND class_name = %s AND section_name = %s ORDER BY CAST(roll_no AS UNSIGNED) ASC, roll_no ASC",
+                    'SELECT id, full_name, student_id, roll_no, class_name, section_name FROM %i WHERE status = %s AND (class_name = %s OR class_name = %s) AND section_name = %s ORDER BY CAST(roll_no AS UNSIGNED) ASC, roll_no ASC',
+                    $table_students,
+                    'Active',
                     $filter_class,
+                    $clean_class,
                     $filter_section
                 )
             );
         } else {
             $class_students = $wpdb->get_results(
                 $wpdb->prepare(
-                    "SELECT id, full_name, student_id, roll_no, class_name, section_name FROM `{$table_students}` WHERE status = 'Active' AND class_name = %s ORDER BY CAST(roll_no AS UNSIGNED) ASC, roll_no ASC",
-                    $filter_class
+                    'SELECT id, full_name, student_id, roll_no, class_name, section_name FROM %i WHERE status = %s AND (class_name = %s OR class_name = %s) ORDER BY CAST(roll_no AS UNSIGNED) ASC, roll_no ASC',
+                    $table_students,
+                    'Active',
+                    $filter_class,
+                    $clean_class
                 )
             );
         }
@@ -185,7 +228,8 @@ function educore_student_promotion_view() {
             foreach ( $class_students as $s ) {
                 $results = $wpdb->get_results(
                     $wpdb->prepare(
-                        "SELECT obtained_marks, grade, gpa FROM `{$table_results}` WHERE exam_id = %d AND student_id = %d",
+                        'SELECT obtained_marks, grade, gpa FROM %i WHERE exam_id = %d AND student_id = %d',
+                        $table_results,
                         $filter_exam,
                         $s->id
                     )
@@ -201,9 +245,9 @@ function educore_student_promotion_view() {
                 $has_fail  = false;
 
                 foreach ( $results as $res ) {
-                    $total_obt += floatval( $res->obtained_marks );
-                    $sum_gpa   += floatval( $res->gpa );
-                    if ( 'F' === strtoupper( trim( (string) $res->grade ) ) || floatval( $res->gpa ) <= 0 ) {
+                    $total_obt += (float) $res->obtained_marks;
+                    $sum_gpa   += (float) $res->gpa;
+                    if ( 'F' === strtoupper( trim( (string) $res->grade ) ) || (float) $res->gpa <= 0 ) {
                         $has_fail = true;
                     }
                 }
@@ -221,7 +265,7 @@ function educore_student_promotion_view() {
             }
 
             // Merit sort: Passed first -> GPA (DESC) -> Total Marks (DESC).
-            usort( $candidate_pool, function( $a, $b ) {
+            usort( $candidate_pool, static function( $a, $b ): int {
                 if ( $a['failed'] !== $b['failed'] ) {
                     return $a['failed'] ? 1 : -1;
                 }
@@ -251,91 +295,134 @@ function educore_student_promotion_view() {
                 $display_candidates[] = $item;
             }
         }
-        // phpcs:enable
     }
     ?>
 
     <style id="ifs-educore-students-promotion-styles">
         .ifs-educore-promotion-root {
-            font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            max-width: 100%;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: inherit;
             color: #0f172a;
+        }
+
+        .ifs-educore-bento-filter-card {
+            background: #ffffff !important;
+            border: 1px solid #e2e8f0 !important;
+            border-radius: 14px !important;
+            padding: 20px 24px !important;
+            margin-bottom: 20px !important;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02) !important;
+            box-sizing: border-box !important;
         }
 
         .ifs-educore-bento-card {
             background: #ffffff;
             border: 1px solid #e2e8f0;
-            border-radius: 16px;
+            border-radius: 14px;
             padding: 24px;
-            box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.03);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
             margin-bottom: 24px;
+            box-sizing: border-box;
         }
 
         .ifs-educore-filter-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) auto;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) 140px;
             gap: 16px;
-            align-items: flex-end;
+            align-items: end;
+        }
+
+        @media (max-width: 900px) {
+            .ifs-educore-filter-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
         .ifs-educore-form-group {
             display: flex;
             flex-direction: column;
-            gap: 6px;
         }
 
         .ifs-educore-form-label {
-            font-size: 12.5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11.5px;
             font-weight: 700;
-            color: #1e293b;
+            color: #475569;
             text-transform: capitalize;
-            letter-spacing: 0.3px;
+            letter-spacing: 0.4px;
+            margin-bottom: 8px;
         }
 
         .ifs-educore-select {
-            width: 100%;
-            height: 40px;
-            border: 1.5px solid #cbd5e1;
-            border-radius: 8px;
-            padding: 0 12px;
-            font-size: 13.5px;
-            color: #0f172a;
-            background: #ffffff;
-            box-sizing: border-box;
-            outline: none;
-            transition: border-color 0.2s, box-shadow 0.2s;
+            width: 100% !important;
+            height: 42px !important;
+            padding: 0 34px 0 14px !important;
+            border: 1.5px solid #cbd5e1 !important;
+            border-radius: 9px !important;
+            font-size: 13.5px !important;
+            font-weight: 600 !important;
+            color: #0f172a !important;
+            background-color: #ffffff !important;
+            background-image: url('data:image/svg+xml;utf8,<svg fill="%2364748b" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>') !important;
+            background-repeat: no-repeat !important;
+            background-position: right 10px center !important;
+            box-sizing: border-box !important;
+            outline: none !important;
+            appearance: none !important;
+            -webkit-appearance: none !important;
+            -moz-appearance: none !important;
+            transition: all 0.2s ease !important;
+            cursor: pointer;
+        }
+
+        .ifs-educore-select:hover:not(:disabled) {
+            border-color: #94a3b8 !important;
         }
 
         .ifs-educore-select:focus {
-            border-color: #00523c;
-            box-shadow: 0 0 0 3px rgba(0, 82, 60, 0.12);
+            border-color: #00523c !important;
+            box-shadow: 0 0 0 3px rgba(0, 82, 60, 0.12) !important;
         }
 
-        .ifs-educore-btn-primary {
-            height: 40px;
-            padding: 0 24px;
-            background: #00523c;
-            color: #ffffff;
-            border: none;
-            border-radius: 8px;
-            font-weight: 700;
-            font-size: 13.5px;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0, 82, 60, 0.18);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            transition: background 0.2s;
+        .ifs-educore-select:disabled {
+            background-color: #f8fafc !important;
+            color: #94a3b8 !important;
+            border-color: #e2e8f0 !important;
+            cursor: not-allowed;
+            opacity: 0.85;
         }
 
-        .ifs-educore-btn-primary:hover {
-            background: #047857;
+        .ifs-educore-btn-load {
+            width: 100% !important;
+            height: 42px !important;
+            background: #00523c !important;
+            color: #ffffff !important;
+            font-weight: 700 !important;
+            font-size: 13.5px !important;
+            border: none !important;
+            border-radius: 9px !important;
+            cursor: pointer !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 6px !important;
+            box-shadow: 0 4px 12px rgba(0, 82, 60, 0.18) !important;
+            transition: all 0.2s ease !important;
+        }
+
+        .ifs-educore-btn-load:hover {
+            background: #047857 !important;
         }
 
         .ifs-educore-promotion-target-bar {
             padding: 16px 20px;
             background: #f0fdf4;
-            border: 1px solid #bbf7d0;
+            border: 1.5px solid #bbf7d0;
             border-radius: 12px;
             margin-bottom: 20px;
             display: flex;
@@ -349,21 +436,21 @@ function educore_student_promotion_view() {
             width: 100%;
             border-collapse: collapse;
             text-align: left;
-            font-size: 13.5px;
+            font-size: 13px;
         }
 
         .ifs-educore-promotion-table th {
-            padding: 12px 16px;
+            padding: 12px 14px;
             color: #475569;
             background: #f8fafc;
-            border-bottom: 1px solid #e2e8f0;
-            font-size: 11.5px;
+            border-bottom: 2px solid #e2e8f0;
+            font-size: 11px;
             text-transform: capitalize;
             font-weight: 800;
         }
 
         .ifs-educore-promotion-table td {
-            padding: 12px 16px;
+            padding: 12px 14px;
             border-bottom: 1px solid #f1f5f9;
             vertical-align: middle;
         }
@@ -374,7 +461,7 @@ function educore_student_promotion_view() {
             justify-content: center;
             padding: 2px 8px;
             border-radius: 6px;
-            font-size: 12px;
+            font-size: 11.5px;
             font-weight: 800;
             background: #f1f5f9;
             color: #475569;
@@ -392,8 +479,8 @@ function educore_student_promotion_view() {
             align-items: center;
             padding: 3px 10px;
             border-radius: 20px;
-            font-size: 11.5px;
-            font-weight: 700;
+            font-size: 11px;
+            font-weight: 800;
         }
 
         .status-pass {
@@ -410,15 +497,16 @@ function educore_student_promotion_view() {
 
         .ifs-educore-cell-input-sm {
             height: 36px;
-            border: 1px solid #cbd5e1;
+            border: 1.5px solid #cbd5e1;
             border-radius: 6px;
             padding: 0 10px;
             font-size: 13px;
             color: #0f172a;
             background: #ffffff;
             outline: none;
-            width: 70px;
+            width: 75px;
             box-sizing: border-box;
+            transition: border-color 0.2s;
         }
 
         .ifs-educore-cell-input-sm:focus {
@@ -434,46 +522,61 @@ function educore_student_promotion_view() {
     <div class="ifs-educore-promotion-root">
 
         <?php if ( ! empty( $notice_msg ) ) : ?>
-            <div class="notice notice-success is-dismissible" style="padding:14px; margin:0 0 20px 0; font-weight:700; border-left:4px solid #00523c; background:#ecfdf5; color:#065f46; border-radius:8px;">
+            <div class="notice notice-success is-dismissible" style="padding:12px; margin:0 0 16px 0; font-weight:700; border-left:4px solid #00523c; background:#ecfdf5; color:#065f46; border-radius:8px;">
                 <span class="dashicons dashicons-yes-alt" style="vertical-align:middle; margin-right:4px;"></span>
                 <?php echo esc_html( $notice_msg ); ?>
             </div>
         <?php endif; ?>
 
-        <!-- Step 1: Exam & Source Cohort Selection -->
-        <div class="ifs-educore-bento-card">
+        <!-- Step 1: Exam & Source Cohort Selection (Neo-Bento Layout) -->
+        <div class="ifs-educore-bento-filter-card">
             <form method="GET" action="<?php echo esc_url( $base_url ); ?>" id="ifs_educore_promotion_filter_form">
                 <input type="hidden" name="page" value="school_management_system">
                 <input type="hidden" name="tab" value="students">
                 <input type="hidden" name="sub" value="promotion">
 
                 <div class="ifs-educore-filter-grid">
+                    <!-- Exam Selection -->
                     <div class="ifs-educore-form-group">
-                        <label class="ifs-educore-form-label"><?php esc_html_e( 'Select Final / Annual Exam', 'ifsedu-school-management' ); ?> <span style="color:#ef4444;">*</span></label>
-                        <select name="exam_id" class="ifs-educore-select" required>
+                        <label class="ifs-educore-form-label" for="ifs_educore_prom_exam_select">
+                            <span class="dashicons dashicons-calendar-alt" style="font-size:14px; width:14px; height:14px; color:#00523c;"></span>
+                            <?php esc_html_e( '1. Evaluation Exam', 'ifsedu-school-management' ); ?> <span style="color:#ef4444;">*</span>
+                        </label>
+                        <select name="exam_id" id="ifs_educore_prom_exam_select" class="ifs-educore-select" required>
                             <option value=""><?php esc_html_e( '-- Choose Exam --', 'ifsedu-school-management' ); ?></option>
-                            <?php foreach ( $exams as $ex ) : ?>
-                                <option value="<?php echo intval( $ex->id ); ?>" <?php selected( $filter_exam, $ex->id ); ?>>
-                                    <?php echo esc_html( $ex->exam_name ); ?>
+                            <?php foreach ( $exams as $ex ) : 
+                                $ex_y = ! empty( $ex->start_date ) ? substr( (string) $ex->start_date, 0, 4 ) : ( ! empty( $ex->att_start_date ) ? substr( (string) $ex->att_start_date, 0, 4 ) : current_time( 'Y' ) );
+                                $ex_label = trim( (string) $ex->exam_name ) . ' (' . $ex_y . ')';
+                            ?>
+                                <option value="<?php echo (int) $ex->id; ?>" <?php selected( $filter_exam, (int) $ex->id ); ?>>
+                                    <?php echo esc_html( $ex_label ); ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
 
+                    <!-- Source Class Selection -->
                     <div class="ifs-educore-form-group">
-                        <label class="ifs-educore-form-label"><?php esc_html_e( 'Source Class', 'ifsedu-school-management' ); ?> <span style="color:#ef4444;">*</span></label>
+                        <label class="ifs-educore-form-label" for="ifs_educore_source_class_select">
+                            <span class="dashicons dashicons-welcome-learn-more" style="font-size:14px; width:14px; height:14px; color:#00523c;"></span>
+                            <?php esc_html_e( '2. Source Class', 'ifsedu-school-management' ); ?> <span style="color:#ef4444;">*</span>
+                        </label>
                         <select name="class_name" id="ifs_educore_source_class_select" class="ifs-educore-select" required>
                             <option value=""><?php esc_html_e( '-- Choose Class --', 'ifsedu-school-management' ); ?></option>
                             <?php foreach ( $academic_classes as $cls_name ) : ?>
                                 <option value="<?php echo esc_attr( $cls_name ); ?>" <?php selected( $filter_class, $cls_name ); ?>>
-                                    <?php echo esc_html( $cls_name ); ?>
+                                    <?php echo esc_html( preg_match( '/^class\s+/i', $cls_name ) ? $cls_name : 'Class ' . $cls_name ); ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
 
+                    <!-- Source Section Selection -->
                     <div class="ifs-educore-form-group">
-                        <label class="ifs-educore-form-label"><?php esc_html_e( 'Source Section (Optional)', 'ifsedu-school-management' ); ?></label>
+                        <label class="ifs-educore-form-label" for="ifs_educore_source_section_select">
+                            <span class="dashicons dashicons-groups" style="font-size:14px; width:14px; height:14px; color:#00523c;"></span>
+                            <?php esc_html_e( '3. Section (Optional)', 'ifsedu-school-management' ); ?>
+                        </label>
                         <select name="section_name" id="ifs_educore_source_section_select" class="ifs-educore-select">
                             <option value=""><?php esc_html_e( '-- All Sections --', 'ifsedu-school-management' ); ?></option>
                             <?php foreach ( $available_sections as $sec_val ) : ?>
@@ -484,10 +587,11 @@ function educore_student_promotion_view() {
                         </select>
                     </div>
 
+                    <!-- Fetch Button -->
                     <div>
-                        <button type="submit" class="ifs-educore-btn-primary">
-                            <span class="dashicons dashicons-search"></span>
-                            <?php esc_html_e( 'Fetch Results', 'ifsedu-school-management' ); ?>
+                        <button type="submit" class="ifs-educore-btn-load">
+                            <span class="dashicons dashicons-search" style="font-size:15px; width:15px; height:15px;"></span>
+                            <?php esc_html_e( 'Load Merit', 'ifsedu-school-management' ); ?>
                         </button>
                     </div>
                 </div>
@@ -551,7 +655,7 @@ function educore_student_promotion_view() {
                                     <option value=""><?php esc_html_e( '-- Choose Target Class --', 'ifsedu-school-management' ); ?></option>
                                     <?php foreach ( $academic_classes as $cls_name ) : ?>
                                         <option value="<?php echo esc_attr( $cls_name ); ?>">
-                                            <?php echo esc_html( $cls_name ); ?>
+                                            <?php echo esc_html( preg_match( '/^class\s+/i', $cls_name ) ? $cls_name : 'Class ' . $cls_name ); ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
@@ -570,8 +674,8 @@ function educore_student_promotion_view() {
                                 <span class="dashicons dashicons-sort" style="vertical-align:middle;"></span> <?php esc_html_e( 'Auto-Assign Rolls by Merit', 'ifsedu-school-management' ); ?>
                             </button>
 
-                            <button type="submit" name="educore_execute_promotion" class="ifs-educore-btn-primary" style="width:auto; height:42px; padding:0 24px;">
-                                <span class="dashicons dashicons-saved"></span> <?php esc_html_e( 'Execute Promotion', 'ifsedu-school-management' ); ?>
+                            <button type="submit" name="educore_execute_promotion" class="ifs-educore-btn-load" style="width:auto; height:42px; padding:0 24px;">
+                                <span class="dashicons dashicons-saved" style="font-size:15px; width:15px; height:15px;"></span> <?php esc_html_e( 'Execute Promotion', 'ifsedu-school-management' ); ?>
                             </button>
                         </div>
                     </div>
@@ -596,49 +700,49 @@ function educore_student_promotion_view() {
                             <tbody>
                                 <?php if ( ! empty( $display_candidates ) ) : 
                                     foreach ( $display_candidates as $item ) : 
-                                        $s     = $item['student'];
+                                        $s      = $item['student'];
                                         $failed = $item['failed'];
                                         $c_pos  = $item['class_position'];
                                         $s_pos  = $item['section_position'];
                                 ?>
                                     <tr class="<?php echo $failed ? 'row-failed' : 'row-passed'; ?>">
                                         <td>
-                                            <input type="checkbox" name="promote_student[]" value="<?php echo esc_attr( $s->id ); ?>" class="st-promote-check" <?php echo ! $failed ? 'checked' : ''; ?>>
+                                            <input type="checkbox" name="promote_student[]" value="<?php echo esc_attr( (string) $s->id ); ?>" class="st-promote-check" <?php echo ! $failed ? 'checked' : ''; ?>>
                                         </td>
                                         <td>
                                             <?php if ( ! $failed && 0 < $c_pos ) : ?>
-                                                <span class="ifs-educore-rank-badge <?php echo 3 >= $c_pos ? 'top' : ''; ?>">#<?php echo esc_html( $c_pos ); ?></span>
+                                                <span class="ifs-educore-rank-badge <?php echo 3 >= $c_pos ? 'top' : ''; ?>">#<?php echo esc_html( (string) $c_pos ); ?></span>
                                             <?php else : ?>
                                                 <span style="color:#94a3b8;">—</span>
                                             <?php endif; ?>
                                         </td>
                                         <td>
                                             <?php if ( ! $failed && 0 < $s_pos ) : ?>
-                                                <span class="ifs-educore-rank-badge">#<?php echo esc_html( $s_pos ); ?></span>
+                                                <span class="ifs-educore-rank-badge">#<?php echo esc_html( (string) $s_pos ); ?></span>
                                             <?php else : ?>
                                                 <span style="color:#94a3b8;">—</span>
                                             <?php endif; ?>
                                         </td>
-                                        <td><strong>#<?php echo esc_html( $s->roll_no ); ?></strong></td>
+                                        <td><strong>#<?php echo esc_html( (string) $s->roll_no ); ?></strong></td>
                                         <td><code><?php echo esc_html( strtoupper( (string) $s->student_id ) ); ?></code></td>
-                                        <td style="text-align:left; font-weight:700; color:#0f172a;"><?php echo esc_html( $s->full_name ); ?></td>
-                                        <td><strong><?php echo esc_html( floatval( $item['total'] ) ); ?></strong></td>
-                                        <td style="font-weight:800; color:<?php echo $failed ? '#dc2626' : '#00523c'; ?>;"><?php echo esc_html( number_format( floatval( $item['gpa'] ), 2 ) ); ?></td>
+                                        <td style="text-align:left; font-weight:700; color:#0f172a;"><?php echo esc_html( (string) $s->full_name ); ?></td>
+                                        <td><strong><?php echo esc_html( (string) (float) $item['total'] ); ?></strong></td>
+                                        <td style="font-weight:800; color:<?php echo $failed ? '#dc2626' : '#00523c'; ?>;"><?php echo esc_html( number_format( (float) $item['gpa'], 2 ) ); ?></td>
                                         <td>
                                             <span class="ifs-educore-status-pill <?php echo $failed ? 'status-fail' : 'status-pass'; ?>">
                                                 <?php echo $failed ? esc_html__( 'FAIL', 'ifsedu-school-management' ) : esc_html__( 'PASS', 'ifsedu-school-management' ); ?>
                                             </span>
                                         </td>
                                         <td>
-                                            <input type="number" name="new_roll[<?php echo esc_attr( $s->id ); ?>]" 
+                                            <input type="number" name="new_roll[<?php echo esc_attr( (string) $s->id ); ?>]" 
                                                    class="ifs-educore-cell-input-sm st-new-roll" 
-                                                   value="<?php echo ! $failed ? esc_attr( $c_pos ) : esc_attr( $s->roll_no ); ?>" 
-                                                   data-merit-pos="<?php echo esc_attr( 0 < $c_pos ? $c_pos : 999 ); ?>">
+                                                   value="<?php echo ! $failed ? esc_attr( (string) $c_pos ) : esc_attr( (string) $s->roll_no ); ?>" 
+                                                   data-merit-pos="<?php echo esc_attr( (string) ( 0 < $c_pos ? $c_pos : 999 ) ); ?>">
                                         </td>
                                         <td>
-                                            <input type="text" name="new_section[<?php echo esc_attr( $s->id ); ?>]" 
+                                            <input type="text" name="new_section[<?php echo esc_attr( (string) $s->id ); ?>]" 
                                                    class="ifs-educore-cell-input-sm st-new-section" 
-                                                   value="<?php echo esc_attr( $s->section_name ); ?>" 
+                                                   value="<?php echo esc_attr( (string) $s->section_name ); ?>" 
                                                    style="width:90px;" placeholder="<?php esc_attr_e( 'Section', 'ifsedu-school-management' ); ?>">
                                         </td>
                                     </tr>

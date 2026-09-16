@@ -227,7 +227,75 @@ function educore_fees_list_view() {
     ?>
 
     <style>
-        /* Modern Pro Spacing & Size Overhaul for Filter Card */
+        /* Enterprise Financial Dashboard & Ledger Styling Suite */
+        .ifs-educore-fees-list-container {
+            font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+            color: #0f172a !important;
+        }
+
+        /* Flash Feedback Banner */
+        .ifs-educore-notice-banner {
+            background: #ecfdf5 !important;
+            border-left: 4px solid #00523c !important;
+            color: #065f46 !important;
+            padding: 14px 18px !important;
+            border-radius: 10px !important;
+            font-weight: 700 !important;
+            font-size: 13.5px !important;
+            margin-bottom: 24px !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 10px !important;
+            box-shadow: 0 4px 12px rgba(0, 82, 60, 0.05) !important;
+        }
+        .ifs-educore-notice-banner.updated {
+            background: #eff6ff !important;
+            border-left-color: #2563eb !important;
+            color: #1e40af !important;
+        }
+
+        /* Professional Bento Grid Metrics */
+        .ifs-educore-metrics-bento {
+            display: grid !important;
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 20px !important;
+            margin-bottom: 28px !important;
+        }
+        .ifs-educore-metric-card {
+            background: #ffffff !important;
+            border: 1px solid #e2e8f0 !important;
+            border-radius: 16px !important;
+            padding: 24px 26px !important;
+            box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.03) !important;
+            position: relative !important;
+            overflow: hidden !important;
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 8px !important;
+            box-sizing: border-box !important;
+            border-top: 4px solid #00523c !important;
+        }
+        .ifs-educore-metric-card.invoiced { border-top-color: #2563eb !important; }
+        .ifs-educore-metric-card.collected { border-top-color: #00523c !important; }
+        .ifs-educore-metric-card.due { border-top-color: #dc2626 !important; }
+
+        .ifs-educore-metric-label {
+            font-size: 12.5px !important;
+            font-weight: 700 !important;
+            color: #64748b !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.05em !important;
+        }
+        .ifs-educore-metric-value {
+            font-size: 28px !important;
+            font-weight: 800 !important;
+            letter-spacing: -0.02em !important;
+        }
+        .ifs-educore-metric-value.blue { color: #1d4ed8 !important; }
+        .ifs-educore-metric-value.green { color: #047857 !important; }
+        .ifs-educore-metric-value.red { color: #b91c1c !important; }
+
+        /* Modern Pro Filter Card */
         .ifs-educore-filter-card {
             background: #ffffff !important;
             border: 1px solid #e2e8f0 !important;
@@ -251,8 +319,8 @@ function educore_fees_list_view() {
             box-sizing: border-box !important;
         }
         .ifs-educore-filter-group label {
-            font-size: 12px !important;
-            font-weight: 700 !important;
+            font-size: 11.5px !important;
+            font-weight: 800 !important;
             color: #475569 !important;
             text-transform: uppercase !important;
             letter-spacing: 0.05em !important;
@@ -330,7 +398,285 @@ function educore_fees_list_view() {
             border-color: #94a3b8 !important;
         }
 
-        /* Responsive Breakpoint for Filters */
+        /* Action Header Bar */
+        .ifs-educore-actions-bar {
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            margin-bottom: 20px !important;
+            flex-wrap: wrap !important;
+            gap: 15px !important;
+        }
+        .ifs-educore-title {
+            margin: 0 !important;
+            font-size: 18px !important;
+            font-weight: 800 !important;
+            color: #0f172a !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 10px !important;
+        }
+        .ifs-educore-btn-collect {
+            background: #00523c !important;
+            color: #ffffff !important;
+            padding: 10px 20px !important;
+            border-radius: 10px !important;
+            font-weight: 700 !important;
+            font-size: 13.5px !important;
+            text-decoration: none !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 8px !important;
+            box-shadow: 0 4px 14px rgba(0, 82, 60, 0.2) !important;
+            transition: background 0.2s ease !important;
+        }
+        .ifs-educore-btn-collect:hover {
+            background: #047857 !important;
+            color: #ffffff !important;
+        }
+
+        /* Table Bento Card Wrapper */
+        .ifs-educore-bento-card {
+            background: #ffffff !important;
+            border: 1px solid #e2e8f0 !important;
+            border-radius: 16px !important;
+            padding: 24px !important;
+            box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.03) !important;
+            box-sizing: border-box !important;
+            overflow-x: auto !important;
+        }
+        .ifs-educore-table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            font-size: 13px !important;
+            text-align: left !important;
+        }
+        .ifs-educore-table th {
+            background: #f8fafc !important;
+            color: #475569 !important;
+            font-weight: 800 !important;
+            font-size: 11.5px !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.05em !important;
+            padding: 12px 14px !important;
+            border-bottom: 2px solid #e2e8f0 !important;
+        }
+        .ifs-educore-table td {
+            padding: 14px 14px !important;
+            border-bottom: 1px solid #f1f5f9 !important;
+            vertical-align: middle !important;
+            color: #1e293b !important;
+        }
+        .ifs-educore-table tbody tr {
+            transition: background 0.15s ease !important;
+        }
+        .ifs-educore-table tbody tr:hover {
+            background: #f8fafc !important;
+        }
+
+        /* Invoice Badge & Tags */
+        .ifs-educore-invoice-code {
+            font-family: monospace !important;
+            font-weight: 800 !important;
+            background: #f1f5f9 !important;
+            color: #0f172a !important;
+            padding: 4px 8px !important;
+            border-radius: 6px !important;
+            border: 1px solid #cbd5e1 !important;
+            font-size: 12px !important;
+        }
+        .ifs-educore-waiver-tag {
+            display: inline-block !important;
+            background: #f0fdf4 !important;
+            color: #15803d !important;
+            border: 1px solid #bbf7d0 !important;
+            padding: 2px 6px !important;
+            border-radius: 4px !important;
+            font-size: 10.5px !important;
+            font-weight: 700 !important;
+            margin-top: 4px !important;
+        }
+
+        /* Action Buttons & Details Icon */
+        .ifs-educore-action-group {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: flex-end !important;
+            gap: 6px !important;
+        }
+        .ifs-educore-square-btn {
+            width: 32px !important;
+            height: 32px !important;
+            border-radius: 8px !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            border: 1px solid transparent !important;
+            cursor: pointer !important;
+            transition: all 0.2s ease !important;
+            text-decoration: none !important;
+        }
+        .ifs-educore-square-btn .dashicons {
+            font-size: 16px !important;
+            width: 16px !important;
+            height: 16px !important;
+        }
+        .ifs-educore-btn-details {
+            background: #f8fafc !important;
+            color: #0f172a !important;
+            border-color: #cbd5e1 !important;
+        }
+        .ifs-educore-btn-details:hover {
+            background: #00523c !important;
+            color: #ffffff !important;
+            border-color: #00523c !important;
+        }
+        .ifs-educore-btn-edit {
+            background: #eff6ff !important;
+            color: #2563eb !important;
+            border-color: #bfdbfe !important;
+        }
+        .ifs-educore-btn-edit:hover {
+            background: #2563eb !important;
+            color: #ffffff !important;
+        }
+        .ifs-educore-btn-action-print {
+            background: #f1f5f9 !important;
+            color: #475569 !important;
+            border: 1px solid #cbd5e1 !important;
+            padding: 6px 10px !important;
+            border-radius: 8px !important;
+            font-size: 12px !important;
+            font-weight: 700 !important;
+            text-decoration: none !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 4px !important;
+            transition: all 0.2s ease !important;
+        }
+        .ifs-educore-btn-action-print:hover {
+            background: #e2e8f0 !important;
+            color: #0f172a !important;
+        }
+
+        /* Native Pagination Layout Matching Students Directory */
+        .ifs-educore-dt-footer-layout {
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            background: #ffffff !important;
+            border: 1px solid #e2e8f0 !important;
+            border-radius: 12px !important;
+            padding: 14px 20px !important;
+            font-size: 13px !important;
+            font-weight: 600 !important;
+            color: #475569 !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02) !important;
+            margin-top: 20px !important;
+        }
+        .ifs-educore-pagination-btn {
+            height: 36px !important;
+            padding: 0 16px !important;
+            background: #f1f5f9 !important;
+            color: #475569 !important;
+            font-size: 13px !important;
+            font-weight: 700 !important;
+            border-radius: 8px !important;
+            border: 1px solid #cbd5e1 !important;
+            cursor: pointer !important;
+            transition: all 0.2s ease !important;
+        }
+        .ifs-educore-pagination-btn:hover:not(:disabled) {
+            background: #e2e8f0 !important;
+            color: #0f172a !important;
+        }
+        .ifs-educore-pagination-btn:disabled {
+            opacity: 0.5 !important;
+            cursor: not-allowed !important;
+        }
+
+        /* Modal Overlay & Card Styling */
+        .ifs-educore-modal-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.6);
+            z-index: 999999;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+            backdrop-filter: blur(4px);
+        }
+        .ifs-educore-modal-backdrop.is-visible {
+            display: flex;
+        }
+        .ifs-educore-modal-card {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 28px;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            box-sizing: border-box;
+            animation: educoreModalFadeIn 0.25s ease;
+        }
+        @keyframes educoreModalFadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .ifs-educore-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #f1f5f9;
+            padding-bottom: 14px;
+            margin-bottom: 20px;
+        }
+        .ifs-educore-modal-title {
+            margin: 0;
+            font-size: 17px;
+            font-weight: 800;
+            color: #0f172a;
+        }
+        .ifs-educore-modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #64748b;
+            padding: 0;
+            line-height: 1;
+        }
+        .ifs-educore-modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 24px;
+            padding-top: 16px;
+            border-top: 1px solid #f1f5f9;
+        }
+        .ifs-educore-btn-cancel {
+            background: #f1f5f9;
+            color: #64748b;
+            border: 1.5px solid #cbd5e1;
+            padding: 9px 18px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 13.5px;
+            cursor: pointer;
+        }
+        .ifs-educore-btn-cancel:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+
+        /* Responsive Breakpoints */
+        @media screen and (max-width: 1024px) {
+            .ifs-educore-metrics-bento {
+                grid-template-columns: 1fr !important;
+            }
+        }
         @media screen and (max-width: 1200px) {
             .ifs-educore-filter-form {
                 grid-template-columns: repeat(2, 1fr) !important;
@@ -498,9 +844,9 @@ function educore_fees_list_view() {
             </a>
         </div>
 
-        <!-- Main Invoices Table Card -->
+        <!-- Main Invoices Table Card with Native Pagination Engine -->
         <div class="ifs-educore-bento-card">
-            <table class="ifs-educore-table educore-datatable">
+            <table class="ifs-educore-table" id="ifs_educore_fees_main_table">
                 <thead>
                     <tr>
                         <th style="width: 105px;"><?php esc_html_e( 'Invoice ID', 'ifsedu-school-management' ); ?></th>
@@ -508,14 +854,11 @@ function educore_fees_list_view() {
                         <th><?php esc_html_e( 'Month / Year', 'ifsedu-school-management' ); ?></th>
                         <th><?php esc_html_e( 'Fee Category', 'ifsedu-school-management' ); ?></th>
                         <th><?php esc_html_e( 'Net Payable', 'ifsedu-school-management' ); ?></th>
-                        <th><?php esc_html_e( 'Paid', 'ifsedu-school-management' ); ?></th>
-                        <th><?php esc_html_e( 'Due', 'ifsedu-school-management' ); ?></th>
-                        <th><?php esc_html_e( 'Status', 'ifsedu-school-management' ); ?></th>
                         <th><?php esc_html_e( 'Entry / Collector', 'ifsedu-school-management' ); ?></th>
-                        <th style="text-align: right; width: 105px;"><?php esc_html_e( 'Actions', 'ifsedu-school-management' ); ?></th>
+                        <th style="text-align: right; width: 130px;"><?php esc_html_e( 'Actions', 'ifsedu-school-management' ); ?></th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="ifs_educore_fees_table_body">
                     <?php if ( ! empty( $fees_records ) ) : foreach ( $fees_records as $fee ) : 
                         $print_url = add_query_arg(
                             array(
@@ -526,14 +869,16 @@ function educore_fees_list_view() {
                             ),
                             admin_url( 'admin.php' )
                         );
-                        
-                        // Status Badge Mapping.
-                        $status_class = 'unpaid';
-                        if ( 'Paid' === $fee->payment_status ) { 
-                            $status_class = 'paid'; 
-                        } elseif ( 'Partial' === $fee->payment_status ) { 
-                            $status_class = 'partial'; 
-                        }
+
+                        $view_url = add_query_arg(
+                            array(
+                                'page'    => 'school_management_system',
+                                'tab'     => 'fees',
+                                'sub'     => 'view',
+                                'invoice' => $fee->invoice_id,
+                            ),
+                            admin_url( 'admin.php' )
+                        );
 
                         $student_id_str = $fee->s_id ? strtoupper( (string) $fee->s_id ) : 'DELETED';
                         $class_str      = $fee->class_name ? $fee->class_name : 'Unassigned';
@@ -544,7 +889,7 @@ function educore_fees_list_view() {
                         $collector_display = ! empty( $fee->col_staff_name ) ? $fee->col_staff_name : ( ! empty( $fee->collector_name ) ? $fee->collector_name : ( ! empty( $fee->recorded_by ) ? '#' . $fee->recorded_by : __( 'Admin / System', 'ifsedu-school-management' ) ) );
                         $entry_date_str    = ! empty( $fee->created_at ) ? date_i18n( 'M j, Y h:i A', strtotime( $fee->created_at ) ) : ( ! empty( $fee->payment_date ) ? date_i18n( 'M j, Y', strtotime( $fee->payment_date ) ) : '—' );
                     ?>
-                    <tr data-fee-id="<?php echo esc_attr( $fee->id ); ?>">
+                    <tr class="ifs-educore-fees-row" data-fee-id="<?php echo esc_attr( $fee->id ); ?>">
                         <td>
                             <span class="ifs-educore-invoice-code">#<?php echo esc_html( $fee->invoice_id ); ?></span>
                         </td>
@@ -568,13 +913,6 @@ function educore_fees_list_view() {
                             <strong style="color: #475569;" class="cell-fee-type"><?php echo esc_html( $fee->fee_type ); ?></strong>
                         </td>
                         <td class="cell-net-payable">৳<?php echo esc_html( number_format( (float) $fee->net_payable, 2 ) ); ?></td>
-                        <td class="cell-paid-amount"><strong style="color: #00523c;">৳<?php echo esc_html( number_format( (float) $fee->paid_amount, 2 ) ); ?></strong></td>
-                        <td class="cell-due-amount"><strong style="color: #dc2626;">৳<?php echo esc_html( number_format( (float) $fee->due_amount, 2 ) ); ?></strong></td>
-                        <td>
-                            <span class="ifs-educore-status-badge <?php echo esc_attr( $status_class ); ?> cell-status">
-                                <?php echo esc_html( $fee->payment_status ); ?>
-                            </span>
-                        </td>
                         <td>
                             <strong style="color: #0f172a; font-size: 12px;"><?php echo esc_html( $collector_display ); ?></strong>
                             <span style="font-size: 10.5px; color: #64748b; display: block; margin-top: 2px;">
@@ -584,6 +922,11 @@ function educore_fees_list_view() {
                         </td>
                         <td style="text-align: right;">
                             <div class="ifs-educore-action-group">
+                                <!-- Details / View Button linking to View Page -->
+                                <a href="<?php echo esc_url( $view_url ); ?>" class="ifs-educore-square-btn ifs-educore-btn-details" title="<?php esc_attr_e( 'View Invoice Details', 'ifsedu-school-management' ); ?>">
+                                    <span class="dashicons dashicons-visibility"></span>
+                                </a>
+
                                 <!-- Trigger Edit Modal -->
                                 <button type="button" 
                                         class="ifs-educore-square-btn ifs-educore-btn-edit btn-trigger-edit-fee" 
@@ -614,6 +957,15 @@ function educore_fees_list_view() {
                     <?php endforeach; endif; ?>
                 </tbody>
             </table>
+
+            <!-- Native Pagination Footer Engine -->
+            <div id="ifs_educore_dt_footer_target" class="ifs-educore-dt-footer-layout">
+                <div id="ifs_educore_table_info"><?php esc_html_e( 'Initializing...', 'ifsedu-school-management' ); ?></div>
+                <div style="display: flex; gap: 8px;">
+                    <button type="button" id="ifs_educore_prev_btn" class="ifs-educore-pagination-btn"><?php esc_html_e( 'Previous', 'ifsedu-school-management' ); ?></button>
+                    <button type="button" id="ifs_educore_next_btn" class="ifs-educore-pagination-btn"><?php esc_html_e( 'Next', 'ifsedu-school-management' ); ?></button>
+                </div>
+            </div>
         </div>
 
     </div>
@@ -691,10 +1043,10 @@ function educore_fees_list_view() {
         </div>
     </div>
 
-    <!-- Dynamic Script Layer: Section Chaining, Modal Control & DataTables Engine -->
+    <!-- Dynamic Script Layer: Section Chaining, Modal Control & Native Pagination Engine -->
     <script type="text/javascript">
     document.addEventListener('DOMContentLoaded', function() {
-        var unitsMap      = <?php echo wp_json_encode( ! empty( $all_units ) ? $all_units : array() ); ?>;
+        var unitsMap       = <?php echo wp_json_encode( ! empty( $all_units ) ? $all_units : array() ); ?>;
         var currentSection = "<?php echo esc_js( $filter_section ); ?>";
         var classSelect    = document.getElementById('filter_class');
         var sectionSelect  = document.getElementById('filter_section');
@@ -738,9 +1090,68 @@ function educore_fees_list_view() {
         }
 
         // --------------------------------------------------------------------------
+        // NATIVE PAGINATION & TABLE ENGINE (Matching All Students Module)
+        // --------------------------------------------------------------------------
+        const allRows = Array.from(document.querySelectorAll('#ifs_educore_fees_table_body tr.ifs-educore-fees-row'));
+        const tableInfo = document.getElementById('ifs_educore_table_info');
+        const prevBtn = document.getElementById('ifs_educore_prev_btn');
+        const nextBtn = document.getElementById('ifs_educore_next_btn');
+
+        let currentPage = 1;
+        const pageSize = 15;
+        let visibleRows = allRows;
+
+        function renderPagination() {
+            const total = visibleRows.length;
+            const totalPages = Math.ceil(total / pageSize) || 1;
+
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+
+            const startIdx = (currentPage - 1) * pageSize;
+            const endIdx = startIdx + pageSize;
+
+            allRows.forEach(row => row.style.display = 'none');
+
+            visibleRows.slice(startIdx, endIdx).forEach(row => {
+                row.style.display = '';
+            });
+
+            if (total === 0) {
+                tableInfo.textContent = '<?php echo esc_js( __( 'No matching fee invoice records found', 'ifsedu-school-management' ) ); ?>';
+            } else {
+                tableInfo.textContent = '<?php echo esc_js( __( 'Showing', 'ifsedu-school-management' ) ); ?> ' + (startIdx + 1) + ' <?php echo esc_js( __( 'to', 'ifsedu-school-management' ) ); ?> ' + Math.min(endIdx, total) + ' <?php echo esc_js( __( 'of', 'ifsedu-school-management' ) ); ?> ' + total + ' <?php echo esc_js( __( 'entries', 'ifsedu-school-management' ) ); ?>';
+            }
+
+            prevBtn.disabled = (currentPage === 1);
+            nextBtn.disabled = (currentPage === totalPages || total === 0);
+        }
+
+        if (prevBtn) {
+            prevBtn.addEventListener('click', function() {
+                if (currentPage > 1) {
+                    currentPage--;
+                    renderPagination();
+                }
+            });
+        }
+
+        if (nextBtn) {
+            nextBtn.addEventListener('click', function() {
+                const totalPages = Math.ceil(visibleRows.length / pageSize) || 1;
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    renderPagination();
+                }
+            });
+        }
+
+        renderPagination();
+
+        // --------------------------------------------------------------------------
         // EDIT MODAL AJAX ENGINE FOR FEES LEDGER
         // --------------------------------------------------------------------------
-        var modal        = document.getElementById('ifs_educore_edit_fee_modal');
+        var modal          = document.getElementById('ifs_educore_edit_fee_modal');
         var closeModalBtn  = document.getElementById('ifs_educore_close_fee_modal');
         var cancelModalBtn = document.getElementById('ifs_educore_cancel_fee_edit');
         var editForm       = document.getElementById('ifs_educore_edit_fee_form');
@@ -911,20 +1322,6 @@ function educore_fees_list_view() {
                     console.error('AJAX Error:', err);
                     alert('Request failed: ' + (typeof err === 'string' ? err : 'Connection/Server error.'));
                 });
-            });
-        }
-    });
-
-    jQuery(document).ready(function($) {
-        if ($.fn.DataTable) {
-            $('.educore-datatable').DataTable({ 
-                "pageLength": 15, 
-                "ordering": false,
-                "responsive": true,
-                "language": {
-                    "search": "<?php echo esc_js( __( 'Search Ledger:', 'ifsedu-school-management' ) ); ?>",
-                    "lengthMenu": "<?php echo esc_js( __( 'Show _MENU_ entries', 'ifsedu-school-management' ) ); ?>"
-                }
             });
         }
     });

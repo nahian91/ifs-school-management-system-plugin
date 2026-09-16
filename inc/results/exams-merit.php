@@ -183,7 +183,7 @@ function educore_merit_list_view() {
 
     <style>
         .ifs-educore-merit-root {
-            max-width: 100%;
+            max-width: 1040px;
             margin: 0;
             padding: 0;
             box-sizing: border-box;
@@ -195,29 +195,30 @@ function educore_merit_list_view() {
             align-items: center;
             flex-wrap: wrap;
             gap: 12px;
-            margin-bottom: 20px;
+            margin-bottom: 24px;
         }
         .ifs-educore-header-block h2 {
             margin: 0;
-            font-size: 20px;
-            font-weight: 800;
+            font-size: 22px;
+            font-weight: 900;
             color: #0f172a;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
         }
         .ifs-educore-btn-secondary {
             background: #ffffff;
             border: 1.5px solid #cbd5e1;
             color: #334155;
             text-decoration: none;
-            padding: 8px 16px;
-            border-radius: 8px;
+            padding: 9px 18px;
+            border-radius: 9px;
             font-weight: 700;
             font-size: 13px;
             display: inline-flex;
             align-items: center;
             gap: 6px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
             transition: all 0.2s ease;
         }
         .ifs-educore-btn-secondary:hover {
@@ -226,23 +227,23 @@ function educore_merit_list_view() {
             border-color: #00523c;
         }
 
-        /* Filter Bento Card */
+        /* Filter Bento Card Console */
         .ifs-educore-bento-filter-card {
             background: #ffffff;
             border: 1px solid #e2e8f0;
-            border-radius: 14px;
-            padding: 20px 24px;
-            margin-bottom: 24px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 26px;
+            box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.04);
             box-sizing: border-box;
         }
         .ifs-educore-filter-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) 160px;
-            gap: 16px;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)) 180px;
+            gap: 18px;
             align-items: end;
         }
-        @media (max-width: 900px) {
+        @media (max-width: 960px) {
             .ifs-educore-filter-grid {
                 grid-template-columns: 1fr;
             }
@@ -253,26 +254,26 @@ function educore_merit_list_view() {
         }
         .ifs-educore-form-label {
             display: block;
-            font-size: 11.5px;
-            font-weight: 700;
+            font-size: 12px;
+            font-weight: 800;
             color: #475569;
-            text-transform: capitalize;
-            letter-spacing: 0.4px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
             margin-bottom: 8px;
         }
         .ifs-educore-select-field {
             width: 100% !important;
-            height: 42px !important;
-            padding: 0 34px 0 14px !important;
+            height: 44px !important;
+            padding: 0 38px 0 14px !important;
             border: 1.5px solid #cbd5e1 !important;
             border-radius: 9px !important;
             font-size: 13.5px !important;
             font-weight: 600 !important;
             color: #0f172a !important;
-            background-color: #ffffff !important;
+            background-color: #f8fafc !important;
             background-image: url('data:image/svg+xml;utf8,<svg fill="%2364748b" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>') !important;
             background-repeat: no-repeat !important;
-            background-position: right 10px center !important;
+            background-position: right 12px center !important;
             box-sizing: border-box !important;
             outline: none !important;
             appearance: none !important;
@@ -282,27 +283,29 @@ function educore_merit_list_view() {
         }
         .ifs-educore-select-field:focus {
             border-color: #00523c !important;
+            background-color: #ffffff !important;
             box-shadow: 0 0 0 3px rgba(0, 82, 60, 0.12) !important;
         }
         .ifs-educore-btn-submit-trigger {
             width: 100%;
-            height: 42px;
+            height: 44px;
             background: #00523c;
             color: #ffffff;
             border: none;
             border-radius: 9px;
-            font-weight: 700;
-            font-size: 13.5px;
+            font-weight: 800;
+            font-size: 14px;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 6px;
-            box-shadow: 0 4px 12px rgba(0, 82, 60, 0.18);
-            transition: background 0.2s ease;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(0, 82, 60, 0.2);
+            transition: all 0.2s ease;
         }
         .ifs-educore-btn-submit-trigger:hover {
             background: #047857;
+            transform: translateY(-1px);
         }
 
         /* Metrics Summary Bento */
@@ -310,22 +313,27 @@ function educore_merit_list_view() {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 16px;
-            margin-bottom: 22px;
+            margin-bottom: 24px;
         }
         .ifs-educore-stat-card {
             background: #ffffff;
             border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 18px 20px;
+            border-radius: 14px;
+            padding: 20px;
             display: flex;
             align-items: center;
-            gap: 14px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+            gap: 16px;
+            box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.03);
+            transition: transform 0.15s ease, border-color 0.15s ease;
+        }
+        .ifs-educore-stat-card:hover {
+            border-color: #cbd5e1;
+            transform: translateY(-2px);
         }
         .ifs-educore-stat-icon {
-            width: 46px;
-            height: 46px;
-            border-radius: 10px;
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -337,53 +345,55 @@ function educore_merit_list_view() {
         }
         .ifs-educore-stat-label {
             font-size: 11.5px;
-            font-weight: 700;
+            font-weight: 800;
             color: #64748b;
-            text-transform: capitalize;
-            letter-spacing: 0.3px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
         .ifs-educore-stat-value {
             font-size: 18px;
-            font-weight: 800;
-            margin-top: 2px;
+            font-weight: 900;
+            margin-top: 3px;
+            color: #0f172a;
         }
 
-        /* Printable Roster Sheet */
+        /* Printable Roster Sheet Container */
         .ifs-educore-tabulation-container {
             background: #ffffff;
             border: 1px solid #cbd5e1;
-            border-radius: 12px;
-            padding: 30px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
-            margin-bottom: 30px;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05);
+            margin-bottom: 40px;
+            box-sizing: border-box;
         }
         .ifs-educore-tabulation-header {
             text-align: center;
-            border-bottom: 2px solid #000000;
-            padding-bottom: 14px;
-            margin-bottom: 18px;
+            border-bottom: 2.5px solid #0f172a;
+            padding-bottom: 16px;
+            margin-bottom: 24px;
         }
         .ifs-educore-header-brand-row {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
+            gap: 12px;
+            margin-bottom: 4px;
         }
         .ifs-educore-roster-logo {
-            max-height: 44px;
+            max-height: 50px;
             object-fit: contain;
         }
         .ifs-educore-tabulation-title {
             margin: 0;
-            font-size: 22px;
+            font-size: 24px;
             font-weight: 900;
-            text-transform: capitalize;
-            color: #000;
-            letter-spacing: -0.2px;
+            color: #0f172a;
+            letter-spacing: -0.3px;
         }
         .ifs-educore-tabulation-sub {
-            margin: 4px 0 0 0;
-            font-size: 14px;
+            margin: 6px 0 0 0;
+            font-size: 15px;
             font-weight: 800;
             color: #1e293b;
         }
@@ -392,19 +402,21 @@ function educore_merit_list_view() {
             border-collapse: collapse;
             font-size: 13px;
             text-align: center;
+            margin-bottom: 30px;
         }
         .ifs-educore-tabulation-table th, 
         .ifs-educore-tabulation-table td {
-            border: 1px solid #000000;
-            padding: 8px 10px;
+            border: 1px solid #94a3b8;
+            padding: 10px 12px;
             vertical-align: middle;
         }
         .ifs-educore-tabulation-table th {
             background: #f1f5f9;
             font-weight: 800;
-            font-size: 11.5px;
-            text-transform: capitalize;
-            color: #000000;
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #1e293b;
+            letter-spacing: 0.03em;
         }
 
         /* Position Badges */
@@ -413,25 +425,26 @@ function educore_merit_list_view() {
             align-items: center;
             justify-content: center;
             gap: 4px;
-            padding: 3px 10px;
+            padding: 4px 12px;
             border-radius: 999px;
             font-weight: 800;
-            font-size: 12px;
+            font-size: 12.5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
         }
         .ifs-educore-rank-badge.rank-gold {
-            background: #fef08a;
+            background: #fef9c3;
             color: #854d0e;
-            border: 1px solid #facc15;
+            border: 1px solid #fde047;
         }
         .ifs-educore-rank-badge.rank-silver {
-            background: #e2e8f0;
+            background: #f1f5f9;
             color: #334155;
             border: 1px solid #cbd5e1;
         }
         .ifs-educore-rank-badge.rank-bronze {
             background: #ffedd5;
             color: #9a3412;
-            border: 1px solid #fdba74;
+            border: 1px solid #fed7aa;
         }
         .ifs-educore-rank-badge.rank-norm {
             background: #f8fafc;
@@ -440,10 +453,10 @@ function educore_merit_list_view() {
         }
 
         .ifs-educore-badge-status {
-            font-size: 11px;
+            font-size: 11.5px;
             font-weight: 800;
-            padding: 3px 8px;
-            border-radius: 5px;
+            padding: 3px 10px;
+            border-radius: 6px;
             display: inline-block;
         }
         .ifs-educore-badge-status.status-pass {
@@ -451,53 +464,61 @@ function educore_merit_list_view() {
             color: #047857;
             border: 1px solid #a7f3d0;
         }
-        .ifs-educore-badge-status.status-fail {
-            background: #fee2e2;
-            color: #dc2626;
-            border: 1px solid #fecaca;
-        }
 
-        /* Signature Row */
+        /* Professional Signature Row */
         .ifs-educore-sign-row {
             display: flex;
             justify-content: space-between;
-            margin-top: 60px;
-            padding: 0 20px;
+            margin-top: 70px;
+            padding: 0 10px;
         }
         .ifs-educore-signature-col {
             text-align: center;
-            width: 200px;
+            width: 220px;
         }
         .ifs-educore-sign-line {
-            border-top: 1.5px dashed #000000;
-            padding-top: 6px;
-            font-size: 12px;
-            font-weight: 700;
-            color: #000000;
+            border-top: 1.5px dashed #475569;
+            padding-top: 8px;
+            font-size: 12.5px;
+            font-weight: 800;
+            color: #0f172a;
         }
         .ifs-educore-roster-sig-img {
-            max-height: 40px;
-            margin-bottom: 2px;
+            max-height: 45px;
+            margin-bottom: 4px;
             display: block;
             margin-left: auto;
             margin-right: auto;
+            object-fit: contain;
         }
 
-        /* Print Override */
+        /* Print Override Fix for Blank/White Overlay Bug */
         @media print {
             #adminmenuwrap, #adminmenuback, #wpadminbar, #wpfooter, .no-print {
                 display: none !important;
             }
-            body, .ifs-educore-merit-root {
-                background: transparent !important;
+            body, html, .ifs-educore-merit-root {
+                background: #ffffff !important;
+                color: #000000 !important;
                 padding: 0 !important;
                 margin: 0 !important;
                 width: 100% !important;
+                height: auto !important;
+                overflow: visible !important;
             }
             .ifs-educore-tabulation-container {
                 border: none !important;
                 box-shadow: none !important;
                 padding: 0 !important;
+                margin: 0 !important;
+                width: 100% !important;
+            }
+            .ifs-educore-tabulation-table {
+                page-break-inside: auto;
+            }
+            .ifs-educore-tabulation-table tr {
+                page-break-inside: avoid;
+                page-break-after: auto;
             }
             .ifs-educore-tabulation-table th {
                 background: #f1f5f9 !important;
@@ -512,11 +533,11 @@ function educore_merit_list_view() {
         <!-- Top Navigation Header -->
         <div class="ifs-educore-header-block no-print">
             <h2>
-                <span class="dashicons dashicons-awards" style="color:#00523c;"></span>
-                <?php esc_html_e( 'Merit List & Position Ranking Roster', 'ifsedu-school-management' ); ?>
+                <span class="dashicons dashicons-awards" style="color:#00523c; font-size:26px; width:26px; height:26px;"></span>
+                <?php esc_html_e( 'Enterprise Merit List & Position Roster', 'ifsedu-school-management' ); ?>
             </h2>
             <a href="<?php echo esc_url( $back_url ); ?>" class="ifs-educore-btn-secondary">
-                <span class="dashicons dashicons-arrow-left-alt" style="font-size:14px; width:14px; height:14px;"></span>
+                <span class="dashicons dashicons-arrow-left-alt" style="font-size:15px; width:15px; height:15px; vertical-align:middle;"></span>
                 <?php esc_html_e( 'Back to Exams Directory', 'ifsedu-school-management' ); ?>
             </a>
         </div>
@@ -530,9 +551,9 @@ function educore_merit_list_view() {
 
                 <div class="ifs-educore-filter-grid">
                     <div class="ifs-educore-form-group">
-                        <label class="ifs-educore-form-label"><?php esc_html_e( '1. Select Exam', 'ifsedu-school-management' ); ?> <span style="color:#ef4444;">*</span></label>
+                        <label class="ifs-educore-form-label"><?php esc_html_e( '1. Select Exam Scheme', 'ifsedu-school-management' ); ?> <span style="color:#ef4444;">*</span></label>
                         <select name="exam_id" id="ifs_educore_merit_exam_select" class="ifs-educore-select-field" required>
-                            <option value=""><?php esc_html_e( '-- Choose Exam --', 'ifsedu-school-management' ); ?></option>
+                            <option value=""><?php esc_html_e( '-- Choose Exam Scheme --', 'ifsedu-school-management' ); ?></option>
                             <?php foreach ( $exams as $ex ) : ?>
                                 <option value="<?php echo absint( $ex->id ); ?>" <?php selected( $filter_exam, $ex->id ); ?>>
                                     <?php echo esc_html( $ex->exam_name ); ?>
@@ -542,7 +563,7 @@ function educore_merit_list_view() {
                     </div>
 
                     <div class="ifs-educore-form-group">
-                        <label class="ifs-educore-form-label"><?php esc_html_e( '2. Class Name', 'ifsedu-school-management' ); ?> <span style="color:#ef4444;">*</span></label>
+                        <label class="ifs-educore-form-label"><?php esc_html_e( '2. Academic Class', 'ifsedu-school-management' ); ?> <span style="color:#ef4444;">*</span></label>
                         <select name="class_name" id="ifs_educore_merit_class_select" class="ifs-educore-select-field" required <?php disabled( empty( $academic_classes ) && 0 === $filter_exam ); ?>>
                             <option value=""><?php esc_html_e( '-- Choose Class --', 'ifsedu-school-management' ); ?></option>
                             <?php foreach ( $academic_classes as $cls_name ) : ?>
@@ -554,7 +575,7 @@ function educore_merit_list_view() {
                     </div>
 
                     <div class="ifs-educore-form-group">
-                        <label class="ifs-educore-form-label"><?php esc_html_e( '3. Section Filter', 'ifsedu-school-management' ); ?></label>
+                        <label class="ifs-educore-form-label"><?php esc_html_e( '3. Section Filter (Optional)', 'ifsedu-school-management' ); ?></label>
                         <select name="section_name" id="ifs_educore_merit_section_select" class="ifs-educore-select-field">
                             <option value=""><?php esc_html_e( '-- All Sections (Entire Class) --', 'ifsedu-school-management' ); ?></option>
                             <?php foreach ( $available_sections as $sec_val ) : ?>
@@ -726,35 +747,33 @@ function educore_merit_list_view() {
                     return ( (int) $a['student']->roll_no < (int) $b['student']->roll_no ) ? -1 : 1;
                 } );
 
-                // Assign Global Class Positions & Section Positions.
+                // Assign Global Class Positions & Section Positions (Filter ONLY Pass List).
                 $class_pos_counter = 1;
                 $section_counters  = array();
                 $display_roster    = array();
 
-                $total_passed_count = 0;
                 $sum_passed_gpa     = 0;
                 $top_performer_name = '—';
 
                 foreach ( $all_ranked_pool as $item ) {
+                    // Skip failed students to generate ONLY the pass list
+                    if ( $item['failed'] ) {
+                        continue;
+                    }
+
                     $sec = $item['section'];
                     if ( ! isset( $section_counters[ $sec ] ) ) {
                         $section_counters[ $sec ] = 1;
                     }
 
-                    if ( ! $item['failed'] ) {
-                        $item['class_position']   = $class_pos_counter++;
-                        $item['section_position'] = $section_counters[ $sec ]++;
-                        
-                        if ( empty( $filter_section ) || $sec === $filter_section ) {
-                            $total_passed_count++;
-                            $sum_passed_gpa += $item['gpa'];
-                            if ( '—' === $top_performer_name ) {
-                                $top_performer_name = $item['student']->full_name;
-                            }
+                    $item['class_position']   = $class_pos_counter++;
+                    $item['section_position'] = $section_counters[ $sec ]++;
+                    
+                    if ( empty( $filter_section ) || $sec === $filter_section ) {
+                        $sum_passed_gpa += $item['gpa'];
+                        if ( '—' === $top_performer_name ) {
+                            $top_performer_name = $item['student']->full_name;
                         }
-                    } else {
-                        $item['class_position']   = 0;
-                        $item['section_position'] = 0;
                     }
 
                     if ( empty( $filter_section ) || $sec === $filter_section ) {
@@ -762,9 +781,8 @@ function educore_merit_list_view() {
                     }
                 }
 
-                $total_students_count = count( $display_roster );
-                $pass_rate_pct = ( $total_students_count > 0 ) ? round( ( $total_passed_count / $total_students_count ) * 100, 1 ) : 0;
-                $cohort_avg_gpa = ( $total_passed_count > 0 ) ? number_format( $sum_passed_gpa / $total_passed_count, 2 ) : '0.00';
+                $total_passed_count = count( $display_roster );
+                $cohort_avg_gpa     = ( $total_passed_count > 0 ) ? number_format( $sum_passed_gpa / $total_passed_count, 2 ) : '0.00';
 
                 if ( ! empty( $display_roster ) ) :
                 ?>
@@ -772,22 +790,22 @@ function educore_merit_list_view() {
                 <!-- Summary Metrics Bento Grid -->
                 <div class="ifs-educore-bento-grid-stats no-print">
                     <div class="ifs-educore-stat-card">
-                        <div class="ifs-educore-stat-icon" style="background: #fefce8; color: #eab308;">
+                        <div class="ifs-educore-stat-icon" style="background: #fefce8; color: #ca8a04;">
                             <span class="dashicons dashicons-star-filled" style="font-size:24px; width:24px; height:24px;"></span>
                         </div>
                         <div class="ifs-educore-stat-meta">
-                            <span class="ifs-educore-stat-label"><?php esc_html_e( 'Top Performer', 'ifsedu-school-management' ); ?></span>
+                            <span class="ifs-educore-stat-label"><?php esc_html_e( 'Top Performer (Pass List)', 'ifsedu-school-management' ); ?></span>
                             <span class="ifs-educore-stat-value" style="color: #854d0e; font-size:15px;"><?php echo esc_html( $top_performer_name ); ?></span>
                         </div>
                     </div>
 
                     <div class="ifs-educore-stat-card">
-                        <div class="ifs-educore-stat-icon" style="background: #ecfdf5; color: #00523c;">
+                        <div class="ifs-educore-stat-icon" style="background: #ecfdf5; color: #047857;">
                             <span class="dashicons dashicons-chart-bar" style="font-size:24px; width:24px; height:24px;"></span>
                         </div>
                         <div class="ifs-educore-stat-meta">
-                            <span class="ifs-educore-stat-label"><?php esc_html_e( 'Cohort Avg. GPA', 'ifsedu-school-management' ); ?></span>
-                            <span class="ifs-educore-stat-value" style="color: #00523c;"><?php echo esc_html( $cohort_avg_gpa ); ?></span>
+                            <span class="ifs-educore-stat-label"><?php esc_html_e( 'Passed Candidates Avg. GPA', 'ifsedu-school-management' ); ?></span>
+                            <span class="ifs-educore-stat-value" style="color: #047857;"><?php echo esc_html( $cohort_avg_gpa ); ?></span>
                         </div>
                     </div>
 
@@ -796,26 +814,16 @@ function educore_merit_list_view() {
                             <span class="dashicons dashicons-groups" style="font-size:24px; width:24px; height:24px;"></span>
                         </div>
                         <div class="ifs-educore-stat-meta">
-                            <span class="ifs-educore-stat-label"><?php esc_html_e( 'Passed Candidates', 'ifsedu-school-management' ); ?></span>
-                            <span class="ifs-educore-stat-value" style="color: #0284c7;"><?php echo esc_html( $total_passed_count . ' / ' . $total_students_count ); ?></span>
-                        </div>
-                    </div>
-
-                    <div class="ifs-educore-stat-card">
-                        <div class="ifs-educore-stat-icon" style="background: #f5f3ff; color: #8b5cf6;">
-                            <span class="dashicons dashicons-saved" style="font-size:24px; width:24px; height:24px;"></span>
-                        </div>
-                        <div class="ifs-educore-stat-meta">
-                            <span class="ifs-educore-stat-label"><?php esc_html_e( 'Pass Percentage', 'ifsedu-school-management' ); ?></span>
-                            <span class="ifs-educore-stat-value" style="color: #6d28d9;"><?php echo esc_html( $pass_rate_pct ); ?>%</span>
+                            <span class="ifs-educore-stat-label"><?php esc_html_e( 'Total Passed Students', 'ifsedu-school-management' ); ?></span>
+                            <span class="ifs-educore-stat-value" style="color: #0284c7;"><?php echo esc_html( $total_passed_count ); ?></span>
                         </div>
                     </div>
                 </div>
 
                 <div style="text-align: right; margin-bottom: 20px;" class="no-print">
-                    <button type="button" onclick="window.print();" class="ifs-educore-btn-submit-trigger" style="width: auto; padding: 0 26px;">
+                    <button type="button" onclick="window.print();" class="ifs-educore-btn-submit-trigger" style="width: auto; padding: 0 28px;">
                         <span class="dashicons dashicons-printer"></span>
-                        <?php esc_html_e( 'Print Official Merit Position Roster', 'ifsedu-school-management' ); ?>
+                        <?php esc_html_e( 'Print Official Pass Merit Roster', 'ifsedu-school-management' ); ?>
                     </button>
                 </div>
 
@@ -834,7 +842,7 @@ function educore_merit_list_view() {
                             </div>
                         <?php endif; ?>
                         <h5 class="ifs-educore-tabulation-sub">
-                            <?php echo esc_html( $exam ? $exam->exam_name : '' ); ?> &mdash; <?php esc_html_e( 'Official Merit Ranking & Position Roster', 'ifsedu-school-management' ); ?>
+                            <?php echo esc_html( $exam ? $exam->exam_name : '' ); ?> &mdash; <?php esc_html_e( 'Official Passed Candidates Merit Roster', 'ifsedu-school-management' ); ?>
                         </h5>
                         <span style="display: inline-block; background: #f1f5f9; color: #475569; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; margin-top: 8px; border: 1px solid #cbd5e1;">
                             <?php esc_html_e( 'Class:', 'ifsedu-school-management' ); ?> <?php echo esc_html( $filter_class ); ?>
@@ -881,7 +889,7 @@ function educore_merit_list_view() {
                                 <tr>
                                     <!-- Class Position -->
                                     <td>
-                                        <?php if ( ! $item['failed'] && $c_pos > 0 ) : ?>
+                                        <?php if ( $c_pos > 0 ) : ?>
                                             <span class="ifs-educore-rank-badge <?php echo esc_attr( $rank_class ); ?>">
                                                 <?php if ( 1 === $c_pos ) : ?>🏆<?php endif; ?>
                                                 #<?php echo esc_html( $c_pos ); ?>
@@ -893,7 +901,7 @@ function educore_merit_list_view() {
 
                                     <!-- Section Position -->
                                     <td>
-                                        <?php if ( ! $item['failed'] && $s_pos > 0 ) : ?>
+                                        <?php if ( $s_pos > 0 ) : ?>
                                             <span class="ifs-educore-rank-badge <?php echo ( 1 === $s_pos ) ? 'rank-gold' : 'rank-norm'; ?>">
                                                 #<?php echo esc_html( $s_pos ); ?>
                                             </span>
@@ -907,10 +915,10 @@ function educore_merit_list_view() {
                                     <td style="text-align: left; font-weight: 700; color: #0f172a;"><?php echo esc_html( $s->full_name ); ?></td>
                                     <td><span style="background: #f1f5f9; padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 12px;"><?php echo esc_html( ! empty( $s->section_name ) ? $s->section_name : 'N/A' ); ?></span></td>
                                     <td><strong><?php echo esc_html( floatval( $item['total'] ) ); ?></strong></td>
-                                    <td style="font-weight: 800; color: <?php echo $item['failed'] ? '#dc2626' : '#00523c'; ?>;"><?php echo esc_html( number_format( floatval( $item['gpa'] ), 2 ) ); ?></td>
+                                    <td style="font-weight: 800; color: #00523c;"><?php echo esc_html( number_format( floatval( $item['gpa'] ), 2 ) ); ?></td>
                                     <td>
-                                        <span class="ifs-educore-badge-status <?php echo $item['failed'] ? 'status-fail' : 'status-pass'; ?>">
-                                            <?php echo $item['failed'] ? esc_html__( 'FAIL', 'ifsedu-school-management' ) : esc_html__( 'PASS', 'ifsedu-school-management' ); ?>
+                                        <span class="ifs-educore-badge-status status-pass">
+                                            <?php esc_html_e( 'PASS', 'ifsedu-school-management' ); ?>
                                         </span>
                                     </td>
                                 </tr>
@@ -937,7 +945,7 @@ function educore_merit_list_view() {
 
                 <?php 
                 else :
-                    echo '<div style="background:#fff; border:1px solid #e2e8f0; padding:20px; border-radius:8px; text-align:center; color:#64748b;">' . esc_html__( 'No published exam results found for students in the selected section.', 'ifsedu-school-management' ) . '</div>';
+                    echo '<div style="background:#fff; border:1px solid #e2e8f0; padding:20px; border-radius:8px; text-align:center; color:#64748b;">' . esc_html__( 'No passing candidates found matching the selected criteria.', 'ifsedu-school-management' ) . '</div>';
                 endif;
 
             } else {

@@ -3,12 +3,30 @@
  * High-End Marks Entry Matrix & Grading Evaluation Engine
  * File: inc/results/exams-marks.php
  * Text Domain: ifsedu-school-management
- * Architecture: Neo-Bento Interface with Real-time Auto Grading, Section-Aware Subject Loading, Auto-Draft Session Storage & Unsaved Warning
+ * Architecture: Neo-Bento Interface with Real-time Auto Grading, Live Exam Attendance Linkage & Strict Attendance Lockout State
  * Teacher Scope: Restricts Class/Section/Subject dropdowns to `sms_teacher_subjects` for logged-in Teachers.
  */
 
+declare(strict_types=1);
+
 if ( ! defined( 'ABSPATH' ) ) {
     exit; // Exit if accessed directly.
+}
+
+if ( ! function_exists( 'educore_marks_get_table' ) ) {
+    /**
+     * Helper: Defensive table name resolver for results module
+     */
+    function educore_marks_get_table( string $key ): string {
+        global $wpdb;
+        if ( function_exists( 'educore_get_table_name' ) ) {
+            $tbl = educore_get_table_name( $key );
+            if ( ! empty( $tbl ) ) {
+                return $tbl;
+            }
+        }
+        return $wpdb->prefix . 'sms_' . $key;
+    }
 }
 
 // --------------------------------------------------------------------------
@@ -18,7 +36,7 @@ add_action( 'wp_ajax_ifs_educore_get_classes_by_exam_marks', 'ifs_educore_get_cl
 /**
  * AJAX Handler: Get classes filtered by exam and teacher assignment.
  */
-function ifs_educore_get_classes_by_exam_marks_handler() {
+function ifs_educore_get_classes_by_exam_marks_handler(): void {
     check_ajax_referer( 'ifs_educore_marks_nonce', 'security' );
 
     $current_user = wp_get_current_user();
@@ -26,20 +44,20 @@ function ifs_educore_get_classes_by_exam_marks_handler() {
     $is_staff     = false;
 
     if ( function_exists( 'educore_has_access' ) ) {
-        $is_staff = educore_has_access( array( 'teacher', 'staff', 'operator', 'instructor', 'editor', 'author' ) );
+        $is_staff = educore_has_access( 'educore_manage_results' ) || educore_has_access( 'educore_manage_academics' );
     }
 
     global $wpdb;
-    $table_staff            = $wpdb->prefix . 'sms_staff';
-    $table_exams            = $wpdb->prefix . 'sms_exams';
-    $table_units            = $wpdb->prefix . 'sms_academic_units';
-    $table_teacher_subjects = $wpdb->prefix . 'sms_teacher_subjects';
+    $table_staff              = educore_marks_get_table( 'staff' );
+    $table_exams              = educore_marks_get_table( 'exams' );
+    $table_units              = educore_marks_get_table( 'academic_units' );
+    $table_teacher_subjects = educore_marks_get_table( 'teacher_subjects' );
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     if ( ! $is_admin && ! $is_staff ) {
         $staff_exists = (int) $wpdb->get_var(
             $wpdb->prepare(
-                "SELECT id FROM `{$table_staff}` WHERE wp_user_id = %d OR email = %s LIMIT 1",
+                'SELECT id FROM %i WHERE wp_user_id = %d OR email = %s LIMIT 1',
+                $table_staff,
                 $current_user->ID,
                 $current_user->user_email
             )
@@ -53,12 +71,12 @@ function ifs_educore_get_classes_by_exam_marks_handler() {
         wp_send_json_error( array( 'message' => esc_html__( 'Permission denied.', 'ifsedu-school-management' ) ) );
     }
 
-    $exam_id = isset( $_POST['exam_id'] ) ? absint( $_POST['exam_id'] ) : 0;
+    $exam_id = isset( $_POST['exam_id'] ) ? absint( wp_unslash( $_POST['exam_id'] ) ) : 0;
     if ( $exam_id <= 0 ) {
         wp_send_json_success( array() );
     }
 
-    $raw_exam_classes = $wpdb->get_var( $wpdb->prepare( "SELECT class_name FROM `{$table_exams}` WHERE id = %d LIMIT 1", $exam_id ) );
+    $raw_exam_classes = $wpdb->get_var( $wpdb->prepare( 'SELECT class_name FROM %i WHERE id = %d LIMIT 1', $table_exams, $exam_id ) );
     if ( empty( $raw_exam_classes ) ) {
         wp_send_json_success( array() );
     }
@@ -66,7 +84,7 @@ function ifs_educore_get_classes_by_exam_marks_handler() {
     $exam_classes = array_map( 'trim', explode( ',', (string) $raw_exam_classes ) );
 
     // Fetch class sort order dictionary.
-    $class_order_rows = $wpdb->get_results( "SELECT class_name, MIN(sort_order) as min_sort FROM `{$table_units}` GROUP BY class_name" );
+    $class_order_rows = $wpdb->get_results( $wpdb->prepare( 'SELECT class_name, MIN(sort_order) as min_sort FROM %i GROUP BY class_name', $table_units ) );
     $class_order_map  = array();
     if ( ! empty( $class_order_rows ) ) {
         foreach ( $class_order_rows as $cor ) {
@@ -74,11 +92,11 @@ function ifs_educore_get_classes_by_exam_marks_handler() {
         }
     }
 
-    // If teacher, intersect with teacher's assigned classes.
     if ( ! $is_admin ) {
         $teacher_id = (int) $wpdb->get_var(
             $wpdb->prepare(
-                "SELECT id FROM `{$table_staff}` WHERE wp_user_id = %d OR email = %s OR full_name = %s LIMIT 1",
+                'SELECT id FROM %i WHERE wp_user_id = %d OR email = %s OR full_name = %s LIMIT 1',
+                $table_staff,
                 $current_user->ID,
                 $current_user->user_email,
                 $current_user->display_name
@@ -88,10 +106,12 @@ function ifs_educore_get_classes_by_exam_marks_handler() {
         if ( $teacher_id > 0 ) {
             $teacher_classes = $wpdb->get_col(
                 $wpdb->prepare(
-                    "SELECT DISTINCT u.class_name 
-                     FROM `{$table_teacher_subjects}` ts
-                     INNER JOIN `{$table_units}` u ON ts.class_id = u.id 
-                     WHERE ts.teacher_id = %d",
+                    'SELECT DISTINCT u.class_name 
+                     FROM %i ts
+                     INNER JOIN %i u ON ts.class_id = u.id 
+                     WHERE ts.teacher_id = %d',
+                    $table_teacher_subjects,
+                    $table_units,
                     $teacher_id
                 )
             );
@@ -101,16 +121,17 @@ function ifs_educore_get_classes_by_exam_marks_handler() {
 
     $exam_classes = array_values( array_unique( array_filter( $exam_classes ) ) );
 
-    // Sort by sort_order first, then natural case comparison.
-    usort( $exam_classes, function( $a, $b ) use ( $class_order_map ) {
-        $order_a = isset( $class_order_map[ $a ] ) ? $class_order_map[ $a ] : 0;
-        $order_b = isset( $class_order_map[ $b ] ) ? $class_order_map[ $b ] : 0;
-        if ( $order_a !== $order_b ) {
-            return $order_a - $order_b;
+    usort(
+        $exam_classes,
+        static function( $a, $b ) use ( $class_order_map ): int {
+            $order_a = $class_order_map[ $a ] ?? 0;
+            $order_b = $class_order_map[ $b ] ?? 0;
+            if ( $order_a !== $order_b ) {
+                return $order_a <=> $order_b;
+            }
+            return strnatcasecmp( $a, $b );
         }
-        return strnatcasecmp( $a, $b );
-    } );
-    // phpcs:enable
+    );
 
     wp_send_json_success( array_values( $exam_classes ) );
 }
@@ -119,7 +140,7 @@ add_action( 'wp_ajax_ifs_educore_get_sections_by_class_marks', 'ifs_educore_get_
 /**
  * AJAX Handler: Get sections filtered by class and teacher allocation.
  */
-function ifs_educore_get_sections_by_class_marks_handler() {
+function ifs_educore_get_sections_by_class_marks_handler(): void {
     check_ajax_referer( 'ifs_educore_marks_nonce', 'security' );
 
     $current_user = wp_get_current_user();
@@ -127,17 +148,17 @@ function ifs_educore_get_sections_by_class_marks_handler() {
     $is_staff     = false;
 
     if ( function_exists( 'educore_has_access' ) ) {
-        $is_staff = educore_has_access( array( 'teacher', 'staff', 'operator', 'instructor', 'editor', 'author' ) );
+        $is_staff = educore_has_access( 'educore_manage_results' ) || educore_has_access( 'educore_manage_academics' );
     }
 
     global $wpdb;
-    $table_staff = $wpdb->prefix . 'sms_staff';
+    $table_staff = educore_marks_get_table( 'staff' );
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     if ( ! $is_admin && ! $is_staff ) {
         $staff_exists = (int) $wpdb->get_var(
             $wpdb->prepare(
-                "SELECT id FROM `{$table_staff}` WHERE wp_user_id = %d OR email = %s LIMIT 1",
+                'SELECT id FROM %i WHERE wp_user_id = %d OR email = %s LIMIT 1',
+                $table_staff,
                 $current_user->ID,
                 $current_user->user_email
             )
@@ -151,9 +172,9 @@ function ifs_educore_get_sections_by_class_marks_handler() {
         wp_send_json_error( array( 'message' => esc_html__( 'Permission denied.', 'ifsedu-school-management' ) ) );
     }
 
-    $table_units            = $wpdb->prefix . 'sms_academic_units';
-    $table_teacher_subjects = $wpdb->prefix . 'sms_teacher_subjects';
-    $class_name             = isset( $_POST['class_name'] ) ? sanitize_text_field( wp_unslash( $_POST['class_name'] ) ) : '';
+    $table_units              = educore_marks_get_table( 'academic_units' );
+    $table_teacher_subjects = educore_marks_get_table( 'teacher_subjects' );
+    $class_name               = isset( $_POST['class_name'] ) ? sanitize_text_field( wp_unslash( $_POST['class_name'] ) ) : '';
 
     if ( empty( $class_name ) ) {
         wp_send_json_success( array() );
@@ -162,7 +183,8 @@ function ifs_educore_get_sections_by_class_marks_handler() {
     if ( ! $is_admin ) {
         $teacher_id = (int) $wpdb->get_var(
             $wpdb->prepare(
-                "SELECT id FROM `{$table_staff}` WHERE wp_user_id = %d OR email = %s OR full_name = %s LIMIT 1",
+                'SELECT id FROM %i WHERE wp_user_id = %d OR email = %s OR full_name = %s LIMIT 1',
+                $table_staff,
                 $current_user->ID,
                 $current_user->user_email,
                 $current_user->display_name
@@ -172,13 +194,16 @@ function ifs_educore_get_sections_by_class_marks_handler() {
         if ( $teacher_id > 0 ) {
             $sections = $wpdb->get_col(
                 $wpdb->prepare(
-                    "SELECT DISTINCT u.section_name 
-                     FROM `{$table_teacher_subjects}` ts
-                     INNER JOIN `{$table_units}` u ON ts.class_id = u.id 
-                     WHERE ts.teacher_id = %d AND u.class_name = %s AND u.section_name != '' 
-                     ORDER BY u.sort_order ASC, u.section_name ASC",
+                    'SELECT DISTINCT u.section_name 
+                     FROM %i ts
+                     INNER JOIN %i u ON ts.class_id = u.id 
+                     WHERE ts.teacher_id = %d AND u.class_name = %s AND u.section_name != %s 
+                     ORDER BY u.sort_order ASC, u.section_name ASC',
+                    $table_teacher_subjects,
+                    $table_units,
                     $teacher_id,
-                    $class_name
+                    $class_name,
+                    ''
                 )
             );
             wp_send_json_success( is_array( $sections ) ? $sections : array() );
@@ -187,11 +212,12 @@ function ifs_educore_get_sections_by_class_marks_handler() {
 
     $sections = $wpdb->get_col(
         $wpdb->prepare(
-            "SELECT DISTINCT section_name FROM `{$table_units}` WHERE class_name = %s AND section_name != '' ORDER BY sort_order ASC, section_name ASC",
-            $class_name
+            'SELECT DISTINCT section_name FROM %i WHERE class_name = %s AND section_name != %s ORDER BY sort_order ASC, section_name ASC',
+            $table_units,
+            $class_name,
+            ''
         )
     );
-    // phpcs:enable
 
     wp_send_json_success( is_array( $sections ) ? $sections : array() );
 }
@@ -200,7 +226,7 @@ add_action( 'wp_ajax_ifs_educore_get_subjects_for_marks_matrix', 'ifs_educore_ge
 /**
  * AJAX Handler: Get subjects for the marks matrix.
  */
-function ifs_educore_get_subjects_for_marks_matrix_handler() {
+function ifs_educore_get_subjects_for_marks_matrix_handler(): void {
     check_ajax_referer( 'ifs_educore_marks_nonce', 'security' );
 
     $current_user = wp_get_current_user();
@@ -208,17 +234,17 @@ function ifs_educore_get_subjects_for_marks_matrix_handler() {
     $is_staff     = false;
 
     if ( function_exists( 'educore_has_access' ) ) {
-        $is_staff = educore_has_access( array( 'teacher', 'staff', 'operator', 'instructor', 'editor', 'author' ) );
+        $is_staff = educore_has_access( 'educore_manage_results' ) || educore_has_access( 'educore_manage_academics' );
     }
 
     global $wpdb;
-    $table_staff = $wpdb->prefix . 'sms_staff';
+    $table_staff = educore_marks_get_table( 'staff' );
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     if ( ! $is_admin && ! $is_staff ) {
         $staff_exists = (int) $wpdb->get_var(
             $wpdb->prepare(
-                "SELECT id FROM `{$table_staff}` WHERE wp_user_id = %d OR email = %s LIMIT 1",
+                'SELECT id FROM %i WHERE wp_user_id = %d OR email = %s LIMIT 1',
+                $table_staff,
                 $current_user->ID,
                 $current_user->user_email
             )
@@ -232,13 +258,13 @@ function ifs_educore_get_subjects_for_marks_matrix_handler() {
         wp_send_json_error( array( 'message' => esc_html__( 'Permission denied.', 'ifsedu-school-management' ) ) );
     }
 
-    $table_exams    = $wpdb->prefix . 'sms_exams';
-    $table_subjects = $wpdb->prefix . 'sms_subjects';
-    $table_units    = $wpdb->prefix . 'sms_academic_units';
-    $table_results  = $wpdb->prefix . 'sms_results';
-    $table_students = $wpdb->prefix . 'sms_students';
+    $table_exams    = educore_marks_get_table( 'exams' );
+    $table_subjects = educore_marks_get_table( 'subjects' );
+    $table_units    = educore_marks_get_table( 'academic_units' );
+    $table_results  = educore_marks_get_table( 'results' );
+    $table_students = educore_marks_get_table( 'students' );
 
-    $exam_id      = isset( $_POST['exam_id'] ) ? absint( $_POST['exam_id'] ) : 0;
+    $exam_id      = isset( $_POST['exam_id'] ) ? absint( wp_unslash( $_POST['exam_id'] ) ) : 0;
     $class_name   = isset( $_POST['class_name'] ) ? sanitize_text_field( wp_unslash( $_POST['class_name'] ) ) : '';
     $section_name = isset( $_POST['section_name'] ) ? sanitize_text_field( wp_unslash( $_POST['section_name'] ) ) : '';
 
@@ -248,9 +274,9 @@ function ifs_educore_get_subjects_for_marks_matrix_handler() {
 
     $exam_subject_ids = array();
     if ( $exam_id > 0 ) {
-        $subject_json = $wpdb->get_var( $wpdb->prepare( "SELECT subject_ids FROM `{$table_exams}` WHERE id = %d LIMIT 1", $exam_id ) );
+        $subject_json = $wpdb->get_var( $wpdb->prepare( 'SELECT subject_ids FROM %i WHERE id = %d LIMIT 1', $table_exams, $exam_id ) );
         if ( ! empty( $subject_json ) ) {
-            $decoded_map = json_decode( $subject_json, true );
+            $decoded_map = json_decode( (string) $subject_json, true );
             if ( isset( $decoded_map[ $class_name ] ) && is_array( $decoded_map[ $class_name ] ) && ! empty( $decoded_map[ $class_name ] ) ) {
                 $exam_subject_ids = array_map( 'absint', $decoded_map[ $class_name ] );
             }
@@ -261,11 +287,13 @@ function ifs_educore_get_subjects_for_marks_matrix_handler() {
     if ( ! empty( $section_name ) ) {
         $subjects = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT DISTINCT s.id, s.subject_name, s.subject_code, s.subject_order, s.total_marks, s.pass_marks, s.cq_marks, s.cq_pass, s.mcq_marks, s.mcq_pass, s.practical_marks, s.practical_pass, s.breakdown_data 
-                 FROM `{$table_subjects}` s 
-                 INNER JOIN `{$table_units}` u ON s.class_id = u.id 
+                'SELECT DISTINCT s.id, s.subject_name, s.subject_code, s.subject_order, s.total_marks, s.pass_marks, s.cq_marks, s.cq_pass, s.mcq_marks, s.mcq_pass, s.practical_marks, s.practical_pass, s.breakdown_data 
+                 FROM %i s 
+                 INNER JOIN %i u ON s.class_id = u.id 
                  WHERE u.class_name = %s AND u.section_name = %s 
-                 ORDER BY s.subject_order ASC, s.subject_name ASC",
+                 ORDER BY s.subject_order ASC, s.subject_name ASC',
+                $table_subjects,
+                $table_units,
                 $class_name,
                 $section_name
             )
@@ -275,27 +303,30 @@ function ifs_educore_get_subjects_for_marks_matrix_handler() {
     if ( empty( $subjects ) ) {
         $subjects = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT DISTINCT s.id, s.subject_name, s.subject_code, s.subject_order, s.total_marks, s.pass_marks, s.cq_marks, s.cq_pass, s.mcq_marks, s.mcq_pass, s.practical_marks, s.practical_pass, s.breakdown_data 
-                 FROM `{$table_subjects}` s 
-                 INNER JOIN `{$table_units}` u ON s.class_id = u.id 
+                'SELECT DISTINCT s.id, s.subject_name, s.subject_code, s.subject_order, s.total_marks, s.pass_marks, s.cq_marks, s.cq_pass, s.mcq_marks, s.mcq_pass, s.practical_marks, s.practical_pass, s.breakdown_data 
+                 FROM %i s 
+                 INNER JOIN %i u ON s.class_id = u.id 
                  WHERE u.class_name = %s 
-                 ORDER BY s.subject_order ASC, s.subject_name ASC",
+                 ORDER BY s.subject_order ASC, s.subject_name ASC',
+                $table_subjects,
+                $table_units,
                 $class_name
             )
         );
     }
 
     if ( ! empty( $exam_subject_ids ) && ! empty( $subjects ) ) {
-        $subjects = array_values( array_filter( $subjects, function( $sub ) use ( $exam_subject_ids ) {
+        $subjects = array_values( array_filter( $subjects, static function( $sub ) use ( $exam_subject_ids ): bool {
             return in_array( (int) $sub->id, $exam_subject_ids, true );
         } ) );
     }
 
-    // Count total active students in this class/section.
     if ( ! empty( $section_name ) ) {
         $total_students = (int) $wpdb->get_var(
             $wpdb->prepare(
-                "SELECT COUNT(*) FROM `{$table_students}` WHERE status = 'Active' AND class_name = %s AND section_name = %s",
+                'SELECT COUNT(*) FROM %i WHERE status = %s AND class_name = %s AND section_name = %s',
+                $table_students,
+                'Active',
                 $class_name,
                 $section_name
             )
@@ -303,13 +334,14 @@ function ifs_educore_get_subjects_for_marks_matrix_handler() {
     } else {
         $total_students = (int) $wpdb->get_var(
             $wpdb->prepare(
-                "SELECT COUNT(*) FROM `{$table_students}` WHERE status = 'Active' AND class_name = %s",
+                'SELECT COUNT(*) FROM %i WHERE status = %s AND class_name = %s',
+                $table_students,
+                'Active',
                 $class_name
             )
         );
     }
 
-    // Deduplicate subjects and calculate entry counts.
     $unique_subjects = array();
     $seen_sub_names  = array();
     if ( ! empty( $subjects ) ) {
@@ -320,10 +352,11 @@ function ifs_educore_get_subjects_for_marks_matrix_handler() {
 
                 if ( $exam_id > 0 ) {
                     if ( ! empty( $section_name ) ) {
-                        // Fixed: Changed r.section_name to st.section_name.
                         $entered_count = (int) $wpdb->get_var(
                             $wpdb->prepare(
-                                "SELECT COUNT(r.id) FROM `{$table_results}` r INNER JOIN `{$table_students}` st ON r.student_id = st.id WHERE r.exam_id = %d AND r.class_name = %s AND st.section_name = %s AND r.subject_name = %s",
+                                'SELECT COUNT(r.id) FROM %i r INNER JOIN %i st ON r.student_id = st.id WHERE r.exam_id = %d AND r.class_name = %s AND st.section_name = %s AND r.subject_name = %s',
+                                $table_results,
+                                $table_students,
                                 $exam_id,
                                 $class_name,
                                 $section_name,
@@ -333,7 +366,8 @@ function ifs_educore_get_subjects_for_marks_matrix_handler() {
                     } else {
                         $entered_count = (int) $wpdb->get_var(
                             $wpdb->prepare(
-                                "SELECT COUNT(r.id) FROM `{$table_results}` r WHERE r.exam_id = %d AND r.class_name = %s AND r.subject_name = %s",
+                                'SELECT COUNT(r.id) FROM %i r WHERE r.exam_id = %d AND r.class_name = %s AND r.subject_name = %s',
+                                $table_results,
                                 $exam_id,
                                 $class_name,
                                 $s_item->subject_name
@@ -351,7 +385,6 @@ function ifs_educore_get_subjects_for_marks_matrix_handler() {
             }
         }
     }
-    // phpcs:enable
 
     wp_send_json_success( $unique_subjects );
 }
@@ -367,9 +400,9 @@ if ( ! function_exists( 'educore_calculate_grade' ) ) {
      * @param float $total    Total marks.
      * @return array Grade letter and GPA.
      */
-    function educore_calculate_grade( $obtained, $total = 100 ) {
-        $total = floatval( $total ) > 0 ? floatval( $total ) : 100;
-        $pct   = ( floatval( $obtained ) / $total ) * 100;
+    function educore_calculate_grade( float $obtained, float $total = 100.00 ): array {
+        $total = $total > 0 ? $total : 100.00;
+        $pct   = ( $obtained / $total ) * 100;
 
         if ( $pct >= 80 ) {
             return array( 'A+', 5.00 );
@@ -395,38 +428,31 @@ if ( ! function_exists( 'educore_calculate_grade' ) ) {
 /**
  * Render Marks Entry Matrix & Evaluation View.
  */
-function educore_exams_marks_view() {
+function educore_exams_marks_view(): void {
     global $wpdb;
     $current_user = wp_get_current_user();
 
-    $table_students         = $wpdb->prefix . 'sms_students';
-    $table_exams            = $wpdb->prefix . 'sms_exams';
-    $table_results          = $wpdb->prefix . 'sms_results';
-    $table_units            = $wpdb->prefix . 'sms_academic_units';
-    $table_subjects         = $wpdb->prefix . 'sms_subjects';
-    $table_staff            = $wpdb->prefix . 'sms_staff';
-    $table_teacher_subjects = $wpdb->prefix . 'sms_teacher_subjects';
-
-    // Auto-migrate component_marks column in results if missing.
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-    $col_check = $wpdb->get_results( "SHOW COLUMNS FROM `{$table_results}` LIKE 'component_marks'" );
-    if ( empty( $col_check ) ) {
-        $wpdb->query( "ALTER TABLE `{$table_results}` ADD COLUMN `component_marks` longtext DEFAULT '' NOT NULL AFTER `practical_marks`" );
-    }
-    // phpcs:enable
+    $table_students         = educore_marks_get_table( 'students' );
+    $table_exams            = educore_marks_get_table( 'exams' );
+    $table_results          = educore_marks_get_table( 'results' );
+    $table_units            = educore_marks_get_table( 'academic_units' );
+    $table_subjects         = educore_marks_get_table( 'subjects' );
+    $table_staff            = educore_marks_get_table( 'staff' );
+    $table_teacher_subjects = educore_marks_get_table( 'teacher_subjects' );
+    $table_exam_att         = educore_marks_get_table( 'exam_attendance' );
 
     $is_admin = current_user_can( 'manage_options' ) || in_array( 'administrator', (array) $current_user->roles, true );
     $is_staff = false;
 
     if ( function_exists( 'educore_has_access' ) ) {
-        $is_staff = educore_has_access( array( 'teacher', 'staff', 'operator', 'instructor', 'editor', 'author' ) );
+        $is_staff = educore_has_access( 'educore_manage_results' ) || educore_has_access( 'educore_manage_academics' );
     }
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     if ( ! $is_staff && ! $is_admin ) {
         $staff_exists = (int) $wpdb->get_var(
             $wpdb->prepare(
-                "SELECT id FROM `{$table_staff}` WHERE wp_user_id = %d OR email = %s LIMIT 1",
+                'SELECT id FROM %i WHERE wp_user_id = %d OR email = %s LIMIT 1',
+                $table_staff,
                 $current_user->ID,
                 $current_user->user_email
             )
@@ -437,22 +463,30 @@ function educore_exams_marks_view() {
     }
 
     if ( ! $is_admin && ! $is_staff ) {
-        wp_die( esc_html__( 'You do not have sufficient permissions to enter examination marks.', 'ifsedu-school-management' ) );
+        wp_die(
+            esc_html__( 'You do not have sufficient permissions to enter examination marks.', 'ifsedu-school-management' ),
+            403
+        );
     }
 
-    $raw_req_uri = isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
-    $current_uri = remove_query_arg( array( 'status', 'msg' ), $raw_req_uri );
-    $base_url    = esc_url_raw( $current_uri );
-    $notice_msg  = '';
+    $base_url = add_query_arg(
+        array(
+            'page' => 'school_management_system',
+            'tab'  => 'results',
+            'sub'  => 'marks',
+        ),
+        admin_url( 'admin.php' )
+    );
+    $notice_msg = '';
 
     // Unified Parameter Resolution.
-    $filter_exam    = isset( $_REQUEST['exam_id'] ) ? absint( $_REQUEST['exam_id'] ) : 0;
+    $filter_exam    = isset( $_REQUEST['exam_id'] ) ? absint( wp_unslash( $_REQUEST['exam_id'] ) ) : 0;
     $filter_class   = isset( $_REQUEST['class_name'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['class_name'] ) ) : '';
     $filter_section = isset( $_REQUEST['section_name'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['section_name'] ) ) : '';
     $filter_subject = isset( $_REQUEST['subject_name'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['subject_name'] ) ) : '';
 
     // Fetch Class Sort Order Dictionary.
-    $class_order_rows = $wpdb->get_results( "SELECT class_name, MIN(sort_order) as min_sort FROM `{$table_units}` GROUP BY class_name" );
+    $class_order_rows = $wpdb->get_results( $wpdb->prepare( 'SELECT class_name, MIN(sort_order) as min_sort FROM %i GROUP BY class_name', $table_units ) );
     $class_order_map  = array();
     if ( ! empty( $class_order_rows ) ) {
         foreach ( $class_order_rows as $cor ) {
@@ -468,7 +502,8 @@ function educore_exams_marks_view() {
     if ( ! $is_admin ) {
         $teacher_id = (int) $wpdb->get_var(
             $wpdb->prepare(
-                "SELECT id FROM `{$table_staff}` WHERE wp_user_id = %d OR email = %s OR full_name = %s LIMIT 1",
+                'SELECT id FROM %i WHERE wp_user_id = %d OR email = %s OR full_name = %s LIMIT 1',
+                $table_staff,
                 $current_user->ID,
                 $current_user->user_email,
                 $current_user->display_name
@@ -478,12 +513,15 @@ function educore_exams_marks_view() {
         if ( $teacher_id > 0 ) {
             $allocations = $wpdb->get_results(
                 $wpdb->prepare(
-                    "SELECT DISTINCT u.class_name, u.section_name, s.subject_name 
-                     FROM `{$table_teacher_subjects}` ts
-                     INNER JOIN `{$table_units}` u ON ts.class_id = u.id 
-                     INNER JOIN `{$table_subjects}` s ON ts.subject_id = s.id 
+                    'SELECT DISTINCT u.class_name, u.section_name, s.subject_name 
+                     FROM %i ts
+                     INNER JOIN %i u ON ts.class_id = u.id 
+                     INNER JOIN %i s ON ts.subject_id = s.id 
                      WHERE ts.teacher_id = %d 
-                     ORDER BY u.sort_order ASC, CAST(u.class_name AS UNSIGNED) ASC, u.class_name ASC, s.subject_order ASC",
+                     ORDER BY u.sort_order ASC, CAST(u.class_name AS UNSIGNED) ASC, u.class_name ASC, s.subject_order ASC',
+                    $table_teacher_subjects,
+                    $table_units,
+                    $table_subjects,
                     $teacher_id
                 )
             );
@@ -506,149 +544,214 @@ function educore_exams_marks_view() {
     // Handle Form Submission.
     $request_method = isset( $_SERVER['REQUEST_METHOD'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : '';
     if ( 'POST' === $request_method && isset( $_POST['educore_save_marks_matrix'] ) ) {
-        if ( isset( $_POST['ifs_educore_marks_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ifs_educore_marks_nonce'] ) ), 'save_marks_action' ) ) {
+        $nonce_field = isset( $_POST['ifs_educore_marks_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['ifs_educore_marks_nonce'] ) ) : '';
+
+        if ( wp_verify_nonce( $nonce_field, 'save_marks_action' ) ) {
             
             if ( ! $is_admin && ! empty( $teacher_assigned_classes ) && ( ! in_array( $filter_class, $teacher_assigned_classes, true ) || ! in_array( $filter_subject, (array) ( $teacher_assigned_subs[ $filter_class ] ?? array() ), true ) ) ) {
-                wp_die( esc_html__( 'Security Check: You are not authorized to submit marks for this class/subject allocation.', 'ifsedu-school-management' ) );
+                wp_die(
+                    esc_html__( 'Security Check: You are not authorized to submit marks for this class/subject allocation.', 'ifsedu-school-management' ),
+                    403
+                );
             }
 
-            $total_marks  = isset( $_POST['total_marks_limit'] ) ? floatval( $_POST['total_marks_limit'] ) : 100.00;
-            $pass_marks   = isset( $_POST['pass_marks_limit'] ) ? floatval( $_POST['pass_marks_limit'] ) : 33.00;
-            $cq_lim_post  = isset( $_POST['cq_marks_limit'] ) ? floatval( $_POST['cq_marks_limit'] ) : 70.00;
-            $mcq_lim_post = isset( $_POST['mcq_marks_limit'] ) ? floatval( $_POST['mcq_marks_limit'] ) : 30.00;
-            $pr_lim_post  = isset( $_POST['pr_marks_limit'] ) ? floatval( $_POST['pr_marks_limit'] ) : 0.00;
+            $total_marks  = isset( $_POST['total_marks_limit'] ) ? (float) wp_unslash( $_POST['total_marks_limit'] ) : 100.00;
+            $pass_marks   = isset( $_POST['pass_marks_limit'] ) ? (float) wp_unslash( $_POST['pass_marks_limit'] ) : 33.00;
+            $cq_lim_post  = isset( $_POST['cq_marks_limit'] ) ? (float) wp_unslash( $_POST['cq_marks_limit'] ) : 70.00;
+            $mcq_lim_post = isset( $_POST['mcq_marks_limit'] ) ? (float) wp_unslash( $_POST['mcq_marks_limit'] ) : 30.00;
+            $pr_lim_post  = isset( $_POST['pr_marks_limit'] ) ? (float) wp_unslash( $_POST['pr_marks_limit'] ) : 0.00;
 
-            $cq_pass      = isset( $_POST['cq_pass_limit'] ) ? floatval( $_POST['cq_pass_limit'] ) : 0.00;
-            $mcq_pass     = isset( $_POST['mcq_pass_limit'] ) ? floatval( $_POST['mcq_pass_limit'] ) : 0.00;
-            $pr_pass      = isset( $_POST['pr_pass_limit'] ) ? floatval( $_POST['pr_pass_limit'] ) : 0.00;
+            $cq_pass  = isset( $_POST['cq_pass_limit'] ) ? (float) wp_unslash( $_POST['cq_pass_limit'] ) : 0.00;
+            $mcq_pass = isset( $_POST['mcq_pass_limit'] ) ? (float) wp_unslash( $_POST['mcq_pass_limit'] ) : 0.00;
+            $pr_pass  = isset( $_POST['pr_pass_limit'] ) ? (float) wp_unslash( $_POST['pr_pass_limit'] ) : 0.00;
 
             $is_custom_breakdown = isset( $_POST['is_custom_breakdown'] ) && '1' === $_POST['is_custom_breakdown'];
             $custom_comp_totals  = isset( $_POST['custom_comp_total'] ) && is_array( $_POST['custom_comp_total'] ) ? array_map( 'floatval', wp_unslash( $_POST['custom_comp_total'] ) ) : array();
             $custom_comp_passes  = isset( $_POST['custom_comp_pass'] ) && is_array( $_POST['custom_comp_pass'] ) ? array_map( 'floatval', wp_unslash( $_POST['custom_comp_pass'] ) ) : array();
             $custom_student_vals = isset( $_POST['custom_comp_val'] ) && is_array( $_POST['custom_comp_val'] ) ? wp_unslash( $_POST['custom_comp_val'] ) : array();
 
-            $raw_cq       = ( isset( $_POST['cq_marks'] ) && is_array( $_POST['cq_marks'] ) ) ? array_map( 'sanitize_text_field', wp_unslash( $_POST['cq_marks'] ) ) : array();
-            $raw_mcq      = ( isset( $_POST['mcq_marks'] ) && is_array( $_POST['mcq_marks'] ) ) ? array_map( 'sanitize_text_field', wp_unslash( $_POST['mcq_marks'] ) ) : array();
-            $raw_pr       = ( isset( $_POST['practical_marks'] ) && is_array( $_POST['practical_marks'] ) ) ? array_map( 'sanitize_text_field', wp_unslash( $_POST['practical_marks'] ) ) : array();
-
-            $students_cq  = array_map( 'floatval', $raw_cq );
-            $students_mcq = array_map( 'floatval', $raw_mcq );
-            $students_pr  = array_map( 'floatval', $raw_pr );
+            $raw_cq  = ( isset( $_POST['cq_marks'] ) && is_array( $_POST['cq_marks'] ) ) ? wp_unslash( $_POST['cq_marks'] ) : array();
+            $raw_mcq = ( isset( $_POST['mcq_marks'] ) && is_array( $_POST['mcq_marks'] ) ) ? wp_unslash( $_POST['mcq_marks'] ) : array();
+            $raw_pr  = ( isset( $_POST['practical_marks'] ) && is_array( $_POST['practical_marks'] ) ) ? wp_unslash( $_POST['practical_marks'] ) : array();
 
             $saved_count = 0;
             if ( $filter_exam > 0 && ! empty( $filter_class ) && ! empty( $filter_subject ) ) {
                 
-                $student_ids = array();
-                if ( $is_custom_breakdown ) {
-                    $student_ids = array_keys( $custom_student_vals );
-                } else {
-                    $student_ids = array_keys( $students_cq );
+                // 1. Fetch live exam attendance statuses to handle lockout for absentees and check if attendance exists
+                $live_att_check = array();
+                $att_rows_check = $wpdb->get_results(
+                    $wpdb->prepare(
+                        'SELECT student_id, status FROM %i WHERE exam_id = %d AND class_name = %s AND subject_name = %s',
+                        $table_exam_att,
+                        $filter_exam,
+                        $filter_class,
+                        $filter_subject
+                    )
+                );
+                if ( ! empty( $att_rows_check ) ) {
+                    foreach ( $att_rows_check as $ar ) {
+                        $live_att_check[ (int) $ar->student_id ] = (string) $ar->status;
+                    }
                 }
 
-                foreach ( $student_ids as $s_id ) {
-                    $s_id_int   = absint( $s_id );
-                    $obtained   = 0.00;
-                    $has_failed = false;
-                    $comp_json  = '';
+                // Gather ALL active students registered for this class/section directly from database
+                $target_students_sql = 'SELECT id FROM %i WHERE status = %s AND class_name = %s';
+                $target_params       = array( $table_students, 'Active', $filter_class );
+                if ( ! empty( $filter_section ) ) {
+                    $target_students_sql .= ' AND section_name = %s';
+                    $target_params[]     = $filter_section;
+                }
+                $enrolled_student_ids = $wpdb->get_col( $wpdb->prepare( $target_students_sql, ...$target_params ) );
 
-                    $cq_val  = 0.00;
-                    $mcq_val = 0.00;
-                    $pr_val  = 0.00;
+                if ( ! empty( $enrolled_student_ids ) ) {
+                    foreach ( $enrolled_student_ids as $s_id_str ) {
+                        $s_id_int = absint( $s_id_str );
+                        if ( $s_id_int <= 0 ) {
+                            continue;
+                        }
 
-                    if ( $is_custom_breakdown && isset( $custom_student_vals[ $s_id_int ] ) && is_array( $custom_student_vals[ $s_id_int ] ) ) {
-                        $comp_saved_data = array();
-                        foreach ( $custom_student_vals[ $s_id_int ] as $comp_k => $comp_val ) {
-                            $c_val  = floatval( $comp_val );
-                            $c_max  = isset( $custom_comp_totals[ $comp_k ] ) ? floatval( $custom_comp_totals[ $comp_k ] ) : 100.00;
-                            $c_pass = isset( $custom_comp_passes[ $comp_k ] ) ? floatval( $custom_comp_passes[ $comp_k ] ) : 0.00;
-                            
-                            $c_val_clamped = max( 0, min( $c_val, $c_max ) );
-                            $obtained += $c_val_clamped;
+                        // RULE: IF NO ATTENDANCE RECORD EXISTS FOR THIS STUDENT, SKIP MARK ENTRY COMPLETELY
+                        if ( ! isset( $live_att_check[ $s_id_int ] ) ) {
+                            continue;
+                        }
 
-                            if ( $c_pass > 0 && $c_val_clamped < $c_pass ) {
+                        $is_absent_db = ( 'Absent' === $live_att_check[ $s_id_int ] );
+                        if ( $is_absent_db ) {
+                            $obtained   = 0.00;
+                            $has_failed = false; 
+                            $grade      = 'A';
+                            $gpa        = 0.00;
+                            $cq_val     = 0.00;
+                            $mcq_val    = 0.00;
+                            $pr_val     = 0.00;
+                            $comp_json  = '';
+                        } else {
+                            $obtained   = 0.00;
+                            $has_failed = false;
+                            $comp_json  = '';
+
+                            $cq_val  = 0.00;
+                            $mcq_val = 0.00;
+                            $pr_val  = 0.00;
+
+                            if ( $is_custom_breakdown && isset( $custom_student_vals[ $s_id_int ] ) && is_array( $custom_student_vals[ $s_id_int ] ) ) {
+                                $comp_saved_data = array();
+                                foreach ( $custom_student_vals[ $s_id_int ] as $comp_k => $comp_val ) {
+                                    if ( '' === trim( (string) $comp_val ) ) {
+                                        continue;
+                                    }
+                                    $c_val  = (float) $comp_val;
+                                    $c_max  = isset( $custom_comp_totals[ $comp_k ] ) ? (float) $custom_comp_totals[ $comp_k ] : 100.00;
+                                    $c_pass = isset( $custom_comp_passes[ $comp_k ] ) ? (float) $custom_comp_passes[ $comp_k ] : 0.00;
+                                    
+                                    $c_val_clamped = max( 0.00, min( $c_val, $c_max ) );
+                                    $obtained += $c_val_clamped;
+
+                                    if ( $c_pass > 0 && $c_val_clamped < $c_pass ) {
+                                        $has_failed = true;
+                                    }
+
+                                    $comp_saved_data[ sanitize_text_field( (string) $comp_k ) ] = $c_val_clamped;
+                                }
+                                $comp_json = wp_json_encode( $comp_saved_data );
+                                $obtained  = min( $obtained, $total_marks );
+                            } else {
+                                $has_any_input = false;
+                                if ( isset( $raw_cq[ $s_id_int ] ) && '' !== trim( (string) $raw_cq[ $s_id_int ] ) ) {
+                                    $cq_raw = (float) $raw_cq[ $s_id_int ];
+                                    $cq_val = max( 0.00, min( $cq_raw, $cq_lim_post ) );
+                                    $has_any_input = true;
+                                }
+                                if ( isset( $raw_mcq[ $s_id_int ] ) && '' !== trim( (string) $raw_mcq[ $s_id_int ] ) ) {
+                                    $mcq_raw = (float) $raw_mcq[ $s_id_int ];
+                                    $mcq_val = max( 0.00, min( $mcq_raw, $mcq_lim_post ) );
+                                    $has_any_input = true;
+                                }
+                                if ( isset( $raw_pr[ $s_id_int ] ) && '' !== trim( (string) $raw_pr[ $s_id_int ] ) ) {
+                                    $pr_raw = (float) $raw_pr[ $s_id_int ];
+                                    $pr_val = max( 0.00, min( $pr_raw, $pr_lim_post ) );
+                                    $has_any_input = true;
+                                }
+
+                                if ( ! $has_any_input ) {
+                                    $cq_val  = 0.00;
+                                    $mcq_val = 0.00;
+                                    $pr_val  = 0.00;
+                                }
+
+                                $obtained = min( $cq_val + $mcq_val + $pr_val, $total_marks );
+
+                                if ( $cq_pass > 0 && $cq_val < $cq_pass ) {
+                                    $has_failed = true;
+                                }
+                                if ( $mcq_pass > 0 && $mcq_val < $mcq_pass ) {
+                                    $has_failed = true;
+                                }
+                                if ( $pr_pass > 0 && $pr_val < $pr_pass ) {
+                                    $has_failed = true;
+                                }
+                            }
+
+                            if ( $obtained < $pass_marks ) {
                                 $has_failed = true;
                             }
 
-                            $comp_saved_data[ sanitize_text_field( $comp_k ) ] = $c_val_clamped;
+                            if ( $has_failed ) {
+                                $grade = 'F';
+                                $gpa   = 0.00;
+                            } else {
+                                $grade_eval = educore_calculate_grade( $obtained, $total_marks );
+                                $grade      = (string) $grade_eval[0];
+                                $gpa        = (float) $grade_eval[1];
+                            }
                         }
-                        $comp_json = wp_json_encode( $comp_saved_data );
-                        $obtained  = min( $obtained, $total_marks );
-                    } else {
-                        $cq_raw  = isset( $students_cq[ $s_id_int ] ) ? floatval( $students_cq[ $s_id_int ] ) : 0.00;
-                        $cq_val  = max( 0, min( $cq_raw, $cq_lim_post ) );
 
-                        $mcq_raw = isset( $students_mcq[ $s_id_int ] ) ? floatval( $students_mcq[ $s_id_int ] ) : 0.00;
-                        $mcq_val = max( 0, min( $mcq_raw, $mcq_lim_post ) );
+                        $existing_id = (int) $wpdb->get_var(
+                            $wpdb->prepare(
+                                'SELECT id FROM %i WHERE exam_id = %d AND student_id = %d AND subject_name = %s LIMIT 1',
+                                $table_results,
+                                $filter_exam,
+                                $s_id_int,
+                                $filter_subject
+                            )
+                        );
 
-                        $pr_raw  = isset( $students_pr[ $s_id_int ] ) ? floatval( $students_pr[ $s_id_int ] ) : 0.00;
-                        $pr_val  = max( 0, min( $pr_raw, $pr_lim_post ) );
+                        $data = array(
+                            'exam_id'         => $filter_exam,
+                            'student_id'      => $s_id_int,
+                            'class_name'      => $filter_class,
+                            'section_name'    => $filter_section,
+                            'subject_name'    => $filter_subject,
+                            'total_marks'     => $total_marks,
+                            'obtained_marks'  => $obtained,
+                            'cq_marks'        => $cq_val,
+                            'mcq_marks'       => $mcq_val,
+                            'practical_marks' => $pr_val,
+                            'component_marks' => $comp_json,
+                            'grade'           => $grade,
+                            'gpa'             => $gpa,
+                        );
 
-                        $obtained = min( $cq_val + $mcq_val + $pr_val, $total_marks );
+                        $format = array( '%d', '%d', '%s', '%s', '%s', '%f', '%f', '%f', '%f', '%f', '%s', '%s', '%f' );
 
-                        if ( $cq_pass > 0 && $cq_val < $cq_pass ) {
-                            $has_failed = true;
+                        if ( $existing_id > 0 ) {
+                            $wpdb->update( $table_results, $data, array( 'id' => $existing_id ), $format, array( '%d' ) );
+                        } else {
+                            $wpdb->insert( $table_results, $data, $format );
                         }
-                        if ( $mcq_pass > 0 && $mcq_val < $mcq_pass ) {
-                            $has_failed = true;
-                        }
-                        if ( $pr_pass > 0 && $pr_val < $pr_pass ) {
-                            $has_failed = true;
-                        }
+                        $saved_count++;
                     }
-
-                    if ( $obtained < $pass_marks ) {
-                        $has_failed = true;
-                    }
-
-                    if ( $has_failed ) {
-                        $grade = 'F';
-                        $gpa   = 0.00;
-                    } else {
-                        $grade_eval = educore_calculate_grade( $obtained, $total_marks );
-                        $grade      = $grade_eval[0];
-                        $gpa        = $grade_eval[1];
-                    }
-
-                    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-                    $existing_id = (int) $wpdb->get_var(
-                        $wpdb->prepare(
-                            "SELECT id FROM `{$table_results}` WHERE exam_id = %d AND student_id = %d AND subject_name = %s LIMIT 1",
-                            $filter_exam,
-                            $s_id_int,
-                            $filter_subject
-                        )
-                    );
-
-                    $data = array(
-                        'exam_id'         => $filter_exam,
-                        'student_id'      => $s_id_int,
-                        'class_name'      => $filter_class,
-                        'section_name'    => $filter_section,
-                        'subject_name'    => $filter_subject,
-                        'total_marks'     => $total_marks,
-                        'obtained_marks'  => $obtained,
-                        'cq_marks'        => $cq_val,
-                        'mcq_marks'       => $mcq_val,
-                        'practical_marks' => $pr_val,
-                        'component_marks' => $comp_json,
-                        'grade'           => $grade,
-                        'gpa'             => $gpa,
-                    );
-
-                    $format = array( '%d', '%d', '%s', '%s', '%s', '%f', '%f', '%f', '%f', '%f', '%s', '%s', '%f' );
-
-                    if ( $existing_id > 0 ) {
-                        $wpdb->update( $table_results, $data, array( 'id' => $existing_id ), $format, array( '%d' ) );
-                    } else {
-                        $wpdb->insert( $table_results, $data, $format );
-                    }
-                    // phpcs:enable
-                    $saved_count++;
                 }
 
                 if ( function_exists( 'educore_log_activity' ) ) {
-                    /* translators: 1: Saved student count, 2: Filter subject */
-                    educore_log_activity( sprintf( __( 'Evaluated and saved marks for %1$d students in %2$s', 'ifsedu-school-management' ), $saved_count, $filter_subject ) );
+                    educore_log_activity(
+                        sprintf(
+                            /* translators: 1: Saved student count, 2: Filter subject */
+                            __( 'Evaluated and saved marks for %1$d students in %2$s', 'ifsedu-school-management' ),
+                            $saved_count,
+                            $filter_subject
+                        )
+                    );
                 }
 
                 $notice_msg = sprintf(
@@ -660,15 +763,25 @@ function educore_exams_marks_view() {
     }
 
     // Fetch Examinations.
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-    $exams = $wpdb->get_results( "SELECT id, exam_name, class_name, subject_ids FROM `{$table_exams}` ORDER BY id DESC" );
+    $exams = $wpdb->get_results(
+        $wpdb->prepare(
+            'SELECT id, exam_name, class_name, subject_ids FROM %i ORDER BY id DESC',
+            $table_exams
+        )
+    );
 
     // Fetch Classes ONLY assigned to the active selected Exam (Ordered by sort_order).
-    $academic_classes = array();
-    $exam_subject_map = array();
+    $academic_classes   = array();
+    $exam_subject_map   = array();
 
     if ( $filter_exam > 0 ) {
-        $exam_row = $wpdb->get_row( $wpdb->prepare( "SELECT class_name, subject_ids FROM `{$table_exams}` WHERE id = %d LIMIT 1", $filter_exam ) );
+        $exam_row = $wpdb->get_row(
+            $wpdb->prepare(
+                'SELECT class_name, subject_ids FROM %i WHERE id = %d LIMIT 1',
+                $table_exams,
+                $filter_exam
+            )
+        );
         if ( ! empty( $exam_row ) ) {
             if ( ! empty( $exam_row->class_name ) ) {
                 $parsed_classes = array_map( 'trim', explode( ',', (string) $exam_row->class_name ) );
@@ -679,18 +792,21 @@ function educore_exams_marks_view() {
                 }
                 $academic_classes = array_values( array_unique( array_filter( $academic_classes ) ) );
                 
-                usort( $academic_classes, function( $a, $b ) use ( $class_order_map ) {
-                    $order_a = isset( $class_order_map[ $a ] ) ? $class_order_map[ $a ] : 0;
-                    $order_b = isset( $class_order_map[ $b ] ) ? $class_order_map[ $b ] : 0;
-                    if ( $order_a !== $order_b ) {
-                        return $order_a - $order_b;
+                usort(
+                    $academic_classes,
+                    static function( $a, $b ) use ( $class_order_map ): int {
+                        $order_a = $class_order_map[ $a ] ?? 0;
+                        $order_b = $class_order_map[ $b ] ?? 0;
+                        if ( $order_a !== $order_b ) {
+                            return $order_a <=> $order_b;
+                        }
+                        return strnatcasecmp( $a, $b );
                     }
-                    return strnatcasecmp( $a, $b );
-                } );
+                );
             }
 
             if ( ! empty( $exam_row->subject_ids ) ) {
-                $decoded = json_decode( $exam_row->subject_ids, true );
+                $decoded = json_decode( (string) $exam_row->subject_ids, true );
                 if ( is_array( $decoded ) ) {
                     $exam_subject_map = $decoded;
                 }
@@ -701,23 +817,28 @@ function educore_exams_marks_view() {
     // Pre-populate Available Sections (Ordered by sort_order).
     $available_sections = array();
     if ( ! empty( $filter_class ) ) {
-        if ( ! $is_admin && $teacher_id > 0 ) {
+        if ( ! empty( $teacher_id ) && ! $is_admin ) {
             $available_sections = $wpdb->get_col(
                 $wpdb->prepare(
-                    "SELECT DISTINCT u.section_name 
-                     FROM `{$table_teacher_subjects}` ts
-                     INNER JOIN `{$table_units}` u ON ts.class_id = u.id 
-                     WHERE ts.teacher_id = %d AND u.class_name = %s AND u.section_name != '' 
-                     ORDER BY u.sort_order ASC, u.section_name ASC",
+                    'SELECT DISTINCT u.section_name 
+                     FROM %i ts
+                     INNER JOIN %i u ON ts.class_id = u.id 
+                     WHERE ts.teacher_id = %d AND u.class_name = %s AND u.section_name != %s 
+                     ORDER BY u.sort_order ASC, u.section_name ASC',
+                    $table_teacher_subjects,
+                    $table_units,
                     $teacher_id,
-                    $filter_class
+                    $filter_class,
+                    ''
                 )
             );
         } else {
             $available_sections = $wpdb->get_col(
                 $wpdb->prepare(
-                    "SELECT DISTINCT section_name FROM `{$table_units}` WHERE class_name = %s AND section_name != '' ORDER BY sort_order ASC, section_name ASC",
-                    $filter_class
+                    'SELECT DISTINCT section_name FROM %i WHERE class_name = %s AND section_name != %s ORDER BY sort_order ASC, section_name ASC',
+                    $table_units,
+                    $filter_class,
+                    ''
                 )
             );
         }
@@ -728,7 +849,9 @@ function educore_exams_marks_view() {
         if ( ! empty( $filter_section ) ) {
             $total_class_students = (int) $wpdb->get_var(
                 $wpdb->prepare(
-                    "SELECT COUNT(*) FROM `{$table_students}` WHERE status = 'Active' AND class_name = %s AND section_name = %s",
+                    'SELECT COUNT(*) FROM %i WHERE status = %s AND class_name = %s AND section_name = %s',
+                    $table_students,
+                    'Active',
                     $filter_class,
                     $filter_section
                 )
@@ -736,7 +859,9 @@ function educore_exams_marks_view() {
         } else {
             $total_class_students = (int) $wpdb->get_var(
                 $wpdb->prepare(
-                    "SELECT COUNT(*) FROM `{$table_students}` WHERE status = 'Active' AND class_name = %s",
+                    'SELECT COUNT(*) FROM %i WHERE status = %s AND class_name = %s',
+                    $table_students,
+                    'Active',
                     $filter_class
                 )
             );
@@ -754,10 +879,12 @@ function educore_exams_marks_view() {
         if ( ! empty( $filter_section ) ) {
             $raw_subs = $wpdb->get_results(
                 $wpdb->prepare(
-                    "SELECT DISTINCT s.* FROM `{$table_subjects}` s 
-                     INNER JOIN `{$table_units}` u ON s.class_id = u.id 
+                    'SELECT DISTINCT s.* FROM %i s 
+                     INNER JOIN %i u ON s.class_id = u.id 
                      WHERE u.class_name = %s AND u.section_name = %s 
-                     ORDER BY s.subject_order ASC, s.subject_name ASC",
+                     ORDER BY s.subject_order ASC, s.subject_name ASC',
+                    $table_subjects,
+                    $table_units,
                     $filter_class,
                     $filter_section
                 )
@@ -768,12 +895,15 @@ function educore_exams_marks_view() {
             if ( ! $is_admin && $teacher_id > 0 ) {
                 $raw_subs = $wpdb->get_results(
                     $wpdb->prepare(
-                        "SELECT DISTINCT s.id, s.subject_name, s.subject_code, s.subject_order, s.total_marks, s.pass_marks, s.cq_marks, s.cq_pass, s.mcq_marks, s.mcq_pass, s.practical_marks, s.practical_pass, s.breakdown_data, s.class_id  
-                         FROM `{$table_teacher_subjects}` ts
-                         INNER JOIN `{$table_subjects}` s ON ts.subject_id = s.id 
-                         INNER JOIN `{$table_units}` u ON ts.class_id = u.id 
+                        'SELECT DISTINCT s.id, s.subject_name, s.subject_code, s.subject_order, s.total_marks, s.pass_marks, s.cq_marks, s.cq_pass, s.mcq_marks, s.mcq_pass, s.practical_marks, s.practical_pass, s.breakdown_data, s.class_id  
+                         FROM %i ts
+                         INNER JOIN %i s ON ts.subject_id = s.id 
+                         INNER JOIN %i u ON ts.class_id = u.id 
                          WHERE ts.teacher_id = %d AND u.class_name = %s 
-                         ORDER BY s.subject_order ASC, s.subject_name ASC",
+                         ORDER BY s.subject_order ASC, s.subject_name ASC',
+                        $table_teacher_subjects,
+                        $table_subjects,
+                        $table_units,
                         $teacher_id,
                         $filter_class
                     )
@@ -781,10 +911,12 @@ function educore_exams_marks_view() {
             } else {
                 $raw_subs = $wpdb->get_results(
                     $wpdb->prepare(
-                        "SELECT DISTINCT s.* FROM `{$table_subjects}` s 
-                         INNER JOIN `{$table_units}` u ON s.class_id = u.id 
+                        'SELECT DISTINCT s.* FROM %i s 
+                         INNER JOIN %i u ON s.class_id = u.id 
                          WHERE u.class_name = %s 
-                         ORDER BY s.subject_order ASC, s.subject_name ASC",
+                         ORDER BY s.subject_order ASC, s.subject_name ASC',
+                        $table_subjects,
+                        $table_units,
                         $filter_class
                     )
                 );
@@ -794,7 +926,7 @@ function educore_exams_marks_view() {
         // Filter by Exam Scheme Subject Configuration if applicable.
         if ( ! empty( $exam_subject_map[ $filter_class ] ) && is_array( $exam_subject_map[ $filter_class ] ) ) {
             $allowed_ids = array_map( 'absint', $exam_subject_map[ $filter_class ] );
-            $raw_subs    = array_values( array_filter( $raw_subs, function( $sub ) use ( $allowed_ids ) {
+            $raw_subs    = array_values( array_filter( $raw_subs, static function( $sub ) use ( $allowed_ids ): bool {
                 return in_array( (int) $sub->id, $allowed_ids, true );
             } ) );
         }
@@ -811,20 +943,36 @@ function educore_exams_marks_view() {
                         if ( ! empty( $filter_section ) ) {
                             $entered_count = (int) $wpdb->get_var(
                                 $wpdb->prepare(
-                                    "SELECT COUNT(r.id) FROM `{$table_results}` r INNER JOIN `{$table_students}` st ON r.student_id = st.id WHERE r.exam_id = %d AND r.class_name = %s AND st.section_name = %s AND r.subject_name = %s",
+                                    'SELECT COUNT(DISTINCT st.id) FROM %i st 
+                                     LEFT JOIN %i r ON r.student_id = st.id AND r.exam_id = %d AND r.subject_name = %s AND r.obtained_marks IS NOT NULL AND r.obtained_marks != ""
+                                     LEFT JOIN %i ea ON ea.student_id = st.id AND ea.exam_id = %d AND ea.subject_name = %s AND ea.status = "Absent"
+                                     WHERE st.status = "Active" AND st.class_name = %s AND st.section_name = %s AND (r.id IS NOT NULL OR ea.id IS NOT NULL)',
+                                    $table_students,
+                                    $table_results,
                                     $filter_exam,
+                                    $s_item->subject_name,
+                                    $table_exam_att,
+                                    $filter_exam,
+                                    $s_item->subject_name,
                                     $filter_class,
-                                    $filter_section,
-                                    $s_item->subject_name
+                                    $filter_section
                                 )
                             );
                         } else {
                             $entered_count = (int) $wpdb->get_var(
                                 $wpdb->prepare(
-                                    "SELECT COUNT(r.id) FROM `{$table_results}` r WHERE r.exam_id = %d AND r.class_name = %s AND r.subject_name = %s",
+                                    'SELECT COUNT(DISTINCT st.id) FROM %i st 
+                                     LEFT JOIN %i r ON r.student_id = st.id AND r.exam_id = %d AND r.subject_name = %s AND r.obtained_marks IS NOT NULL AND r.obtained_marks != ""
+                                     LEFT JOIN %i ea ON ea.student_id = st.id AND ea.exam_id = %d AND ea.subject_name = %s AND ea.status = "Absent"
+                                     WHERE st.status = "Active" AND st.class_name = %s AND (r.id IS NOT NULL OR ea.id IS NOT NULL)',
+                                    $table_students,
+                                    $table_results,
                                     $filter_exam,
-                                    $filter_class,
-                                    $s_item->subject_name
+                                    $s_item->subject_name,
+                                    $table_exam_att,
+                                    $filter_exam,
+                                    $s_item->subject_name,
+                                    $filter_class
                                 )
                             );
                         }
@@ -849,31 +997,42 @@ function educore_exams_marks_view() {
             }
         }
     }
-    // phpcs:enable
 
     // Parse Custom Breakdown Data if configured.
     $custom_breakdown_components = array();
     if ( $active_subject_obj && ! empty( $active_subject_obj->breakdown_data ) ) {
-        $parsed_bd = json_decode( $active_subject_obj->breakdown_data, true );
+        $parsed_bd = json_decode( (string) $active_subject_obj->breakdown_data, true );
         if ( is_array( $parsed_bd ) && ! empty( $parsed_bd ) ) {
             $custom_breakdown_components = $parsed_bd;
         }
     }
     $has_custom_breakdown = ! empty( $custom_breakdown_components );
 
-    // Fetch Active Students Dataset & Pre-existing Marks.
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+    // Determine component visibility limits
+    $tot_limit = $active_subject_obj ? (float) $active_subject_obj->total_marks : 100.00;
+    $pass_lim  = $active_subject_obj ? (float) $active_subject_obj->pass_marks : 33.00;
+    $cq_lim    = $active_subject_obj ? (float) $active_subject_obj->cq_marks : 70.00;
+    $cq_p_lim  = $active_subject_obj ? (float) $active_subject_obj->cq_pass : 23.00;
+    $mcq_lim   = $active_subject_obj ? (float) $active_subject_obj->mcq_marks : 30.00;
+    $mcq_p_lim = $active_subject_obj ? (float) $active_subject_obj->mcq_pass : 10.00;
+    $pr_lim    = $active_subject_obj ? (float) $active_subject_obj->practical_marks : 0.00;
+    $pr_p_lim  = $active_subject_obj ? (float) $active_subject_obj->practical_pass : 0.00;
+
+    // Fetch Active Students Dataset & Pre-existing Marks and Examination Hall Attendance.
     $students_list = array();
     $saved_marks   = array();
+    $exam_att_map  = array();
 
     if ( $filter_exam > 0 && ! empty( $filter_class ) && ! empty( $filter_subject ) ) {
         if ( ! empty( $filter_section ) ) {
             $students_list = $wpdb->get_results(
                 $wpdb->prepare(
-                    "SELECT id, full_name, student_id, roll_no, class_name, section_name 
-                     FROM `{$table_students}` 
-                     WHERE status = 'Active' AND class_name = %s AND section_name = %s 
-                     ORDER BY CAST(roll_no AS UNSIGNED) ASC, roll_no ASC",
+                    'SELECT id, full_name, student_id, roll_no, class_name, section_name 
+                     FROM %i 
+                     WHERE status = %s AND class_name = %s AND section_name = %s 
+                     ORDER BY CAST(roll_no AS UNSIGNED) ASC, roll_no ASC',
+                    $table_students,
+                    'Active',
                     $filter_class,
                     $filter_section
                 )
@@ -881,10 +1040,12 @@ function educore_exams_marks_view() {
         } else {
             $students_list = $wpdb->get_results(
                 $wpdb->prepare(
-                    "SELECT id, full_name, student_id, roll_no, class_name, section_name 
-                     FROM `{$table_students}` 
-                     WHERE status = 'Active' AND class_name = %s 
-                     ORDER BY CAST(roll_no AS UNSIGNED) ASC, roll_no ASC",
+                    'SELECT id, full_name, student_id, roll_no, class_name, section_name 
+                     FROM %i 
+                     WHERE status = %s AND class_name = %s 
+                     ORDER BY CAST(roll_no AS UNSIGNED) ASC, roll_no ASC',
+                    $table_students,
+                    'Active',
                     $filter_class
                 )
             );
@@ -892,9 +1053,10 @@ function educore_exams_marks_view() {
 
         $existing_results = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT student_id, cq_marks, mcq_marks, practical_marks, component_marks, obtained_marks, total_marks, grade, gpa 
-                 FROM `{$table_results}` 
-                 WHERE exam_id = %d AND class_name = %s AND subject_name = %s",
+                'SELECT student_id, cq_marks, mcq_marks, practical_marks, component_marks, obtained_marks, total_marks, grade, gpa 
+                 FROM %i 
+                 WHERE exam_id = %d AND class_name = %s AND subject_name = %s',
+                $table_results,
                 $filter_exam,
                 $filter_class,
                 $filter_subject
@@ -905,8 +1067,25 @@ function educore_exams_marks_view() {
         if ( ! empty( $existing_results ) ) {
             $saved_marks = $existing_results;
         }
+
+        // Fetch Exam Hall Attendance Status to check if student is Absent
+        $exam_att_rows = $wpdb->get_results(
+            $wpdb->prepare(
+                'SELECT student_id, status FROM %i WHERE exam_id = %d AND class_name = %s AND subject_name = %s',
+                $table_exam_att,
+                $filter_exam,
+                $filter_class,
+                $filter_subject
+            )
+        );
+        if ( ! empty( $exam_att_rows ) ) {
+            foreach ( $exam_att_rows as $ear ) {
+                $exam_att_map[ (int) $ear->student_id ] = (string) $ear->status;
+            }
+        }
     }
-    // phpcs:enable
+
+    $admin_page_url = admin_url( 'admin.php' );
     ?>
 
     <style>
@@ -979,7 +1158,6 @@ function educore_exams_marks_view() {
         .ifs-educore-select:focus {
             border-color: #00523c !important;
             box-shadow: 0 0 0 3px rgba(0, 82, 60, 0.12) !important;
-            background-image: url('data:image/svg+xml;utf8,<svg fill="%2300523c" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>') !important;
         }
         .ifs-educore-select:disabled {
             background-color: #f8fafc !important;
@@ -987,7 +1165,6 @@ function educore_exams_marks_view() {
             border-color: #e2e8f0 !important;
             cursor: not-allowed;
             opacity: 0.85;
-            background-image: url('data:image/svg+xml;utf8,<svg fill="%23cbd5e1" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>') !important;
         }
         .ifs-educore-btn-load {
             width: 100% !important;
@@ -1009,6 +1186,13 @@ function educore_exams_marks_view() {
         .ifs-educore-btn-load:hover {
             background: #047857 !important;
         }
+        .ifs-absent-row-dimmed {
+            background-color: #f8fafc !important;
+            opacity: 0.8;
+        }
+        .ifs-unrecorded-row-dimmed {
+            background-color: #fffbeb !important;
+        }
     </style>
 
     <div class="ifs-educore-marks-root">
@@ -1022,32 +1206,23 @@ function educore_exams_marks_view() {
 
         <!-- Search & Selection Bento Filter Card -->
         <div class="ifs-educore-bento-filter-card">
-            <form method="GET" action="<?php echo esc_url( $base_url ); ?>" id="educoreMarksFilterForm">
-                <?php 
-                $parsed_url = wp_parse_url( $base_url );
-                if ( isset( $parsed_url['query'] ) ) {
-                    parse_str( $parsed_url['query'], $query_params );
-                    foreach ( $query_params as $param_key => $param_val ) {
-                        if ( ! in_array( $param_key, array( 'exam_id', 'class_name', 'section_name', 'subject_name' ), true ) ) {
-                            echo '<input type="hidden" name="' . esc_attr( $param_key ) . '" value="' . esc_attr( $param_val ) . '">';
-                        }
-                    }
-                }
-                ?>
+            <form method="GET" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>" id="educoreMarksFilterForm">
+                <input type="hidden" name="page" value="school_management_system">
+                <input type="hidden" name="tab" value="results">
                 <input type="hidden" name="sub" value="marks">
 
                 <div class="ifs-educore-filter-grid">
                     <!-- 1. Select Exam -->
                     <div class="ifs-educore-form-group">
-                        <label class="ifs-educore-form-label">
+                        <label class="ifs-educore-form-label" for="ifs_educore_marks_exam_select">
                             <span class="dashicons dashicons-calendar-alt" style="font-size:14px; width:14px; height:14px; color:#00523c;"></span>
                             <?php esc_html_e( '1. Select Exam', 'ifsedu-school-management' ); ?> <span style="color:#ef4444;">*</span>
                         </label>
                         <select name="exam_id" id="ifs_educore_marks_exam_select" class="ifs-educore-select" required>
                             <option value=""><?php esc_html_e( '-- Choose Exam --', 'ifsedu-school-management' ); ?></option>
                             <?php foreach ( $exams as $ex ) : ?>
-                                <option value="<?php echo absint( $ex->id ); ?>" <?php selected( $filter_exam, $ex->id ); ?>>
-                                    <?php echo esc_html( $ex->exam_name ); ?>
+                                <option value="<?php echo (int) $ex->id; ?>" <?php selected( $filter_exam, (int) $ex->id ); ?>>
+                                    <?php echo esc_html( (string) $ex->exam_name ); ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -1055,7 +1230,7 @@ function educore_exams_marks_view() {
 
                     <!-- 2. Exam Class Selection -->
                     <div class="ifs-educore-form-group">
-                        <label class="ifs-educore-form-label">
+                        <label class="ifs-educore-form-label" for="ifs_educore_marks_class_select">
                             <span class="dashicons dashicons-welcome-learn-more" style="font-size:14px; width:14px; height:14px; color:#00523c;"></span>
                             <?php esc_html_e( '2. Exam Class', 'ifsedu-school-management' ); ?> <span style="color:#ef4444;">*</span>
                         </label>
@@ -1071,7 +1246,7 @@ function educore_exams_marks_view() {
 
                     <!-- 3. Section Selection -->
                     <div class="ifs-educore-form-group">
-                        <label class="ifs-educore-form-label">
+                        <label class="ifs-educore-form-label" for="ifs_educore_marks_section_select">
                             <span class="dashicons dashicons-groups" style="font-size:14px; width:14px; height:14px; color:#00523c;"></span>
                             <?php esc_html_e( '3. Section / Stream', 'ifsedu-school-management' ); ?>
                         </label>
@@ -1085,9 +1260,9 @@ function educore_exams_marks_view() {
                         </select>
                     </div>
 
-                    <!-- 4. Subject Selection Separated into Completed vs Pending Optgroups -->
+                    <!-- 4. Subject Selection -->
                     <div class="ifs-educore-form-group">
-                        <label class="ifs-educore-form-label">
+                        <label class="ifs-educore-form-label" for="ifs_educore_marks_subject_select">
                             <span class="dashicons dashicons-book" style="font-size:14px; width:14px; height:14px; color:#00523c;"></span>
                             <?php esc_html_e( '4. Subject', 'ifsedu-school-management' ); ?> <span style="color:#ef4444;">*</span>
                         </label>
@@ -1099,13 +1274,13 @@ function educore_exams_marks_view() {
 
                             foreach ( $available_subjects as $sub_item ) {
                                 $is_completed = ( $total_class_students > 0 && $sub_item->entered_count >= $total_class_students );
-                                $status_badge = sprintf( ' [%d/%d Entered]', intval( $sub_item->entered_count ), intval( $total_class_students ) );
-                                $label_text   = $sub_item->subject_name . ( $sub_item->subject_code ? ' (' . $sub_item->subject_code . ')' : '' ) . $status_badge;
+                                $status_badge = sprintf( ' [%d/%d Entered]', (int) $sub_item->entered_count, (int) $total_class_students );
+                                $label_text   = $sub_item->subject_name . ( ! empty( $sub_item->subject_code ) ? ' (' . $sub_item->subject_code . ')' : '' ) . $status_badge;
                                 
                                 $opt_html = sprintf(
                                     '<option value="%s" %s>%s</option>',
-                                    esc_attr( $sub_item->subject_name ),
-                                    selected( $filter_subject, $sub_item->subject_name, false ),
+                                    esc_attr( (string) $sub_item->subject_name ),
+                                    selected( $filter_subject, (string) $sub_item->subject_name, false ),
                                     esc_html( $label_text )
                                 );
 
@@ -1142,7 +1317,6 @@ function educore_exams_marks_view() {
         jQuery(document).ready(function($) {
             var nonce = '<?php echo esc_js( wp_create_nonce( "ifs_educore_marks_nonce" ) ); ?>';
 
-            // When Exam is changed -> Load only classes assigned to that Exam.
             $('#ifs_educore_marks_exam_select').on('change', function() {
                 var selectedExamId = $(this).val();
                 var $classSelect   = $('#ifs_educore_marks_class_select');
@@ -1180,12 +1354,11 @@ function educore_exams_marks_view() {
                 });
             });
 
-            // Helper function to trigger reloading of section-aware subjects with separated groups.
             function reloadSubjectsForClassAndSection() {
-                var selectedClass  = $('#ifs_educore_marks_class_select').val();
+                var selectedClass   = $('#ifs_educore_marks_class_select').val();
                 var selectedSection = $('#ifs_educore_marks_section_select').val();
-                var selectedExamId = $('#ifs_educore_marks_exam_select').val();
-                var $subjectSelect = $('#ifs_educore_marks_subject_select');
+                var selectedExamId  = $('#ifs_educore_marks_exam_select').val();
+                var $subjectSelect  = $('#ifs_educore_marks_subject_select');
 
                 if (!selectedClass) return;
 
@@ -1204,7 +1377,7 @@ function educore_exams_marks_view() {
                     success: function(response) {
                         if (response.success && response.data.length > 0) {
                             var completedHtml = '';
-                            var pendingHtml = '';
+                            var pendingHtml   = '';
 
                             $.each(response.data, function(i, sub) {
                                 var codeStr = sub.subject_code ? ' (' + sub.subject_code + ')' : '';
@@ -1215,7 +1388,7 @@ function educore_exams_marks_view() {
                                 if (isCompleted) {
                                     completedHtml += optHtml;
                                 } else {
-                                    pendingHtml += optHtml;
+                                    pendingHtml   += optHtml;
                                 }
                             });
 
@@ -1235,9 +1408,11 @@ function educore_exams_marks_view() {
                 });
             }
 
-            // When Class is changed -> Load corresponding sections & subjects.
             $('#ifs_educore_marks_class_select').on('change', function() {
-                var selectedClass  = $(this).val();
+                var selectedClass = $(this).val();
+                currentSelectedSection = '';
+                currentSelectedSubject = '';
+                
                 var $secSelect     = $('#ifs_educore_marks_section_select');
                 var $subjectSelect = $('#ifs_educore_marks_subject_select');
 
@@ -1249,7 +1424,6 @@ function educore_exams_marks_view() {
                     return;
                 }
 
-                // Load Sections.
                 $.ajax({
                     url: ajaxurl,
                     type: 'POST',
@@ -1272,58 +1446,70 @@ function educore_exams_marks_view() {
                 reloadSubjectsForClassAndSection();
             });
 
-            // When Section is changed -> Reload subjects specific to this section.
             $('#ifs_educore_marks_section_select').on('change', function() {
                 reloadSubjectsForClassAndSection();
             });
         });
         </script>
 
-        <!-- Marks Entry Matrix Table with Dynamic Subject Breakdown -->
+        <!-- Marks Entry Matrix Table with Dynamic Subject Breakdown Adaptation -->
         <?php if ( $filter_exam > 0 && ! empty( $filter_class ) && ! empty( $filter_subject ) ) : 
-            $tot_limit = $active_subject_obj ? floatval( $active_subject_obj->total_marks ) : 100.00;
-            $pass_lim  = $active_subject_obj ? floatval( $active_subject_obj->pass_marks ) : 33.00;
-            $cq_lim    = $active_subject_obj ? floatval( $active_subject_obj->cq_marks ) : 70.00;
-            $cq_p_lim  = $active_subject_obj ? floatval( $active_subject_obj->cq_pass ) : 23.00;
-            $mcq_lim   = $active_subject_obj ? floatval( $active_subject_obj->mcq_marks ) : 30.00;
-            $mcq_p_lim = $active_subject_obj ? floatval( $active_subject_obj->mcq_pass ) : 10.00;
-            $pr_lim    = $active_subject_obj ? floatval( $active_subject_obj->practical_marks ) : 0.00;
-            $pr_p_lim  = $active_subject_obj ? floatval( $active_subject_obj->practical_pass ) : 0.00;
+            $tot_limit = $active_subject_obj ? (float) $active_subject_obj->total_marks : 100.00;
+            $pass_lim  = $active_subject_obj ? (float) $active_subject_obj->pass_marks : 33.00;
+            $cq_lim    = $active_subject_obj ? (float) $active_subject_obj->cq_marks : 70.00;
+            $cq_p_lim  = $active_subject_obj ? (float) $active_subject_obj->cq_pass : 23.00;
+            $mcq_lim   = $active_subject_obj ? (float) $active_subject_obj->mcq_marks : 30.00;
+            $mcq_p_lim = $active_subject_obj ? (float) $active_subject_obj->mcq_pass : 10.00;
+            $pr_lim    = $active_subject_obj ? (float) $active_subject_obj->practical_marks : 0.00;
+            $pr_p_lim  = $active_subject_obj ? (float) $active_subject_obj->practical_pass : 0.00;
+
+            $matrix_action_url = add_query_arg(
+                array(
+                    'page'         => 'school_management_system',
+                    'tab'          => 'results',
+                    'sub'          => 'marks',
+                    'exam_id'      => $filter_exam,
+                    'class_name'   => $filter_class,
+                    'section_name' => $filter_section,
+                    'subject_name' => $filter_subject,
+                ),
+                admin_url( 'admin.php' )
+            );
         ?>
             <div class="ifs-educore-bento-card" style="background:#ffffff; border:1px solid #e2e8f0; border-radius:14px; padding:24px; box-shadow:0 4px 15px rgba(0,0,0,0.02);">
-                <form method="POST" id="educoreMarksMatrixForm" action="<?php echo esc_url( add_query_arg( array( 'exam_id' => $filter_exam, 'class_name' => $filter_class, 'section_name' => $filter_section, 'subject_name' => $filter_subject, 'sub' => 'marks' ), $base_url ) ); ?>">
+                <form method="POST" id="educoreMarksMatrixForm" action="<?php echo esc_url( $matrix_action_url ); ?>">
                     <?php wp_nonce_field( 'save_marks_action', 'ifs_educore_marks_nonce' ); ?>
-                    <input type="hidden" name="exam_id" value="<?php echo esc_attr( $filter_exam ); ?>">
+                    <input type="hidden" name="exam_id" value="<?php echo esc_attr( (string) $filter_exam ); ?>">
                     <input type="hidden" name="class_name" value="<?php echo esc_attr( $filter_class ); ?>">
                     <input type="hidden" name="section_name" value="<?php echo esc_attr( $filter_section ); ?>">
                     <input type="hidden" name="subject_name" value="<?php echo esc_attr( $filter_subject ); ?>">
                     <input type="hidden" name="is_custom_breakdown" id="is_custom_breakdown" value="<?php echo $has_custom_breakdown ? '1' : '0'; ?>">
 
                     <!-- Standard Limits Hidden Configuration -->
-                    <input type="hidden" name="total_marks_limit" id="total_marks_limit" value="<?php echo esc_attr( $tot_limit ); ?>">
-                    <input type="hidden" name="pass_marks_limit" id="pass_marks_limit" value="<?php echo esc_attr( $pass_lim ); ?>">
-                    <input type="hidden" name="cq_marks_limit" id="cq_marks_limit" value="<?php echo esc_attr( $cq_lim ); ?>">
-                    <input type="hidden" name="cq_pass_limit" id="cq_pass_limit" value="<?php echo esc_attr( $cq_p_lim ); ?>">
-                    <input type="hidden" name="mcq_marks_limit" id="mcq_marks_limit" value="<?php echo esc_attr( $mcq_lim ); ?>">
-                    <input type="hidden" name="mcq_pass_limit" id="mcq_pass_limit" value="<?php echo esc_attr( $mcq_p_lim ); ?>">
-                    <input type="hidden" name="pr_marks_limit" id="pr_marks_limit" value="<?php echo esc_attr( $pr_lim ); ?>">
-                    <input type="hidden" name="pr_pass_limit" id="pr_pass_limit" value="<?php echo esc_attr( $pr_p_lim ); ?>">
+                    <input type="hidden" name="total_marks_limit" id="total_marks_limit" value="<?php echo esc_attr( (string) $tot_limit ); ?>">
+                    <input type="hidden" name="pass_marks_limit" id="pass_marks_limit" value="<?php echo esc_attr( (string) $pass_lim ); ?>">
+                    <input type="hidden" name="cq_marks_limit" id="cq_marks_limit" value="<?php echo esc_attr( (string) $cq_lim ); ?>">
+                    <input type="hidden" name="cq_pass_limit" id="cq_pass_limit" value="<?php echo esc_attr( (string) $cq_p_lim ); ?>">
+                    <input type="hidden" name="mcq_marks_limit" id="mcq_marks_limit" value="<?php echo esc_attr( (string) $mcq_lim ); ?>">
+                    <input type="hidden" name="mcq_pass_limit" id="mcq_pass_limit" value="<?php echo esc_attr( (string) $mcq_p_lim ); ?>">
+                    <input type="hidden" name="pr_marks_limit" id="pr_marks_limit" value="<?php echo esc_attr( (string) $pr_lim ); ?>">
+                    <input type="hidden" name="pr_pass_limit" id="pr_pass_limit" value="<?php echo esc_attr( (string) $pr_p_lim ); ?>">
 
                     <?php if ( $has_custom_breakdown ) : ?>
                         <?php foreach ( $custom_breakdown_components as $comp ) : 
-                            $c_name = sanitize_text_field( $comp['name'] );
-                            $c_tot  = floatval( $comp['total'] );
-                            $c_pas  = floatval( $comp['pass'] );
+                            $c_name = sanitize_text_field( (string) $comp['name'] );
+                            $c_tot  = (float) $comp['total'];
+                            $c_pas  = (float) $comp['pass'];
                         ?>
-                            <input type="hidden" name="custom_comp_total[<?php echo esc_attr( $c_name ); ?>]" class="custom-comp-tot-limit" data-comp="<?php echo esc_attr( $c_name ); ?>" value="<?php echo esc_attr( $c_tot ); ?>">
-                            <input type="hidden" name="custom_comp_pass[<?php echo esc_attr( $c_name ); ?>]" class="custom-comp-pass-limit" data-comp="<?php echo esc_attr( $c_name ); ?>" value="<?php echo esc_attr( $c_pas ); ?>">
+                            <input type="hidden" name="custom_comp_total[<?php echo esc_attr( $c_name ); ?>]" class="custom-comp-tot-limit" data-comp="<?php echo esc_attr( $c_name ); ?>" value="<?php echo esc_attr( (string) $c_tot ); ?>">
+                            <input type="hidden" name="custom_comp_pass[<?php echo esc_attr( $c_name ); ?>]" class="custom-comp-pass-limit" data-comp="<?php echo esc_attr( $c_name ); ?>" value="<?php echo esc_attr( (string) $c_pas ); ?>">
                         <?php endforeach; ?>
                     <?php endif; ?>
 
                     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:18px; padding-bottom:14px; border-bottom:1px solid #e2e8f0;">
                         <div>
                             <strong style="font-size:16px; color:#0f172a;"><?php echo esc_html( $filter_subject ); ?></strong>
-                            <span style="font-size:12px; color:#64748b; margin-left:8px;">(Total: <?php echo esc_html( $tot_limit ); ?> | Pass: <?php echo esc_html( $pass_lim ); ?>)</span>
+                            <span style="font-size:12px; color:#64748b; margin-left:8px;">(Total: <?php echo esc_html( (string) $tot_limit ); ?> | Pass: <?php echo esc_html( (string) $pass_lim ); ?>)</span>
                         </div>
                         <div>
                             <button type="submit" name="educore_save_marks_matrix" class="ifs-educore-btn-submit" style="background:#00523c; color:#fff; border:none; padding:9px 20px; border-radius:8px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
@@ -1345,29 +1531,36 @@ function educore_exams_marks_view() {
                                         <!-- Dynamic Custom Component Columns -->
                                         <?php foreach ( $custom_breakdown_components as $comp ) : ?>
                                             <th style="padding:10px;">
-                                                <?php echo esc_html( $comp['name'] ); ?><br>
-                                                <span class="lbl-comp-summary" data-comp="<?php echo esc_attr( $comp['name'] ); ?>" style="font-size:10px; color:#64748b; font-weight:600;">
-                                                    Max: <?php echo floatval( $comp['total'] ); ?> | &ge; <?php echo floatval( $comp['pass'] ); ?>
+                                                <?php echo esc_html( (string) $comp['name'] ); ?><br>
+                                                <span class="lbl-comp-summary" data-comp="<?php echo esc_attr( (string) $comp['name'] ); ?>" style="font-size:10px; color:#64748b; font-weight:600;">
+                                                    Max: <?php echo (float) $comp['total']; ?> | &ge; <?php echo (float) $comp['pass']; ?>
                                                 </span>
                                             </th>
                                         <?php endforeach; ?>
                                     <?php else : ?>
-                                        <!-- MCQ Column -->
-                                        <th style="padding:10px; width: 14%;">
-                                            <?php esc_html_e( 'MCQ', 'ifsedu-school-management' ); ?><br>
-                                            <span class="lbl-mcq-summary" style="font-size:10px; color:#64748b; font-weight:600;">Max: <?php echo esc_html( $mcq_lim ); ?> | &ge; <?php echo esc_html( $mcq_p_lim ); ?></span>
-                                        </th>
+                                        <!-- Conditionally show MCQ column only if limit > 0 -->
+                                        <?php if ( $mcq_lim > 0 ) : ?>
+                                            <th style="padding:10px; width: 14%;">
+                                                <?php esc_html_e( 'MCQ', 'ifsedu-school-management' ); ?><br>
+                                                <span class="lbl-mcq-summary" style="font-size:10px; color:#64748b; font-weight:600;">Max: <?php echo esc_html( (string) $mcq_lim ); ?> | &ge; <?php echo esc_html( (string) $mcq_p_lim ); ?></span>
+                                            </th>
+                                        <?php endif; ?>
 
-                                        <!-- CQ Column -->
-                                        <th style="padding:10px; width: 14%;">
-                                            <?php esc_html_e( 'CQ Theory', 'ifsedu-school-management' ); ?><br>
-                                            <span class="lbl-cq-summary" style="font-size:10px; color:#64748b; font-weight:600;">Max: <?php echo esc_html( $cq_lim ); ?> | &ge; <?php echo esc_html( $cq_p_lim ); ?></span>
-                                        </th>
+                                        <!-- Conditionally show CQ column only if limit > 0 -->
+                                        <?php if ( $cq_lim > 0 ) : ?>
+                                            <th style="padding:10px; width: 14%;">
+                                                <?php esc_html_e( 'CQ Theory', 'ifsedu-school-management' ); ?><br>
+                                                <span class="lbl-cq-summary" style="font-size:10px; color:#64748b; font-weight:600;">Max: <?php echo esc_html( (string) $cq_lim ); ?> | &ge; <?php echo esc_html( (string) $cq_p_lim ); ?></span>
+                                            </th>
+                                        <?php endif; ?>
 
-                                        <th style="padding:10px; width: 14%;" class="th-pr-col" style="<?php echo ( $pr_lim <= 0 ) ? 'display:none;' : ''; ?>">
-                                            <?php esc_html_e( 'Practical', 'ifsedu-school-management' ); ?><br>
-                                            <span class="lbl-pr-summary" style="font-size:10px; color:#64748b; font-weight:600;">Max: <?php echo esc_html( $pr_lim ); ?> | &ge; <?php echo esc_html( $pr_p_lim ); ?></span>
-                                        </th>
+                                        <!-- Conditionally show Practical column only if limit > 0 -->
+                                        <?php if ( $pr_lim > 0 ) : ?>
+                                            <th style="padding:10px; width: 14%;">
+                                                <?php esc_html_e( 'Practical', 'ifsedu-school-management' ); ?><br>
+                                                <span class="lbl-pr-summary" style="font-size:10px; color:#64748b; font-weight:600;">Max: <?php echo esc_html( (string) $pr_lim ); ?> | &ge; <?php echo esc_html( (string) $pr_p_lim ); ?></span>
+                                            </th>
+                                        <?php endif; ?>
                                     <?php endif; ?>
 
                                     <th style="padding:10px; width: 10%;"><?php esc_html_e( 'Total', 'ifsedu-school-management' ); ?></th>
@@ -1377,88 +1570,142 @@ function educore_exams_marks_view() {
                             </thead>
                             <tbody>
                                 <?php if ( ! empty( $students_list ) ) : foreach ( $students_list as $s ) : 
-                                    $student_internal_id = absint( $s->id );
-                                    $curr_res = isset( $saved_marks[ $student_internal_id ] ) ? $saved_marks[ $student_internal_id ] : null;
-                                    $curr_tot = $curr_res ? number_format( floatval( $curr_res->obtained_marks ), 2, '.', '' ) : '0.00';
-                                    $curr_grd = $curr_res ? esc_html( (string) $curr_res->grade ) : '—';
-                                    $curr_gpa = $curr_res ? number_format( floatval( $curr_res->gpa ), 2 ) : '0.00';
-                                    $is_fail  = ( 'F' === $curr_grd );
+                                    $student_internal_id = absint( (int) $s->id );
+                                    $curr_res = $saved_marks[ $student_internal_id ] ?? null;
+                                    
+                                    // Check Exam Hall Attendance status
+                                    $exam_att_status = $exam_att_map[ $student_internal_id ] ?? '';
+                                    $has_attendance  = ( '' !== $exam_att_status );
+                                    $is_absent       = ( 'Absent' === $exam_att_status );
+                                    $is_unrecorded   = ( '' === $exam_att_status );
+
+                                    if ( $is_absent ) {
+                                        $curr_tot = '0.00';
+                                        $curr_grd = 'A';
+                                        $curr_gpa = '0.00';
+                                        $is_fail  = false;
+                                    } elseif ( $curr_res && isset( $curr_res->obtained_marks ) && '' !== trim( (string) $curr_res->obtained_marks ) ) {
+                                        $curr_tot = number_format( (float) $curr_res->obtained_marks, 2, '.', '' );
+                                        $curr_grd = esc_html( (string) $curr_res->grade );
+                                        $curr_gpa = number_format( (float) $curr_res->gpa, 2 );
+                                        $is_fail  = ( 'F' === $curr_grd );
+                                    } else {
+                                        $curr_tot = '—';
+                                        $curr_grd = 'N/A';
+                                        $curr_gpa = '—';
+                                        $is_fail  = false;
+                                    }
 
                                     // Parse component marks if present.
                                     $student_comp_marks = array();
                                     if ( $curr_res && ! empty( $curr_res->component_marks ) ) {
-                                        $decoded_cm = json_decode( $curr_res->component_marks, true );
+                                        $decoded_cm = json_decode( (string) $curr_res->component_marks, true );
                                         if ( is_array( $decoded_cm ) ) {
                                             $student_comp_marks = $decoded_cm;
                                         }
                                     }
                                 ?>
-                                    <tr data-student-id="<?php echo esc_attr( $student_internal_id ); ?>" style="border-bottom:1px solid #f1f5f9; text-align:center;">
-                                        <td style="padding:10px;"><strong>#<?php echo esc_html( $s->roll_no ); ?></strong></td>
-                                        <td style="padding:10px;"><code><?php echo esc_html( strtoupper( (string) $s->student_id ) ); ?></code></td>
-                                        <td style="padding:10px; text-align: left; font-weight: 700; color: #0f172a;"><?php echo esc_html( $s->full_name ); ?></td>
-                                        
-                                        <?php if ( $has_custom_breakdown ) : ?>
-                                            <!-- Dynamic Custom Breakdown Inputs -->
-                                            <?php foreach ( $custom_breakdown_components as $comp ) : 
-                                                $comp_name = $comp['name'];
-                                                $val_c = isset( $student_comp_marks[ $comp_name ] ) ? floatval( $student_comp_marks[ $comp_name ] ) : '';
-                                            ?>
-                                                <td style="padding:10px;">
-                                                    <input type="number" step="0.5" min="0" max="<?php echo floatval( $comp['total'] ); ?>" 
-                                                           name="custom_comp_val[<?php echo esc_attr( $student_internal_id ); ?>][<?php echo esc_attr( $comp_name ); ?>]" 
-                                                           class="ifs-educore-mark-cell-input inp-custom-comp" 
-                                                           data-comp="<?php echo esc_attr( $comp_name ); ?>" 
-                                                           data-max="<?php echo floatval( $comp['total'] ); ?>" 
-                                                           value="<?php echo esc_attr( $val_c ); ?>" placeholder="0" style="width:75px; height:34px; text-align:center; border:1px solid #cbd5e1; border-radius:6px;">
-                                                </td>
-                                            <?php endforeach; ?>
-                                        <?php else : 
-                                            $curr_cq  = $curr_res ? floatval( $curr_res->cq_marks ) : '';
-                                            $curr_mcq = $curr_res ? floatval( $curr_res->mcq_marks ) : '';
-                                            $curr_pr  = $curr_res ? floatval( $curr_res->practical_marks ) : '';
+                                <tr data-student-id="<?php echo esc_attr( (string) $student_internal_id ); ?>" class="<?php echo $is_absent ? 'ifs-absent-row-dimmed' : ( $is_unrecorded ? 'ifs-unrecorded-row-dimmed' : '' ); ?>" style="border-bottom:1px solid #f1f5f9; text-align:center;">
+                                    <td style="padding:10px;"><strong>#<?php echo esc_html( (string) $s->roll_no ); ?></strong></td>
+                                    <td style="padding:10px;"><code><?php echo esc_html( strtoupper( (string) $s->student_id ) ); ?></code></td>
+                                    <td style="padding:10px; text-align: left; font-weight: 700; color: #0f172a;">
+                                        <?php echo esc_html( (string) $s->full_name ); ?>
+                                        <?php if ( $is_absent ) : ?>
+                                            <span style="background:#fee2e2; color:#dc2626; font-size:10px; font-weight:800; padding:1px 6px; border-radius:4px; margin-left:6px;"><?php esc_html_e( 'ABSENT (A)', 'ifsedu-school-management' ); ?></span>
+                                        <?php elseif ( $is_unrecorded ) : ?>
+                                            <span style="background:#fef3c7; color:#d97706; font-size:10px; font-weight:800; padding:1px 6px; border-radius:4px; margin-left:6px;"><?php esc_html_e( 'ATTENDANCE PENDING', 'ifsedu-school-management' ); ?></span>
+                                        <?php endif; ?>
+                                    </td>
+                                    
+                                    <?php if ( $has_custom_breakdown ) : ?>
+                                        <!-- Dynamic Custom Breakdown Inputs -->
+                                        <?php foreach ( $custom_breakdown_components as $comp ) : 
+                                            $comp_name = (string) $comp['name'];
+                                            if ( $is_absent || $is_unrecorded ) {
+                                                $val_c = 0.00;
+                                            } else {
+                                                $val_c = ( $curr_res && isset( $student_comp_marks[ $comp_name ] ) && '' !== trim( (string) $student_comp_marks[ $comp_name ] ) ) ? (float) $student_comp_marks[ $comp_name ] : '';
+                                            }
                                         ?>
-                                            <!-- MCQ Input -->
                                             <td style="padding:10px;">
-                                                <input type="number" step="0.5" min="0" max="<?php echo esc_attr( $mcq_lim ); ?>" 
-                                                       name="mcq_marks[<?php echo esc_attr( $student_internal_id ); ?>]" 
+                                                <input type="number" step="0.5" min="0" max="<?php echo (float) $comp['total']; ?>" 
+                                                       name="custom_comp_val[<?php echo esc_attr( (string) $student_internal_id ); ?>][<?php echo esc_attr( $comp_name ); ?>]" 
+                                                       class="ifs-educore-mark-cell-input inp-custom-comp" 
+                                                       data-comp="<?php echo esc_attr( $comp_name ); ?>" 
+                                                       data-max="<?php echo (float) $comp['total']; ?>" 
+                                                       value="<?php echo esc_attr( ( $is_absent || $is_unrecorded ) ? '0' : ( '' !== $val_c ? (string) $val_c : '' ) ); ?>" 
+                                                       placeholder="0" 
+                                                       <?php disabled( $is_absent || $is_unrecorded ); ?>
+                                                       style="width:75px; height:34px; text-align:center; border:1px solid #cbd5e1; border-radius:6px;">
+                                            </td>
+                                        <?php endforeach; ?>
+                                    <?php else : 
+                                        if ( $is_absent || $is_unrecorded ) {
+                                            $curr_cq  = 0.00;
+                                            $curr_mcq = 0.00;
+                                            $curr_pr  = 0.00;
+                                        } else {
+                                            $curr_cq  = ( $curr_res && '' !== trim( (string) $curr_res->cq_marks ) ) ? (float) $curr_res->cq_marks : '';
+                                            $curr_mcq = ( $curr_res && '' !== trim( (string) $curr_res->mcq_marks ) ) ? (float) $curr_res->mcq_marks : '';
+                                            $curr_pr  = ( $curr_res && '' !== trim( (string) $curr_res->practical_marks ) ) ? (float) $curr_res->practical_marks : '';
+                                        }
+                                    ?>
+                                        <!-- Conditionally render MCQ input -->
+                                        <?php if ( $mcq_lim > 0 ) : ?>
+                                            <td style="padding:10px;">
+                                                <input type="number" step="0.5" min="0" max="<?php echo esc_attr( (string) $mcq_lim ); ?>" 
+                                                       name="mcq_marks[<?php echo esc_attr( (string) $student_internal_id ); ?>]" 
                                                        class="ifs-educore-mark-cell-input inp-mcq" 
-                                                       data-max="<?php echo esc_attr( $mcq_lim ); ?>" 
-                                                       value="<?php echo esc_attr( $curr_mcq ); ?>" placeholder="0" style="width:75px; height:34px; text-align:center; border:1px solid #cbd5e1; border-radius:6px;">
-                                            </td>
-
-                                            <!-- CQ Input -->
-                                            <td style="padding:10px;">
-                                                <input type="number" step="0.5" min="0" max="<?php echo esc_attr( $cq_lim ); ?>" 
-                                                       name="cq_marks[<?php echo esc_attr( $student_internal_id ); ?>]" 
-                                                       class="ifs-educore-mark-cell-input inp-cq" 
-                                                       data-max="<?php echo esc_attr( $cq_lim ); ?>" 
-                                                       value="<?php echo esc_attr( $curr_cq ); ?>" placeholder="0" style="width:75px; height:34px; text-align:center; border:1px solid #cbd5e1; border-radius:6px;">
-                                            </td>
-
-                                            <!-- Practical Input -->
-                                            <td style="padding:10px;" class="td-pr-col">
-                                                <input type="number" step="0.5" min="0" max="<?php echo esc_attr( $pr_lim ); ?>" 
-                                                       name="practical_marks[<?php echo esc_attr( $student_internal_id ); ?>]" 
-                                                       class="ifs-educore-mark-cell-input inp-pr" 
-                                                       data-max="<?php echo esc_attr( $pr_lim ); ?>" 
-                                                       value="<?php echo esc_attr( $curr_pr ); ?>" placeholder="0" style="width:75px; height:34px; text-align:center; border:1px solid #cbd5e1; border-radius:6px;">
+                                                       data-max="<?php echo esc_attr( (string) $mcq_lim ); ?>" 
+                                                       value="<?php echo esc_attr( ( $is_absent || $is_unrecorded ) ? '0' : ( '' !== $curr_mcq ? (string) $curr_mcq : '' ) ); ?>" 
+                                                       placeholder="0" 
+                                                       <?php disabled( $is_absent || $is_unrecorded ); ?>
+                                                       style="width:75px; height:34px; text-align:center; border:1px solid #cbd5e1; border-radius:6px;">
                                             </td>
                                         <?php endif; ?>
 
-                                        <!-- Calculated Total -->
-                                        <td style="padding:10px;"><strong class="cell-total-obt" style="font-size: 14px; color: #0f172a;"><?php echo esc_html( $curr_tot ); ?></strong></td>
+                                        <!-- Conditionally render CQ input -->
+                                        <?php if ( $cq_lim > 0 ) : ?>
+                                            <td style="padding:10px;">
+                                                <input type="number" step="0.5" min="0" max="<?php echo esc_attr( (string) $cq_lim ); ?>" 
+                                                       name="cq_marks[<?php echo esc_attr( (string) $student_internal_id ); ?>]" 
+                                                       class="ifs-educore-mark-cell-input inp-cq" 
+                                                       data-max="<?php echo esc_attr( (string) $cq_lim ); ?>" 
+                                                       value="<?php echo esc_attr( ( $is_absent || $is_unrecorded ) ? '0' : ( '' !== $curr_cq ? (string) $curr_cq : '' ) ); ?>" 
+                                                       placeholder="0" 
+                                                       <?php disabled( $is_absent || $is_unrecorded ); ?>
+                                                       style="width:75px; height:34px; text-align:center; border:1px solid #cbd5e1; border-radius:6px;">
+                                            </td>
+                                        <?php endif; ?>
 
-                                        <!-- Evaluated Grade -->
-                                        <td style="padding:10px;">
-                                            <span class="cell-grade" style="display:inline-block; padding:3px 8px; border-radius:4px; font-weight:700; font-size:12px; background:<?php echo $is_fail ? '#fee2e2' : '#ecfdf5'; ?>; color:<?php echo $is_fail ? '#dc2626' : '#047857'; ?>;">
-                                                <?php echo esc_html( $curr_grd ); ?>
-                                            </span>
-                                        </td>
+                                        <!-- Conditionally render Practical input -->
+                                        <?php if ( $pr_lim > 0 ) : ?>
+                                            <td style="padding:10px;">
+                                                <input type="number" step="0.5" min="0" max="<?php echo esc_attr( (string) $pr_lim ); ?>" 
+                                                       name="practical_marks[<?php echo esc_attr( (string) $student_internal_id ); ?>]" 
+                                                       class="ifs-educore-mark-cell-input inp-pr" 
+                                                       data-max="<?php echo esc_attr( (string) $pr_lim ); ?>" 
+                                                       value="<?php echo esc_attr( ( $is_absent || $is_unrecorded ) ? '0' : ( '' !== $curr_pr ? (string) $curr_pr : '' ) ); ?>" 
+                                                       placeholder="0" 
+                                                       <?php disabled( $is_absent || $is_unrecorded ); ?>
+                                                       style="width:75px; height:34px; text-align:center; border:1px solid #cbd5e1; border-radius:6px;">
+                                            </td>
+                                        <?php endif; ?>
+                                    <?php endif; ?>
 
-                                        <!-- Evaluated GPA -->
-                                        <td style="padding:10px;"><strong class="cell-gpa" style="color: <?php echo $is_fail ? '#dc2626' : '#00523c'; ?>;"><?php echo esc_html( $curr_gpa ); ?></strong></td>
-                                    </tr>
+                                    <!-- Calculated Total -->
+                                    <td style="padding:10px;"><strong class="cell-total-obt" style="font-size: 14px; color: #0f172a;"><?php echo esc_html( $curr_tot ); ?></strong></td>
+
+                                    <!-- Evaluated Grade -->
+                                    <td style="padding:10px;">
+                                        <span class="cell-grade" style="display:inline-block; padding:3px 8px; border-radius:4px; font-weight:700; font-size:12px; background:<?php echo ( 'N/A' === $curr_grd ) ? '#f1f5f9' : ( $is_fail ? '#fee2e2' : '#ecfdf5' ); ?>; color:<?php echo ( 'N/A' === $curr_grd ) ? '#64748b' : ( $is_fail ? '#dc2626' : '#047857' ); ?>;">
+                                            <?php echo esc_html( $curr_grd ); ?>
+                                        </span>
+                                    </td>
+
+                                    <!-- Evaluated GPA -->
+                                    <td style="padding:10px;"><strong class="cell-gpa" style="color: <?php echo ( '—' === $curr_gpa ) ? '#64748b' : ( $is_fail ? '#dc2626' : '#00523c' ); ?>;"><?php echo esc_html( $curr_gpa ); ?></strong></td>
+                                </tr>
                                 <?php endforeach; else : ?>
                                     <tr>
                                         <td colspan="10" style="padding: 40px; color: #94a3b8; text-align:center;">
@@ -1481,17 +1728,17 @@ function educore_exams_marks_view() {
                 </form>
             </div>
 
-            <!-- Client-Side Real-time Grading, Clamping, Session Storage & Custom Component Evaluator -->
+            <!-- Client-Side Real-time Grading, Clamping, Session Storage & Attendance Lockout Handler -->
             <script type="text/javascript">
             document.addEventListener('DOMContentLoaded', function() {
                 var isCustomBreakdown = document.getElementById('is_custom_breakdown').value === '1';
                 var totalLimitInput   = document.getElementById('total_marks_limit');
                 var passLimitInput    = document.getElementById('pass_marks_limit');
 
-                var examId      = '<?php echo esc_js( $filter_exam ); ?>';
-                var className   = '<?php echo esc_js( $filter_class ); ?>';
-                var sectionName = '<?php echo esc_js( $filter_section ); ?>';
-                var subjectName = '<?php echo esc_js( $filter_subject ); ?>';
+                var examId      = '<?php echo esc_js( (string) $filter_exam ); ?>';
+                var className   = '<?php echo esc_js( (string) $filter_class ); ?>';
+                var sectionName = '<?php echo esc_js( (string) $filter_section ); ?>';
+                var subjectName = '<?php echo esc_js( (string) $filter_subject ); ?>';
                 var storageKey  = 'educore_marks_draft_' + examId + '_' + className + '_' + sectionName + '_' + subjectName;
 
                 var isDirty = false;
@@ -1537,6 +1784,7 @@ function educore_exams_marks_view() {
                 }
 
                 function enforceBounds(input, maxAllowed) {
+                    if (input.value.trim() === '') return;
                     var val = parseFloat(input.value);
                     if (val > maxAllowed) {
                         input.value = maxAllowed;
@@ -1549,6 +1797,14 @@ function educore_exams_marks_view() {
                     var limits   = getLimits();
                     var obtained = 0;
                     var failed   = false;
+                    var hasAnyInput = false;
+
+                    var isAbsentRow = row.classList.contains('ifs-absent-row-dimmed');
+                    var isUnrecordedRow = row.classList.contains('ifs-unrecorded-row-dimmed');
+
+                    if (isAbsentRow || isUnrecordedRow) {
+                        return;
+                    }
 
                     if (isCustomBreakdown) {
                         row.querySelectorAll('.inp-custom-comp').forEach(function(inp) {
@@ -1558,11 +1814,14 @@ function educore_exams_marks_view() {
                             inp.setAttribute('data-max', compRule.max);
                             enforceBounds(inp, compRule.max);
 
-                            var val = parseFloat(inp.value) || 0;
-                            obtained += val;
+                            if (inp.value.trim() !== '') {
+                                hasAnyInput = true;
+                                var val = parseFloat(inp.value) || 0;
+                                obtained += val;
 
-                            if (compRule.pass > 0 && val < compRule.pass) {
-                                failed = true;
+                                if (compRule.pass > 0 && val < compRule.pass) {
+                                    failed = true;
+                                }
                             }
                         });
                         obtained = Math.min(obtained, limits.total);
@@ -1571,36 +1830,48 @@ function educore_exams_marks_view() {
                         var inpMcq = row.querySelector('.inp-mcq');
                         var inpPr  = row.querySelector('.inp-pr');
 
-                        if (inpCq) {
-                            inpCq.setAttribute('data-max', limits.cqMax);
-                            enforceBounds(inpCq, limits.cqMax);
-                        }
-                        if (inpMcq) {
-                            inpMcq.setAttribute('data-max', limits.mcqMax);
-                            enforceBounds(inpMcq, limits.mcqMax);
-                        }
-                        if (inpPr) {
-                            inpPr.setAttribute('data-max', limits.prMax);
-                            enforceBounds(inpPr, limits.prMax);
-                        }
+                        if (inpCq) { inpCq.setAttribute('data-max', limits.cqMax); enforceBounds(inpCq, limits.cqMax); }
+                        if (inpMcq) { inpMcq.setAttribute('data-max', limits.mcqMax); enforceBounds(inpMcq, limits.mcqMax); }
+                        if (inpPr) { inpPr.setAttribute('data-max', limits.prMax); enforceBounds(inpPr, limits.prMax); }
 
-                        var valCq  = parseFloat(inpCq ? inpCq.value : 0) || 0;
-                        var valMcq = parseFloat(inpMcq ? inpMcq.value : 0) || 0;
-                        var valPr  = parseFloat(inpPr ? inpPr.value : 0) || 0;
+                        var valCq = 0, valMcq = 0, valPr = 0;
+
+                        if (inpCq && inpCq.value.trim() !== '') {
+                            hasAnyInput = true;
+                            valCq = parseFloat(inpCq.value) || 0;
+                            if (limits.cqPass > 0 && valCq < limits.cqPass) failed = true;
+                        }
+                        if (inpMcq && inpMcq.value.trim() !== '') {
+                            hasAnyInput = true;
+                            valMcq = parseFloat(inpMcq.value) || 0;
+                            if (limits.mcqPass > 0 && valMcq < limits.mcqPass) failed = true;
+                        }
+                        if (inpPr && inpPr.value.trim() !== '') {
+                            hasAnyInput = true;
+                            valPr = parseFloat(inpPr.value) || 0;
+                            if (limits.prPass > 0 && valPr < limits.prPass) failed = true;
+                        }
 
                         obtained = Math.min(valCq + valMcq + valPr, limits.total);
+                    }
 
-                        if (limits.cqPass > 0 && valCq < limits.cqPass) failed = true;
-                        if (limits.mcqPass > 0 && valMcq < limits.mcqPass) failed = true;
-                        if (limits.prPass > 0 && valPr < limits.prPass) failed = true;
+                    var gradeBadge = row.querySelector('.cell-grade');
+                    var gpaCell    = row.querySelector('.cell-gpa');
+                    var totalCell  = row.querySelector('.cell-total-obt');
+
+                    if (!hasAnyInput) {
+                        totalCell.textContent = '—';
+                        gradeBadge.textContent = 'N/A';
+                        gradeBadge.style.background = '#f1f5f9';
+                        gradeBadge.style.color = '#64748b';
+                        gpaCell.textContent    = '—';
+                        gpaCell.style.color    = '#64748b';
+                        return;
                     }
 
                     if (obtained < limits.pass) failed = true;
 
-                    row.querySelector('.cell-total-obt').textContent = obtained.toFixed(2);
-
-                    var gradeBadge = row.querySelector('.cell-grade');
-                    var gpaCell    = row.querySelector('.cell-gpa');
+                    totalCell.textContent = obtained.toFixed(2);
 
                     if (failed) {
                         gradeBadge.textContent = 'F';
@@ -1628,7 +1899,7 @@ function educore_exams_marks_view() {
                             var restoredAny = false;
                             Object.keys(savedDraft).forEach(function(inputName) {
                                 var input = form.querySelector('[name="' + inputName + '"]');
-                                if (input) {
+                                if (input && !input.disabled) {
                                     input.value = savedDraft[inputName];
                                     restoredAny = true;
                                 }
@@ -1642,8 +1913,12 @@ function educore_exams_marks_view() {
                         }
                     } catch (e) {}
 
+                    table.querySelectorAll('tbody tr').forEach(function(row) {
+                        evaluateRow(row);
+                    });
+
                     table.addEventListener('input', function(e) {
-                        if (e.target.classList.contains('ifs-educore-mark-cell-input')) {
+                        if (e.target.classList.contains('ifs-educore-mark-cell-input') && !e.target.disabled) {
                             isDirty = true;
                             var row = e.target.closest('tr');
                             if (row) evaluateRow(row);

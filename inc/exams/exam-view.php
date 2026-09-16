@@ -1,6 +1,6 @@
 <?php
 /**
- * Standalone Single Examination Scheme Details View
+ * Standalone Single Examination Scheme Full Details View
  * File: inc/exams/exam-view.php
  * Text Domain: ifsedu-school-management
  */
@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Render Standalone Single Examination Scheme Details View
+ * Render Standalone Single Examination Scheme Full Details View
  */
 function educore_exam_single_view() {
     global $wpdb;
@@ -19,8 +19,10 @@ function educore_exam_single_view() {
         wp_die( esc_html__( 'You do not have sufficient permissions to view examination schemes.', 'ifsedu-school-management' ) );
     }
 
-    $table_exams    = $wpdb->prefix . 'sms_exams';
-    $table_subjects = $wpdb->prefix . 'sms_subjects';
+    $table_exams      = $wpdb->prefix . 'sms_exams';
+    $table_subjects   = $wpdb->prefix . 'sms_subjects';
+    $table_students   = $wpdb->prefix . 'sms_students';
+    $table_attendance = $wpdb->prefix . 'sms_attendance';
 
     // phpcs:disable WordPress.Security.NonceVerification.Recommended
     $exam_id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
@@ -67,9 +69,15 @@ function educore_exam_single_view() {
         return;
     }
 
-    // Parse Classes & Subjects Map.
-    $classes_array = ! empty( $exam->class_name ) ? array_map( 'trim', explode( ',', $exam->class_name ) ) : array();
-    $subject_map   = ! empty( $exam->subject_ids ) ? json_decode( $exam->subject_ids, true ) : array();
+    // Parse Classes, Subjects, Attendance Rules & Term Weights Map.
+    $classes_array       = ! empty( $exam->class_name ) ? array_map( 'trim', explode( ',', $exam->class_name ) ) : array();
+    $subject_map         = ! empty( $exam->subject_ids ) ? json_decode( $exam->subject_ids, true ) : array();
+    $weightage_pct       = isset( $exam->weightage_pct ) ? (float) $exam->weightage_pct : 100.00;
+    $enable_term_contrib = isset( $exam->enable_term_contrib ) ? (string) $exam->enable_term_contrib : 'no';
+    $term_weights_map    = ! empty( $exam->term_weights_json ) ? json_decode( $exam->term_weights_json, true ) : array();
+    $include_attendance  = isset( $exam->include_attendance ) ? (string) $exam->include_attendance : 'yes';
+    $min_attendance_pct  = isset( $exam->min_attendance_pct ) ? (float) $exam->min_attendance_pct : 75.00;
+    $fee_clear_month     = isset( $exam->fee_clear_month ) ? (string) $exam->fee_clear_month : '';
 
     // Fetch Subject Details Map.
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
@@ -85,6 +93,17 @@ function educore_exam_single_view() {
         }
     }
 
+    // Fetch All Exams for Term Contribution Name Lookups.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    $all_exams_raw = $wpdb->get_results( "SELECT id, exam_name FROM `{$table_exams}`" );
+    // phpcs:enable
+    $exam_dict = array();
+    if ( ! empty( $all_exams_raw ) ) {
+        foreach ( $all_exams_raw as $ex_item ) {
+            $exam_dict[ $ex_item->id ] = $ex_item->exam_name;
+        }
+    }
+
     $start_ts     = ! empty( $exam->start_date ) ? strtotime( $exam->start_date ) : false;
     $end_ts       = ! empty( $exam->end_date ) ? strtotime( $exam->end_date ) : false;
     $att_start_ts = ! empty( $exam->att_start_date ) ? strtotime( $exam->att_start_date ) : $start_ts;
@@ -96,8 +115,7 @@ function educore_exam_single_view() {
     if ( $start_ts && $end_ts && $end_ts >= $start_ts ) {
         $curr = $start_ts;
         while ( $curr <= $end_ts ) {
-            $day_of_week = (int) gmdate( 'w', $curr ); // 0 = Sunday, 5 = Friday, 6 = Saturday.
-            // Assuming Friday (5) and Saturday (6) are weekly off days/weekends in Bangladesh standard.
+            $day_of_week = (int) gmdate( 'w', $curr );
             if ( 5 === $day_of_week || 6 === $day_of_week ) {
                 $total_off_days++;
             } else {
@@ -277,21 +295,9 @@ function educore_exam_single_view() {
             text-transform: capitalize;
             letter-spacing: 0.3px;
         }
-        .ifs-exam-status-tag.upcoming {
-            background: #fef3c7;
-            color: #b45309;
-            border: 1px solid #fde68a;
-        }
-        .ifs-exam-status-tag.ongoing {
-            background: #eff6ff;
-            color: #1d4ed8;
-            border: 1px solid #bfdbfe;
-        }
-        .ifs-exam-status-tag.completed {
-            background: #ecfdf5;
-            color: #047857;
-            border: 1px solid #a7f3d0;
-        }
+        .ifs-exam-status-tag.upcoming { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+        .ifs-exam-status-tag.ongoing { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+        .ifs-exam-status-tag.completed { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
 
         /* Class & Subject Matrix Layout */
         .ifs-exam-matrix-card {
@@ -300,6 +306,7 @@ function educore_exam_single_view() {
             border-radius: 14px;
             padding: 24px;
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02);
+            margin-bottom: 24px;
         }
         .ifs-exam-matrix-header {
             display: flex;
@@ -456,7 +463,7 @@ function educore_exam_single_view() {
             </div>
         </div>
 
-        <!-- Bento Grid Meta Summary -->
+        <!-- Bento Stats Matrix -->
         <div class="ifs-exam-bento-stats">
             
             <!-- Schedule Window -->
@@ -467,6 +474,17 @@ function educore_exam_single_view() {
                 </span>
                 <span class="ifs-exam-stat-value" style="font-size:14px;">
                     <?php echo esc_html( ( $start_ts ? date_i18n( 'd M, Y', $start_ts ) : '—' ) . ' to ' . ( $end_ts ? date_i18n( 'd M, Y', $end_ts ) : '—' ) ); ?>
+                </span>
+            </div>
+
+            <!-- Current Exam Weight -->
+            <div class="ifs-exam-bento-stat-card" style="border-left: 3.5px solid #2563eb;">
+                <span class="ifs-exam-stat-label">
+                    <span class="dashicons dashicons-chart-pie" style="color:#2563eb; font-size:16px; width:16px; height:16px;"></span>
+                    <?php esc_html_e( 'Current Exam Weight', 'ifsedu-school-management' ); ?>
+                </span>
+                <span class="ifs-exam-stat-value" style="color:#2563eb;">
+                    <?php echo number_format( (float) $weightage_pct, 2 ); ?>% <?php esc_html_e( 'of Total Grade', 'ifsedu-school-management' ); ?>
                 </span>
             </div>
 
@@ -492,14 +510,29 @@ function educore_exam_single_view() {
                 </span>
             </div>
 
-            <!-- Term Attendance Calculation Window -->
+            <!-- Attendance Scope Range & Quota -->
             <div class="ifs-exam-bento-stat-card" style="border-left: 3.5px solid #00523c;">
                 <span class="ifs-exam-stat-label">
                     <span class="dashicons dashicons-clock" style="color:#047857; font-size:16px; width:16px; height:16px;"></span>
-                    <?php esc_html_e( 'Attendance Scope Range', 'ifsedu-school-management' ); ?>
+                    <?php esc_html_e( 'Attendance Rules', 'ifsedu-school-management' ); ?>
                 </span>
-                <span class="ifs-exam-stat-value" style="font-size:14px; color:#047857;">
-                    <?php echo esc_html( ( $att_start_ts ? date_i18n( 'd M, Y', $att_start_ts ) : '—' ) . ' to ' . ( $att_end_ts ? date_i18n( 'd M, Y', $att_end_ts ) : '—' ) ); ?>
+                <span class="ifs-exam-stat-value" style="font-size:13px; color:#047857;">
+                    <?php if ( 'yes' === $include_attendance ) : ?>
+                        <?php printf( esc_html__( 'Min Quota: %s%% required', 'ifsedu-school-management' ), esc_html( (string) $min_attendance_pct ) ); ?>
+                    <?php else : ?>
+                        <?php esc_html_e( 'Attendance Quota Disabled', 'ifsedu-school-management' ); ?>
+                    <?php endif; ?>
+                </span>
+            </div>
+
+            <!-- Fees Clearance Rule -->
+            <div class="ifs-exam-bento-stat-card" style="border-left: 3.5px solid #7c3aed;">
+                <span class="ifs-exam-stat-label">
+                    <span class="dashicons dashicons-money-alt" style="color:#7c3aed; font-size:16px; width:16px; height:16px;"></span>
+                    <?php esc_html_e( 'Fees Clearance Rule', 'ifsedu-school-management' ); ?>
+                </span>
+                <span class="ifs-exam-stat-value" style="font-size:13px; color:#7c3aed;">
+                    <?php echo ! empty( $fee_clear_month ) ? sprintf( esc_html__( 'Cleared up to %s', 'ifsedu-school-management' ), esc_html( $fee_clear_month ) ) : esc_html__( 'No Fee Rule', 'ifsedu-school-management' ); ?>
                 </span>
             </div>
 
@@ -526,6 +559,31 @@ function educore_exam_single_view() {
             </div>
 
         </div>
+
+        <?php if ( 'yes' === $enable_term_contrib && ! empty( $term_weights_map ) ) : ?>
+            <!-- Cumulative Term Contribution Breakdown -->
+            <div class="ifs-exam-matrix-card" style="background: #eff6ff; border-color: #bfdbfe;">
+                <div class="ifs-exam-matrix-header" style="border-color: #bfdbfe;">
+                    <h3 class="ifs-exam-matrix-title" style="color: #1e40af;">
+                        <span class="dashicons dashicons-analytics" style="color: #1d4ed8;"></span>
+                        <?php esc_html_e( 'Cumulative Term Mark Contributions', 'ifsedu-school-management' ); ?>
+                    </h3>
+                    <span style="font-size: 12px; font-weight: 700; color: #1d4ed8;">
+                        <?php esc_html_e( 'Multi-Term Weight Allocations', 'ifsedu-school-management' ); ?>
+                    </span>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px;">
+                    <?php foreach ( $term_weights_map as $prev_exam_id => $prev_pct ) : 
+                        $prev_exam_title = isset( $exam_dict[ $prev_exam_id ] ) ? $exam_dict[ $prev_exam_id ] : __( 'Exam #', 'ifsedu-school-management' ) . $prev_exam_id;
+                    ?>
+                        <div style="background: #ffffff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-weight: 700; color: #1e3a8a; font-size: 13px;"><?php echo esc_html( $prev_exam_title ); ?></span>
+                            <span style="background: #dbeafe; color: #1e40af; padding: 3px 8px; border-radius: 6px; font-weight: 800; font-size: 12.5px;"><?php echo number_format( (float) $prev_pct, 2 ); ?>%</span>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        <?php endif; ?>
 
         <!-- Class & Subject Evaluation Breakdown Matrix -->
         <div class="ifs-exam-matrix-card">

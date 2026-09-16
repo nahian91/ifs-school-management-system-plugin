@@ -386,218 +386,230 @@ function educore_student_attendance_log_view( $classes ) {
     <style>
         /* Modern Pro Bento Styling & Spacing Overhaul for Attendance Module */
         .ifs-educore-attendance-reports-root {
-            font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            color: #0f172a;
+            font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+            color: #0f172a !important;
         }
         .ifs-educore-top-nav-container {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 24px;
+            display: flex !important;
+            gap: 12px !important;
+            margin-bottom: 24px !important;
         }
         .ifs-educore-subnav-pill {
-            background: #ffffff;
-            border: 1.5px solid #cbd5e1;
-            color: #475569;
-            padding: 10px 20px;
-            border-radius: 10px;
-            font-size: 13.5px;
-            font-weight: 700;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.2s ease;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            background: #ffffff !important;
+            border: 1.5px solid #cbd5e1 !important;
+            color: #475569 !important;
+            padding: 10px 20px !important;
+            border-radius: 10px !important;
+            font-size: 13.5px !important;
+            font-weight: 700 !important;
+            text-decoration: none !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 8px !important;
+            transition: all 0.2s ease !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important;
         }
         .ifs-educore-subnav-pill:hover {
-            background: #f8fafc;
-            color: #00523c;
-            border-color: #94a3b8;
+            background: #f8fafc !important;
+            color: #00523c !important;
+            border-color: #94a3b8 !important;
         }
         .ifs-educore-subnav-pill.is-active {
-            background: #00523c;
-            color: #ffffff;
-            border-color: #00523c;
-            box-shadow: 0 4px 12px rgba(0, 82, 60, 0.2);
+            background: #00523c !important;
+            color: #ffffff !important;
+            border-color: #00523c !important;
+            box-shadow: 0 4px 12px rgba(0, 82, 60, 0.2) !important;
         }
         .ifs-educore-filter-top-bar {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 16px;
-            padding: 20px 24px;
-            margin-bottom: 24px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 16px;
-            box-shadow: 0 4px 15px -3px rgba(0,0,0,0.03);
+            background: #ffffff !important;
+            border: 1px solid #e2e8f0 !important;
+            border-radius: 16px !important;
+            padding: 20px 24px !important;
+            margin-bottom: 24px !important;
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            flex-wrap: wrap !important;
+            gap: 16px !important;
+            box-shadow: 0 4px 15px -3px rgba(0,0,0,0.03) !important;
         }
         .ifs-educore-filter-controls-group {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
+            display: flex !important;
+            align-items: center !important;
+            gap: 12px !important;
+            flex-wrap: wrap !important;
         }
         .ifs-educore-filter-select, .ifs-educore-filter-input {
-            height: 40px;
-            padding: 0 12px;
-            background: #f8fafc;
-            border: 1.5px solid #cbd5e1;
-            border-radius: 8px;
-            font-size: 13.5px;
-            color: #0f172a;
-            outline: none;
-            transition: all 0.2s ease;
+            height: 40px !important;
+            padding: 0 12px !important;
+            background: #f8fafc !important;
+            border: 1.5px solid #cbd5e1 !important;
+            border-radius: 8px !important;
+            font-size: 13.5px !important;
+            color: #0f172a !important;
+            outline: none !important;
+            transition: all 0.2s ease !important;
         }
         .ifs-educore-filter-select:focus, .ifs-educore-filter-input:focus {
-            border-color: #00523c;
-            background: #ffffff;
-            box-shadow: 0 0 0 3px rgba(0, 82, 60, 0.12);
+            border-color: #00523c !important;
+            background: #ffffff !important;
+            box-shadow: 0 0 0 3px rgba(0, 82, 60, 0.12) !important;
         }
         .ifs-educore-btn-print-sheet {
-            background: #00523c;
-            color: #ffffff;
-            border: none;
-            height: 40px;
-            padding: 0 20px;
-            border-radius: 8px;
-            font-size: 13.5px;
-            font-weight: 700;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            box-shadow: 0 4px 12px rgba(0,82,60,0.2);
-            transition: background 0.2s ease;
+            background: #00523c !important;
+            color: #ffffff !important;
+            border: none !important;
+            height: 40px !important;
+            padding: 0 20px !important;
+            border-radius: 8px !important;
+            font-size: 13.5px !important;
+            font-weight: 700 !important;
+            cursor: pointer !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 6px !important;
+            box-shadow: 0 4px 12px rgba(0,82,60,0.2) !important;
+            transition: background 0.2s ease !important;
         }
         .ifs-educore-btn-print-sheet:hover {
-            background: #047857;
+            background: #047857 !important;
         }
 
         /* Segmented Mode Switcher Style */
         .ifs-educore-report-mode-segmented {
-            display: inline-flex;
-            background: #f1f5f9;
-            border: 1px solid #cbd5e1;
-            border-radius: 10px;
-            padding: 4px;
-            gap: 4px;
+            display: inline-flex !important;
+            background: #f1f5f9 !important;
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 10px !important;
+            padding: 4px !important;
+            gap: 4px !important;
         }
         .ifs-educore-report-mode-input {
-            display: none;
+            display: none !important;
         }
         .ifs-educore-report-mode-pill {
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 700;
-            color: #475569;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            transition: all 0.2s ease;
-            user-select: none;
+            padding: 8px 16px !important;
+            border-radius: 8px !important;
+            font-size: 13px !important;
+            font-weight: 700 !important;
+            color: #475569 !important;
+            cursor: pointer !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 6px !important;
+            transition: all 0.2s ease !important;
+            user-select: none !important;
         }
         .ifs-educore-report-mode-input:checked + .ifs-educore-report-mode-pill {
-            background: #ffffff;
-            color: #00523c;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+            background: #ffffff !important;
+            color: #00523c !important;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06) !important;
+        }
+
+        /* Bento Card Styling Suite */
+        .ifs-educore-bento-card {
+            background: #ffffff !important;
+            border: 1px solid #e2e8f0 !important;
+            border-radius: 16px !important;
+            padding: 28px !important;
+            box-shadow: 0 4px 20px -4px rgba(0,0,0,0.03) !important;
+            box-sizing: border-box !important;
+            margin-bottom: 24px !important;
         }
 
         /* Official Print Sheet Custom Canvas */
         .ifs-official-sheet-container {
-            background: #ffffff;
-            border: 1px solid #cbd5e1;
-            border-radius: 16px;
-            padding: 40px;
-            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05);
-            max-width: 900px;
-            margin: 0 auto;
+            background: #ffffff !important;
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 16px !important;
+            padding: 40px !important;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05) !important;
+            max-width: 900px !important;
+            margin: 0 auto !important;
+            box-sizing: border-box !important;
         }
         .ifs-official-header {
-            text-align: center;
-            border-bottom: 2px solid #0f172a;
-            padding-bottom: 14px;
-            margin-bottom: 20px;
+            text-align: center !important;
+            border-bottom: 2px solid #0f172a !important;
+            padding-bottom: 14px !important;
+            margin-bottom: 20px !important;
         }
         .ifs-official-logo {
-            max-height: 55px;
-            object-fit: contain;
-            margin-bottom: 6px;
+            max-height: 55px !important;
+            object-fit: contain !important;
+            margin-bottom: 6px !important;
         }
         .ifs-official-school-tagline {
-            font-size: 11px;
-            font-weight: 700;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
+            font-size: 11px !important;
+            font-weight: 700 !important;
+            color: #64748b !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.05em !important;
         }
         .ifs-official-school-title {
-            font-size: 22px;
-            font-weight: 900;
-            color: #0f172a;
-            margin: 4px 0;
+            font-size: 22px !important;
+            font-weight: 900 !important;
+            color: #0f172a !important;
+            margin: 4px 0 !important;
         }
         .ifs-official-school-contact {
-            font-size: 11.5px;
-            color: #475569;
-            margin: 0;
-            font-weight: 600;
+            font-size: 11.5px !important;
+            color: #475569 !important;
+            margin: 0 !important;
+            font-weight: 600 !important;
         }
         .ifs-official-meta-strip {
-            display: flex;
-            justify-content: space-between;
-            font-size: 13px;
-            font-weight: 700;
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            padding: 8px 14px;
-            border-radius: 8px;
-            margin-bottom: 20px;
+            display: flex !important;
+            justify-content: space-between !important;
+            font-size: 13px !important;
+            font-weight: 700 !important;
+            background: #f8fafc !important;
+            border: 1px solid #e2e8f0 !important;
+            padding: 8px 14px !important;
+            border-radius: 8px !important;
+            margin-bottom: 20px !important;
         }
         .ifs-official-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 12.5px;
-            margin-bottom: 24px;
+            width: 100% !important;
+            border-collapse: collapse !important;
+            font-size: 12.5px !important;
+            margin-bottom: 24px !important;
         }
         .ifs-official-table th, .ifs-official-table td {
-            border: 1px solid #cbd5e1;
-            padding: 8px 12px;
+            border: 1px solid #cbd5e1 !important;
+            padding: 8px 12px !important;
         }
         .ifs-official-table th {
-            background: #f1f5f9;
-            font-weight: 800;
-            color: #1e293b;
+            background: #f1f5f9 !important;
+            font-weight: 800 !important;
+            color: #1e293b !important;
         }
         .ifs-official-summary-box {
-            display: flex;
-            justify-content: space-around;
-            background: #f0fdf4;
-            border: 1.5px solid #bbf7d0;
-            border-radius: 10px;
-            padding: 14px;
-            font-size: 14px;
-            font-weight: 800;
-            color: #065f46;
-            margin-bottom: 40px;
+            display: flex !important;
+            justify-content: space-around !important;
+            background: #f0fdf4 !important;
+            border: 1.5px solid #bbf7d0 !important;
+            border-radius: 10px !important;
+            padding: 14px !important;
+            font-size: 14px !important;
+            font-weight: 800 !important;
+            color: #065f46 !important;
+            margin-bottom: 40px !important;
         }
         .ifs-official-sig-row {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 50px;
-            padding-top: 10px;
+            display: flex !important;
+            justify-content: space-between !important;
+            margin-top: 50px !important;
+            padding-top: 10px !important;
         }
         .ifs-official-sig-block {
-            text-align: center;
-            font-size: 12px;
-            font-weight: 700;
-            color: #0f172a;
-            border-top: 1px dashed #94a3b8;
-            padding-top: 6px;
-            width: 180px;
+            text-align: center !important;
+            font-size: 12px !important;
+            font-weight: 700 !important;
+            color: #0f172a !important;
+            border-top: 1px dashed #94a3b8 !important;
+            padding-top: 6px !important;
+            width: 180px !important;
         }
 
         @media print {
@@ -847,7 +859,7 @@ function educore_student_attendance_log_view( $classes ) {
                     <!-- 1. STUDENT MODE CONTROLS -->
                     <div id="ifs_educore_wrapper_student_controls" style="display: <?php echo ( 'student' === $report_mode ) ? 'grid' : 'none'; ?>; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:16px; align-items:flex-end;">
                         <div class="ifs-educore-form-group">
-                            <label class="ifs-educore-form-label"><?php esc_html_e( 'Academic Class', 'ifsedu-school-management' ); ?></label>
+                            <label class="ifs-educore-form-label" style="font-size:11.5px; font-weight:800; color:#475569; text-transform:uppercase; margin-bottom:6px; display:block;"><?php esc_html_e( 'Academic Class', 'ifsedu-school-management' ); ?></label>
                             <select name="filter_class" id="ifs_educore_rpt_class_select" class="ifs-educore-filter-select" style="width:100%;">
                                 <option value=""><?php esc_html_e( '-- Select Class --', 'ifsedu-school-management' ); ?></option>
                                 <?php foreach ( $classes as $cls ) : ?>
@@ -857,14 +869,14 @@ function educore_student_attendance_log_view( $classes ) {
                         </div>
 
                         <div class="ifs-educore-form-group">
-                            <label class="ifs-educore-form-label"><?php esc_html_e( 'Section', 'ifsedu-school-management' ); ?></label>
+                            <label class="ifs-educore-form-label" style="font-size:11.5px; font-weight:800; color:#475569; text-transform:uppercase; margin-bottom:6px; display:block;"><?php esc_html_e( 'Section', 'ifsedu-school-management' ); ?></label>
                             <select name="filter_section" id="ifs_educore_rpt_section_select" class="ifs-educore-filter-select" style="width:100%;">
                                 <option value=""><?php esc_html_e( '-- All Sections --', 'ifsedu-school-management' ); ?></option>
                             </select>
                         </div>
 
                         <div class="ifs-educore-form-group">
-                            <label class="ifs-educore-form-label"><?php esc_html_e( 'Select Subject (Optional)', 'ifsedu-school-management' ); ?></label>
+                            <label class="ifs-educore-form-label" style="font-size:11.5px; font-weight:800; color:#475569; text-transform:uppercase; margin-bottom:6px; display:block;"><?php esc_html_e( 'Select Subject (Optional)', 'ifsedu-school-management' ); ?></label>
                             <select name="subject_name" id="ifs_educore_rpt_subject_select" class="ifs-educore-filter-select" style="width:100%;">
                                 <option value=""><?php esc_html_e( '-- All Subjects --', 'ifsedu-school-management' ); ?></option>
                                 <?php foreach ( $available_subjects as $sub ) : ?>
@@ -874,7 +886,7 @@ function educore_student_attendance_log_view( $classes ) {
                         </div>
 
                         <div class="ifs-educore-form-group" style="grid-column: span 2;">
-                            <label class="ifs-educore-form-label"><?php esc_html_e( 'Select Student', 'ifsedu-school-management' ); ?> *</label>
+                            <label class="ifs-educore-form-label" style="font-size:11.5px; font-weight:800; color:#475569; text-transform:uppercase; margin-bottom:6px; display:block;"><?php esc_html_e( 'Select Student', 'ifsedu-school-management' ); ?> *</label>
                             <select name="student_id" id="ifs_educore_report_student_id" class="ifs-educore-filter-select" style="width:100%;">
                                 <option value=""><?php esc_html_e( '-- Choose Student --', 'ifsedu-school-management' ); ?></option>
                             </select>
@@ -884,7 +896,7 @@ function educore_student_attendance_log_view( $classes ) {
                     <!-- 2. EXAM ATTENDANCE MODE CONTROLS -->
                     <div id="ifs_educore_wrapper_exam_controls" style="display: <?php echo ( 'exam' === $report_mode ) ? 'grid' : 'none'; ?>; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:16px; align-items:flex-end;">
                         <div class="ifs-educore-form-group">
-                            <label class="ifs-educore-form-label"><?php esc_html_e( 'Select Exam', 'ifsedu-school-management' ); ?> *</label>
+                            <label class="ifs-educore-form-label" style="font-size:11.5px; font-weight:800; color:#475569; text-transform:uppercase; margin-bottom:6px; display:block;"><?php esc_html_e( 'Select Exam', 'ifsedu-school-management' ); ?> *</label>
                             <select name="exam_id" id="ifs_educore_rpt_exam_select" class="ifs-educore-filter-select" style="width:100%;">
                                 <option value=""><?php esc_html_e( '-- Choose Exam --', 'ifsedu-school-management' ); ?></option>
                                 <?php foreach ( $all_exams as $ex ) : ?>
@@ -894,7 +906,7 @@ function educore_student_attendance_log_view( $classes ) {
                         </div>
 
                         <div class="ifs-educore-form-group">
-                            <label class="ifs-educore-form-label"><?php esc_html_e( 'Class Name', 'ifsedu-school-management' ); ?> *</label>
+                            <label class="ifs-educore-form-label" style="font-size:11.5px; font-weight:800; color:#475569; text-transform:uppercase; margin-bottom:6px; display:block;"><?php esc_html_e( 'Class Name', 'ifsedu-school-management' ); ?> *</label>
                             <select name="exam_class" id="ifs_educore_rpt_exam_class" class="ifs-educore-filter-select" style="width:100%;">
                                 <option value=""><?php esc_html_e( '-- Choose Class --', 'ifsedu-school-management' ); ?></option>
                                 <?php foreach ( $classes as $cls ) : ?>
@@ -904,7 +916,7 @@ function educore_student_attendance_log_view( $classes ) {
                         </div>
 
                         <div class="ifs-educore-form-group">
-                            <label class="ifs-educore-form-label"><?php esc_html_e( 'Exam Subject', 'ifsedu-school-management' ); ?> *</label>
+                            <label class="ifs-educore-form-label" style="font-size:11.5px; font-weight:800; color:#475569; text-transform:uppercase; margin-bottom:6px; display:block;"><?php esc_html_e( 'Exam Subject', 'ifsedu-school-management' ); ?> *</label>
                             <select name="exam_subject" id="ifs_educore_rpt_exam_subject" class="ifs-educore-filter-select" style="width:100%;">
                                 <option value=""><?php esc_html_e( '-- Choose Subject --', 'ifsedu-school-management' ); ?></option>
                             </select>
@@ -914,7 +926,7 @@ function educore_student_attendance_log_view( $classes ) {
                     <!-- 3. STAFF MODE CONTROLS -->
                     <div id="ifs_educore_wrapper_staff_controls" style="display: <?php echo ( 'staff' === $report_mode ) ? 'flex' : 'none'; ?>; gap:16px; flex-wrap:wrap; align-items:flex-end;">
                         <div class="ifs-educore-form-group" style="flex:1; min-width:200px;">
-                            <label class="ifs-educore-form-label"><?php esc_html_e( 'Employment Type', 'ifsedu-school-management' ); ?> *</label>
+                            <label class="ifs-educore-form-label" style="font-size:11.5px; font-weight:800; color:#475569; text-transform:uppercase; margin-bottom:6px; display:block;"><?php esc_html_e( 'Employment Type', 'ifsedu-school-management' ); ?> *</label>
                             <select name="staff_type" id="ifs_educore_report_staff_type" class="ifs-educore-filter-select" style="width:100%;">
                                 <option value=""><?php esc_html_e( '-- All Employment Types --', 'ifsedu-school-management' ); ?></option>
                                 <?php foreach ( $all_staff_types as $st_type ) : ?>
@@ -924,7 +936,7 @@ function educore_student_attendance_log_view( $classes ) {
                         </div>
 
                         <div class="ifs-educore-form-group" style="flex:2; min-width:220px;">
-                            <label class="ifs-educore-form-label"><?php esc_html_e( 'Select Employee', 'ifsedu-school-management' ); ?> *</label>
+                            <label class="ifs-educore-form-label" style="font-size:11.5px; font-weight:800; color:#475569; text-transform:uppercase; margin-bottom:6px; display:block;"><?php esc_html_e( 'Select Employee', 'ifsedu-school-management' ); ?> *</label>
                             <select name="staff_id" id="ifs_educore_report_staff_id" class="ifs-educore-filter-select" style="width:100%;">
                                 <option value=""><?php esc_html_e( '-- Choose Employee --', 'ifsedu-school-management' ); ?></option>
                             </select>
@@ -934,22 +946,22 @@ function educore_student_attendance_log_view( $classes ) {
                     <!-- DATE RANGE & SUBMIT ROW -->
                     <div id="ifs_educore_wrapper_date_range" style="display: <?php echo ( 'exam' === $report_mode ) ? 'none' : 'flex'; ?>; gap:16px; margin-top:16px; align-items:flex-end; flex-wrap:wrap;">
                         <div class="ifs-educore-form-group" style="flex:1; min-width:160px;">
-                            <label class="ifs-educore-form-label"><?php esc_html_e( 'From Date', 'ifsedu-school-management' ); ?></label>
+                            <label class="ifs-educore-form-label" style="font-size:11.5px; font-weight:800; color:#475569; text-transform:uppercase; margin-bottom:6px; display:block;"><?php esc_html_e( 'From Date', 'ifsedu-school-management' ); ?></label>
                             <input type="date" name="start_date" class="ifs-educore-filter-input" style="width:100%;" value="<?php echo esc_attr( $start_date ); ?>" max="<?php echo esc_attr( current_time( 'Y-m-d' ) ); ?>">
                         </div>
 
                         <div class="ifs-educore-form-group" style="flex:1; min-width:160px;">
-                            <label class="ifs-educore-form-label"><?php esc_html_e( 'To Date', 'ifsedu-school-management' ); ?></label>
+                            <label class="ifs-educore-form-label" style="font-size:11.5px; font-weight:800; color:#475569; text-transform:uppercase; margin-bottom:6px; display:block;"><?php esc_html_e( 'To Date', 'ifsedu-school-management' ); ?></label>
                             <input type="date" name="end_date" class="ifs-educore-filter-input" style="width:100%;" value="<?php echo esc_attr( $end_date ); ?>" max="<?php echo esc_attr( current_time( 'Y-m-d' ) ); ?>">
                         </div>
 
                         <div class="ifs-educore-form-group" style="flex:1; min-width:160px;">
-                            <button type="submit" class="ifs-educore-btn-primary" style="height:40px; padding:0 24px;"><?php esc_html_e( 'Fetch Attendance Log', 'ifsedu-school-management' ); ?></button>
+                            <button type="submit" class="ifs-educore-btn-print-sheet" style="height:40px; padding:0 24px; width:100%; justify-content:center;"><?php esc_html_e( 'Fetch Attendance Log', 'ifsedu-school-management' ); ?></button>
                         </div>
                     </div>
 
                     <div id="ifs_educore_wrapper_exam_submit" style="display: <?php echo ( 'exam' === $report_mode ) ? 'block' : 'none'; ?>; margin-top:16px;">
-                        <button type="submit" class="ifs-educore-btn-primary" style="height:40px; max-width:240px;"><?php esc_html_e( 'Load Exam Roster Audit', 'ifsedu-school-management' ); ?></button>
+                        <button type="submit" class="ifs-educore-btn-print-sheet" style="height:40px; max-width:240px; justify-content:center;"><?php esc_html_e( 'Load Exam Roster Audit', 'ifsedu-school-management' ); ?></button>
                     </div>
                 </form>
             </div>

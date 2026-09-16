@@ -24,7 +24,8 @@ function educore_fees_tab() {
         wp_die( esc_html__( 'You do not have sufficient permissions to access the financial fees module.', 'ifsedu-school-management' ) );
     }
 
-    $allowed_sub_tabs = array( 'list', 'collect', 'print' );
+    // Added 'view' to the allowed sub-tabs to support the details button
+    $allowed_sub_tabs = array( 'list', 'collect', 'print', 'view' );
 
     // phpcs:disable WordPress.Security.NonceVerification.Recommended
     $raw_sub_tab = isset( $_GET['sub'] ) ? sanitize_key( wp_unslash( $_GET['sub'] ) ) : 'list';
@@ -44,7 +45,7 @@ function educore_fees_tab() {
         <div class="ifs-educore-top-nav-wrapper no-print">
             <div class="ifs-educore-nav-button-group">
                 <a href="<?php echo esc_url( $all_fees_url ); ?>" 
-                   class="ifs-educore-nav-link <?php echo ( 'list' === $sub_tab ) ? 'ifs-educore-nav-link-active' : 'ifs-educore-nav-link-inactive'; ?>">
+                   class="ifs-educore-nav-link <?php echo ( 'list' === $sub_tab || 'view' === $sub_tab ) ? 'ifs-educore-nav-link-active' : 'ifs-educore-nav-link-inactive'; ?>">
                     <span class="dashicons dashicons-money-alt"></span>
                     <?php esc_html_e( 'All Fee Invoices', 'ifsedu-school-management' ); ?>
                 </a>
@@ -61,6 +62,13 @@ function educore_fees_tab() {
                     <span class="ifs-educore-context-badge">
                         <span class="dashicons dashicons-printer" style="font-size:14px; width:14px; height:14px;"></span>
                         <?php esc_html_e( 'Printing Invoice Receipt', 'ifsedu-school-management' ); ?>
+                    </span>
+                </div>
+            <?php elseif ( 'view' === $sub_tab ) : ?>
+                <div>
+                    <span class="ifs-educore-context-badge">
+                        <span class="dashicons dashicons-visibility" style="font-size:14px; width:14px; height:14px;"></span>
+                        <?php esc_html_e( 'Viewing Invoice Summary', 'ifsedu-school-management' ); ?>
                     </span>
                 </div>
             <?php endif; ?>
@@ -96,6 +104,22 @@ function educore_fees_tab() {
                                     /* translators: %s: Function name */
                                     __( 'Invoice Print module is initializing. Define %s.', 'ifsedu-school-management' ),
                                     '<code>educore_fees_invoice_print_view()</code>'
+                                ),
+                                array( 'code' => array() )
+                            ) . '</div>';
+                    }
+                    break;
+
+                case 'view':
+                    if ( function_exists( 'educore_fees_single_view' ) ) {
+                        educore_fees_single_view();
+                    } else {
+                        echo '<div class="ifs-educore-notice-card"><span class="dashicons dashicons-info" style="vertical-align:middle; margin-right:6px;"></span> ' . 
+                            wp_kses(
+                                sprintf(
+                                    /* translators: %s: Function name */
+                                    __( 'Invoice Detail View module is initializing. Define %s.', 'ifsedu-school-management' ),
+                                    '<code>educore_fees_single_view()</code>'
                                 ),
                                 array( 'code' => array() )
                             ) . '</div>';

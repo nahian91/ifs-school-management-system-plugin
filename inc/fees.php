@@ -19,7 +19,7 @@ $educore_fee_files = array(
     'fees-list.php',
     'fees-collect.php',
     'fees-invoice-print.php',
-    'fees-settings.php',
+    'fees-view.php',
 );
 
 foreach ( $educore_fee_files as $educore_file ) {
